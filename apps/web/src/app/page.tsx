@@ -14,7 +14,6 @@ import {
   ArrowRight,
   Landmark,
   Coins,
-  Lock,
   Search,
   Home,
   Tag,
@@ -23,7 +22,6 @@ import {
   Check,
   ChevronRight,
   PhoneCall,
-  User,
   PlusCircle,
   Calculator,
   HelpCircle,
@@ -147,11 +145,11 @@ export default function HomePage() {
             </a>
           </nav>
 
-          {/* Right: Actions, Language & Auth Button */}
+          {/* Right: Actions & Language Switcher */}
           <div className="flex items-center gap-2.5 sm:gap-3">
             {/* Post Free Property Badge */}
             <Link
-              href="/auth"
+              href={user ? '/dashboard' : '/auth'}
               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border-2 border-emerald-600 bg-emerald-50/70 hover:bg-emerald-600 text-emerald-800 hover:text-white text-xs font-bold transition-all shadow-sm active:scale-95"
             >
               <PlusCircle className="w-3.5 h-3.5" />
@@ -168,28 +166,6 @@ export default function HomePage() {
               <Globe2 className="w-3.5 h-3.5 text-emerald-600" />
               <span>{lang === 'en' ? 'नेपाली' : 'EN'}</span>
             </button>
-
-            {/* Authentication Action */}
-            {user ? (
-              <Link
-                href="/dashboard"
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-sm hover:shadow"
-              >
-                <User className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">{user.fullName}</span>
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-emerald-700 text-white text-[10px]">
-                  {user.credits} Credits
-                </span>
-              </Link>
-            ) : (
-              <Link
-                href="/auth"
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold transition-all shadow-sm hover:shadow active:scale-95"
-              >
-                <Lock className="w-3.5 h-3.5" />
-                <span>{lang === 'en' ? 'Login / Sign Up' : 'लगइन / दर्ता'}</span>
-              </Link>
-            )}
           </div>
         </div>
       </header>
