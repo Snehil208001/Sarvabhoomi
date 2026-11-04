@@ -118,63 +118,63 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-emerald-600 selection:text-white flex flex-col justify-between">
       {/* ============================================================ */}
-      {/* 1. TOP INSTITUTIONAL NAVBAR */}
+      {/* 1. TOP INSTITUTIONAL NAVBAR (NOBROKER CLEAN & SPACIOUS) */}
       {/* ============================================================ */}
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 sm:h-20 flex items-center justify-between gap-3 sm:gap-6">
           {/* Left: Brand Identity */}
-          <Link href="/" className="flex items-center gap-3 shrink-0 group">
-            <div className="w-11 h-11 rounded-xl bg-emerald-600 flex items-center justify-center font-bold text-white text-2xl shadow-sm ring-4 ring-emerald-50 select-none group-hover:bg-emerald-700 transition-colors">
+          <Link href="/" className="flex items-center gap-2.5 sm:gap-3 shrink-0 group">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-emerald-600 flex items-center justify-center font-bold text-white text-xl sm:text-2xl shadow-xs ring-4 ring-emerald-50 select-none group-hover:bg-emerald-700 transition-colors">
               स
             </div>
-            <div>
+            <div className="flex flex-col">
               <div className="flex items-center gap-2">
-                <span className="font-extrabold tracking-tight text-slate-900 text-lg sm:text-xl">
-                  {dict.brand.name}
+                <span className="font-extrabold tracking-tight text-slate-900 text-base sm:text-lg whitespace-nowrap">
+                  Sarvabhoomi
                 </span>
-                <span className="hidden md:inline-flex px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200">
+                <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 whitespace-nowrap">
                   0% Brokerage
                 </span>
               </div>
-              <p className="text-xs text-slate-500 hidden sm:block">
-                {lang === 'en' ? 'Direct P2P Real Estate & Wealth Tracker' : 'नेपालको पहिलो शून्य-दलाली घरजग्गा बजार'}
+              <p className="text-[11px] text-slate-500 hidden sm:block whitespace-nowrap">
+                {lang === 'en' ? 'Direct P2P Real Estate' : 'शून्य-दलाली घरजग्गा बजार'}
               </p>
             </div>
           </Link>
 
-          {/* Center: Navigation Links */}
-          <nav className="hidden lg:flex items-center gap-6 text-sm font-medium text-slate-600">
-            <a href="#how-it-works" className="hover:text-emerald-700 transition-colors">
-              {lang === 'en' ? 'Why 0% Brokerage' : 'शून्य दलाली किन?'}
+          {/* Center: Concise Navigation Links (Desktop) */}
+          <nav className="hidden xl:flex items-center gap-7 text-sm font-medium text-slate-600 shrink-0">
+            <a href="#how-it-works" className="hover:text-emerald-700 transition-colors whitespace-nowrap">
+              {lang === 'en' ? 'Why 0% Brokerage' : 'शून्य दलाली'}
             </a>
-            <a href="#featured-listings" className="hover:text-emerald-700 transition-colors">
-              {lang === 'en' ? 'Verified Land (Ghaderi)' : 'प्रमाणित जग्गा'}
+            <a href="#featured-listings" className="hover:text-emerald-700 transition-colors whitespace-nowrap">
+              {lang === 'en' ? 'Verified Land' : 'प्रमाणित जग्गा'}
             </a>
-            <a href="#valuation-tracker" className="hover:text-emerald-700 transition-colors">
-              {lang === 'en' ? 'Cadastral & Valuation' : 'कित्ता नापी नक्सा'}
+            <a href="#valuation-tracker" className="hover:text-emerald-700 transition-colors whitespace-nowrap">
+              {lang === 'en' ? 'Valuation & Kitta' : 'कित्ता नापी नक्सा'}
             </a>
-            <a href="#faqs" className="hover:text-emerald-700 transition-colors">
+            <a href="#faqs" className="hover:text-emerald-700 transition-colors whitespace-nowrap">
               {lang === 'en' ? 'FAQs' : 'प्रश्नोत्तर'}
             </a>
           </nav>
 
           {/* Right: Actions, Auth & Language Switcher */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Post Free Property Badge */}
             <Link
               href={user ? '/dashboard' : '/auth'}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border-2 border-emerald-600 bg-emerald-50/80 hover:bg-emerald-600 text-emerald-800 hover:text-white text-xs sm:text-sm font-bold transition-all shadow-sm active:scale-95"
+              className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-full border border-emerald-600 bg-emerald-50/90 hover:bg-emerald-600 text-emerald-800 hover:text-white text-xs sm:text-sm font-bold transition-all shadow-xs active:scale-95 whitespace-nowrap"
             >
-              <PlusCircle className="w-4 h-4" />
-              <span>{lang === 'en' ? 'Post Free Property' : 'जग्गा निःशुल्क राख्नुहोस्'}</span>
+              <PlusCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span>{lang === 'en' ? 'Post Free Property' : 'जग्गा राख्नुहोस्'}</span>
             </Link>
 
-            {/* Authentication Actions: Log In & Sign Up (NoBroker Style) */}
+            {/* Authentication Actions: Log In & Sign Up */}
             {user ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <Link
                   href="/dashboard"
-                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100 text-xs sm:text-sm font-bold transition-all shadow-sm"
+                  className="flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100 text-xs sm:text-sm font-bold transition-all shadow-xs whitespace-nowrap"
                   title="Go to Dashboard Console"
                 >
                   <User className="w-3.5 h-3.5 text-emerald-700" />
@@ -186,30 +186,28 @@ export default function HomePage() {
                 <button
                   type="button"
                   onClick={handleSignOut}
-                  className="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors text-xs font-semibold"
+                  className="p-1.5 sm:p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors text-xs font-semibold"
                   title={lang === 'en' ? 'Log Out' : 'लगआउट'}
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-1 sm:gap-2">
+              <div className="flex items-center gap-1 sm:gap-1.5">
                 {/* Log In Link */}
                 <Link
                   href="/auth"
-                  className="flex items-center gap-1 px-3 py-2 text-xs sm:text-sm font-semibold text-slate-700 hover:text-emerald-700 hover:bg-slate-100 rounded-xl transition-colors"
+                  className="px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-slate-700 hover:text-emerald-700 hover:bg-slate-100 rounded-lg transition-colors whitespace-nowrap"
                 >
-                  <LogIn className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>{lang === 'en' ? 'Log In' : 'लगइन'}</span>
+                  {lang === 'en' ? 'Log In' : 'लगइन'}
                 </Link>
 
                 {/* Sign Up Primary CTA Button */}
                 <Link
                   href="/auth"
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs sm:text-sm font-bold transition-all shadow-sm hover:shadow active:scale-95"
+                  className="px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs sm:text-sm font-bold transition-all shadow-xs hover:shadow-sm active:scale-95 whitespace-nowrap"
                 >
-                  <UserPlus className="w-3.5 h-3.5" />
-                  <span>{lang === 'en' ? 'Sign Up' : 'साइन अप'}</span>
+                  {lang === 'en' ? 'Sign Up' : 'साइन अप'}
                 </Link>
               </div>
             )}
@@ -218,7 +216,7 @@ export default function HomePage() {
             <button
               type="button"
               onClick={toggleLang}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 transition-all shadow-sm"
+              className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 sm:py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 transition-all shadow-xs whitespace-nowrap"
               title="Toggle Language"
             >
               <Globe2 className="w-3.5 h-3.5 text-emerald-600" />
