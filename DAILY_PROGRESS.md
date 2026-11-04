@@ -32,31 +32,22 @@ This log tracks all architectural decisions, feature implementations, verificati
   - Inputs start clean (`phone = ""`, `otpDigits = ["", "", "", "", "", ""]`).
   - Direct live integration with `@sarvabhoomi/shared` and Supabase Auth.
 
-#### 2. Unified 3-Step Authentication & Onboarding State Machine (`apps/web/src/app/auth/page.tsx`)
-- **Aesthetic:** Institutional fintech white & emerald green theme (`bg-slate-50`, `bg-white` cards, `border-slate-200`, emerald-600 accents).
-- **Header:**
-  - Sarvabhoomi Devanagari emblem (**"स"**) with emerald gradient ring.
-  - **Instant 1-Click Bilingual Toggle (`EN` ↔ `NE`)** powered by `@sarvabhoomi/shared` without page reload.
-- **Top 3-Step Progress Bar:** Dynamic visual indicator tracking `PHONE` ➔ `OTP` ➔ `ONBOARDING` with animated connecting emerald progress tracks.
-- **Step 1 (Mobile Input):**
-  - Fixed `🇳🇵 +977` badge.
-  - 10-digit validation against `nepalPhoneRegex`.
-  - Dynamic carrier detection: **Nepal Telecom (NTC)** (`984`, `985`, `986`, `974`, `975`) and **Ncell Axiata** (`980`, `981`, `982`, `970`).
-  - Pre-fill Dev Test helper (`9841000000` / OTP `123456`) with 1-click Quick Fill.
-- **Step 2 (6-Digit OTP Verification):**
-  - High-contrast 6-digit segmented input grid with auto-advance, backspace navigation, and clipboard paste support.
-  - "Change Number" back action and 30-second resend countdown timer.
-- **Step 3 (Nepal-Specific Onboarding):**
-  - Full Legal Name *(as per Citizenship / Lalpurja)*.
-  - Interactive Role Selector cards:
-    - `BUYER`: Direct Property Buyer (0% Commission)
-    - `OWNER`: Property Owner / Seller (100% Free Listing)
-    - `INVESTOR_NRN`: Institutional / NRN Investor (Wealth Tracker)
-  - Grouped District Selector (`Hilly & Valley Districts` vs `Terai & Inner Terai Districts`).
-  - **Auto-Detection Logic:** Selecting a district automatically switches the measurement system:
-    - Hilly (Kathmandu, Lalitpur, Kaski, Kavre) ➔ `HILLY: Ropani - Aana - Paisa - Daam`
-    - Terai (Chitwan, Jhapa, Morang, Rupandehi) ➔ `TERAI: Bigha - Kattha - Dhur`
-    - Interactive 1-click manual override cards.
+#### 2. Strict 4-Step Authentication & Onboarding Architecture (`apps/web/src/app/auth/page.tsx`)
+- **State-Skipping Bug Resolved:** Hard-reset state machine so `step` strictly initializes to `'PHONE'`. Removed the `useEffect` auto-forwarding bug so users always start at Step 1 unless already onboarded (`is_onboarded === true`).
+- **4-Step Visual Progress Bar:** Clean responsive tracker (`1. Mobile` ➔ `2. OTP` ➔ `3. Select Role` ➔ `4. Profile Details`) with emerald progress tracks and checkmark indicators.
+- **Step 1: Phone Input (`step === 'PHONE'`):** Fixed `🇳🇵 +977` prefix, 10-digit validation against `nepalPhoneRegex`, real-time NTC/Ncell carrier detection, and live `signInWithOtp`.
+- **Step 2: OTP Verification (`step === 'OTP'`):** 6-digit segmented input grid, 30s resend timer, "Change Number" link, and live `verifyOtp` triggering transition to Step 3.
+- **Step 3: Dedicated Role Selection (`step === 'ROLE_SELECTION'`):** Standalone view with 4 distinct roles:
+  1. `BUYER`: Direct Property Buyer (0% Commission)
+  2. `OWNER`: Property Owner / Seller (100% Free Listing)
+  3. `INVESTOR_NRN`: Institutional / NRN Investor (Wealth & Portfolio Tracker)
+  4. `AGENT_BROKER`: Licensed Real Estate Agent / Facilitator (Multi-Client GIS Portfolio)
+  - Updated `@sarvabhoomi/shared`, `authDict`, and Supabase migration schema to support `AGENT_BROKER`.
+- **Step 4: Profile & Preferences (`step === 'ONBOARDING_FORM'`):**
+  - Role summary pill with 1-click "Change Role" link back to Step 3.
+  - Full Legal Name (as per Citizenship / Lalpurja).
+  - Primary District selector auto-configuring measurement systems (Hilly: Ropani-Aana vs. Terai: Bigha-Kattha) with manual override.
+  - Submitting upserts profile with `is_onboarded: true` and redirects immediately to `/dashboard`.
 
 ---
 
