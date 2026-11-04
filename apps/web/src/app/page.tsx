@@ -26,6 +26,10 @@ import {
   Calculator,
   HelpCircle,
   FileCheck2,
+  User,
+  UserPlus,
+  LogIn,
+  LogOut,
 } from 'lucide-react';
 import {
   getAuthDict,
@@ -89,6 +93,15 @@ export default function HomePage() {
     setLang((prev) => (prev === 'en' ? 'ne' : 'en'));
   };
 
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+    } catch (e) {
+      console.error('Sign out error:', e);
+    }
+  };
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const queryTerm = searchQuery.trim() || selectedHub;
@@ -145,22 +158,67 @@ export default function HomePage() {
             </a>
           </nav>
 
-          {/* Right: Actions & Language Switcher */}
-          <div className="flex items-center gap-2.5 sm:gap-3">
+          {/* Right: Actions, Auth & Language Switcher */}
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* Post Free Property Badge */}
             <Link
               href={user ? '/dashboard' : '/auth'}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border-2 border-emerald-600 bg-emerald-50/70 hover:bg-emerald-600 text-emerald-800 hover:text-white text-xs font-bold transition-all shadow-sm active:scale-95"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full border-2 border-emerald-600 bg-emerald-50/80 hover:bg-emerald-600 text-emerald-800 hover:text-white text-xs sm:text-sm font-bold transition-all shadow-sm active:scale-95"
             >
-              <PlusCircle className="w-3.5 h-3.5" />
+              <PlusCircle className="w-4 h-4" />
               <span>{lang === 'en' ? 'Post Free Property' : 'जग्गा निःशुल्क राख्नुहोस्'}</span>
             </Link>
+
+            {/* Authentication Actions: Log In & Sign Up (NoBroker Style) */}
+            {user ? (
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/dashboard"
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100 text-xs sm:text-sm font-bold transition-all shadow-sm"
+                  title="Go to Dashboard Console"
+                >
+                  <User className="w-3.5 h-3.5 text-emerald-700" />
+                  <span className="hidden md:inline font-semibold">{user.fullName}</span>
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-bold">
+                    {user.credits} Credits
+                  </span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors text-xs font-semibold"
+                  title={lang === 'en' ? 'Log Out' : 'लगआउट'}
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 sm:gap-2">
+                {/* Log In Link */}
+                <Link
+                  href="/auth"
+                  className="flex items-center gap-1 px-3 py-2 text-xs sm:text-sm font-semibold text-slate-700 hover:text-emerald-700 hover:bg-slate-100 rounded-xl transition-colors"
+                >
+                  <LogIn className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>{lang === 'en' ? 'Log In' : 'लगइन'}</span>
+                </Link>
+
+                {/* Sign Up Primary CTA Button */}
+                <Link
+                  href="/auth"
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs sm:text-sm font-bold transition-all shadow-sm hover:shadow active:scale-95"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>{lang === 'en' ? 'Sign Up' : 'साइन अप'}</span>
+                </Link>
+              </div>
+            )}
 
             {/* Bilingual Switcher */}
             <button
               type="button"
               onClick={toggleLang}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 hover:text-slate-900 transition-all shadow-sm"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 transition-all shadow-sm"
               title="Toggle Language"
             >
               <Globe2 className="w-3.5 h-3.5 text-emerald-600" />
