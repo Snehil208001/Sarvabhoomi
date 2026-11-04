@@ -162,7 +162,7 @@ export default function HomePage() {
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Post Free Property Badge */}
             <Link
-              href={user ? '/dashboard' : '/auth'}
+              href={user ? '/dashboard' : '/auth?mode=signup'}
               className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-full border border-emerald-600 bg-emerald-50/90 hover:bg-emerald-600 text-emerald-800 hover:text-white text-xs sm:text-sm font-bold transition-all shadow-xs active:scale-95 whitespace-nowrap"
             >
               <PlusCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -196,7 +196,7 @@ export default function HomePage() {
               <div className="flex items-center gap-1 sm:gap-1.5">
                 {/* Log In Link */}
                 <Link
-                  href="/auth"
+                  href="/auth?mode=login"
                   className="px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-slate-700 hover:text-emerald-700 hover:bg-slate-100 rounded-lg transition-colors whitespace-nowrap"
                 >
                   {lang === 'en' ? 'Log In' : 'लगइन'}
@@ -204,7 +204,7 @@ export default function HomePage() {
 
                 {/* Sign Up Primary CTA Button */}
                 <Link
-                  href="/auth"
+                  href="/auth?mode=signup"
                   className="px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs sm:text-sm font-bold transition-all shadow-xs hover:shadow-sm active:scale-95 whitespace-nowrap"
                 >
                   {lang === 'en' ? 'Sign Up' : 'साइन अप'}
@@ -831,7 +831,8 @@ export default function HomePage() {
               <span className="font-bold text-slate-900 text-sm">{dict.brand.name}</span>
             </div>
             <div className="flex flex-wrap items-center gap-6 text-slate-600 font-medium">
-              <Link href="/auth" className="hover:text-emerald-700">Login / Sign Up</Link>
+              <Link href="/auth?mode=login" className="hover:text-emerald-700">{lang === 'en' ? 'Log In' : 'लगइन'}</Link>
+              <Link href="/auth?mode=signup" className="hover:text-emerald-700">{lang === 'en' ? 'Sign Up' : 'साइन अप'}</Link>
               <Link href="/dashboard" className="hover:text-emerald-700">Marketplace Console</Link>
               <a href="#how-it-works" className="hover:text-emerald-700">Why Zero Brokerage</a>
               <a href="#faqs" className="hover:text-emerald-700">FAQs</a>

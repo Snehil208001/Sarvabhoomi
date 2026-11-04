@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useId, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, useId, useRef, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ShieldCheck,
   Phone,
@@ -22,6 +22,8 @@ import {
   Coins,
   Briefcase,
   UserCheck,
+  UserPlus,
+  LogIn,
 } from 'lucide-react';
 import {
   nepalPhoneRegex,
@@ -36,6 +38,7 @@ import {
 import { supabase } from '@/lib/supabase';
 
 type AuthStep = 'PHONE' | 'OTP' | 'ROLE_SELECTION' | 'ONBOARDING_FORM';
+type AuthMode = 'login' | 'signup';
 
 interface StepItem {
   id: AuthStep;
@@ -44,15 +47,32 @@ interface StepItem {
   labelNe: string;
 }
 
-const STEPS: StepItem[] = [
+const SIGNUP_STEPS: StepItem[] = [
   { id: 'PHONE', num: 1, labelEn: 'Mobile', labelNe: 'मोबाइल' },
   { id: 'OTP', num: 2, labelEn: 'OTP', labelNe: 'ओटीपी' },
   { id: 'ROLE_SELECTION', num: 3, labelEn: 'Select Role', labelNe: 'भूमिका' },
   { id: 'ONBOARDING_FORM', num: 4, labelEn: 'Profile Details', labelNe: 'विवरण' },
 ];
 
-export default function AuthPage() {
+const LOGIN_STEPS: StepItem[] = [
+  { id: 'PHONE', num: 1, labelEn: 'Mobile', labelNe: 'मोबाइल' },
+  { id: 'OTP', num: 2, labelEn: 'Verify OTP', labelNe: 'ओटीपी' },
+];
+
+function AuthContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Mode: 'login' or 'signup'
+  const [authMode, setAuthMode] = useState<AuthMode>('signup');
+
+  // Sync mode with URL query parameter
+  useEffect(() => {
+    const modeParam = searchParams.get('mode');
+    if (modeParam === 'login' || modeParam === 'signup') {
+      setAuthMode(modeParam);
+    }
+  }, [searchParams]);
 
   // Language state (defaults to English, toggles to Nepali)
   const [lang, setLang] = useState<'en' | 'ne'>('en');
@@ -123,8 +143,7 @@ export default function AuthPage() {
             return;
           }
 
-          // Do NOT fast-forward step here! Keep the user strictly on Step 1 ('PHONE').
-          // Pre-populate fields in case they progress forward.
+          // Pre-populate fields in case they progress forward, but keep on Step 1 ('PHONE')
           if (profile) {
             if (profile.full_name) setFullName(profile.full_name);
             if (profile.user_intent) setUserIntent(profile.user_intent);
@@ -163,6 +182,14 @@ export default function AuthPage() {
   // Toggle Language between English and Nepali
   const handleToggleLang = () => {
     setLang((prev) => (prev === 'en' ? 'ne' : 'en'));
+  };
+
+  // Switch between Log In and Sign Up modes
+  const handleSwitchMode = (mode: AuthMode) => {
+    setAuthMode(mode);
+    setNotice(null);
+    setPhoneError(null);
+    setOtpError(null);
   };
 
   // Evaluate phone input with real-time carrier detection
@@ -264,7 +291,6 @@ export default function AuthPage() {
     setOtpDigits(updated);
     setOtpError(null);
 
-    // Auto-advance to next box if character was entered
     if (char && index < 5) {
       otpInputRefs.current[index + 1]?.focus();
     }
@@ -373,11 +399,13 @@ export default function AuthPage() {
           .eq('id', verifiedUser.id)
           .maybeSingle();
 
+        // If user already completed onboarding, route to /dashboard directly!
         if (profile?.is_onboarded) {
           router.push('/dashboard');
           return;
         }
 
+        // If user was attempting to log in, but has no complete profile, guide them to role selection
         if (profile) {
           if (profile.full_name) setFullName(profile.full_name);
           if (profile.user_intent) setUserIntent(profile.user_intent);
@@ -385,14 +413,15 @@ export default function AuthPage() {
           if (profile.preferred_region) setPreferredRegion(profile.preferred_region);
         }
 
+        // Switch to signup mode if they need to complete profile
+        setAuthMode('signup');
         setNotice({
           type: 'success',
           message:
             lang === 'en'
-              ? 'Phone verified! Select your role to continue.'
+              ? 'Phone verified! Select your role to set up your profile.'
               : 'फोन प्रमाणीकरण सम्पन्न! अगाडि बढ्न आफ्नो भूमिका छनोट गर्नुहोस्।',
         });
-        // Transition strictly to Step 3: ROLE_SELECTION
         setStep('ROLE_SELECTION');
       }
     } catch (err: unknown) {
@@ -421,7 +450,6 @@ export default function AuthPage() {
   const handleCompleteOnboarding = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate using Zod onboardingSchema from @sarvabhoomi/shared
     const parseResult = onboardingSchema.safeParse({
       fullName,
       userIntent,
@@ -465,7 +493,6 @@ export default function AuthPage() {
         return;
       }
 
-      // Upsert profile into public.profiles
       const profileData = {
         id: targetUserId,
         phone_np: fullPhone,
@@ -490,7 +517,6 @@ export default function AuthPage() {
         return;
       }
 
-      // Redirect immediately to /dashboard
       router.push('/dashboard');
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : 'Error completing onboarding.';
@@ -503,7 +529,9 @@ export default function AuthPage() {
     }
   };
 
-  // Step Progress Index calculation
+  // Active step list depends on whether user is Logging In vs Signing Up
+  const activeSteps = authMode === 'login' ? LOGIN_STEPS : SIGNUP_STEPS;
+
   const getStepIndex = (s: AuthStep) => {
     switch (s) {
       case 'PHONE':
@@ -595,7 +623,7 @@ export default function AuthPage() {
                   {dict.brand.name}
                 </span>
                 <span className="hidden md:inline-flex px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200">
-                  Institutional P2P
+                  0% Brokerage
                 </span>
               </div>
               <p className="text-xs text-slate-500 hidden sm:block line-clamp-1 max-w-lg">
@@ -623,9 +651,9 @@ export default function AuthPage() {
 
       {/* Main Content Card Container */}
       <main className="flex-1 max-w-2xl w-full mx-auto px-4 py-6 sm:py-10 flex flex-col justify-center">
-        {/* Unified 4-Step Card */}
+        {/* Unified Auth Card */}
         <div className="bg-white border border-slate-200 rounded-2xl shadow-lg shadow-slate-200/50 overflow-hidden">
-          {/* Top 4-Step Progress Bar */}
+          {/* Top Progress Bar */}
           <div className="border-b border-slate-100 bg-slate-50/80 p-4 sm:px-6">
             <div className="flex items-center justify-between relative">
               {/* Connecting Progress Track */}
@@ -633,11 +661,11 @@ export default function AuthPage() {
               <div
                 className="absolute top-1/2 left-6 -translate-y-1/2 h-0.5 bg-emerald-600 transition-all duration-500 -z-0"
                 style={{
-                  width: `${(currentStepIdx / (STEPS.length - 1)) * 100}%`,
+                  width: `${(Math.min(currentStepIdx, activeSteps.length - 1) / Math.max(activeSteps.length - 1, 1)) * 100}%`,
                 }}
               />
 
-              {STEPS.map((s, idx) => {
+              {activeSteps.map((s, idx) => {
                 const isCompleted = idx < currentStepIdx;
                 const isActive = idx === currentStepIdx;
 
@@ -694,21 +722,72 @@ export default function AuthPage() {
           )}
 
           {/* ============================================================ */}
-          {/* STEP 1: NEPAL MOBILE NUMBER INPUT */}
+          {/* STEP 1: MOBILE NUMBER INPUT (LOG IN vs SIGN UP MODES) */}
           {/* ============================================================ */}
           {step === 'PHONE' && (
             <div className="p-6 sm:p-8">
+              {/* Segmented Mode Switcher Tab (Log In vs Sign Up) */}
+              <div className="grid grid-cols-2 p-1 bg-slate-100 rounded-xl mb-6 text-xs font-bold select-none">
+                <button
+                  type="button"
+                  onClick={() => handleSwitchMode('login')}
+                  className={`py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                    authMode === 'login'
+                      ? 'bg-white text-emerald-800 shadow-xs'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <LogIn className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>{lang === 'en' ? 'Log In' : 'लगइन'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleSwitchMode('signup')}
+                  className={`py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                    authMode === 'signup'
+                      ? 'bg-white text-emerald-800 shadow-xs'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <UserPlus className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>{lang === 'en' ? 'Sign Up (New User)' : 'साइन अप (नयाँ प्रयोगकर्ता)'}</span>
+                </button>
+              </div>
+
+              {/* Mode-Specific Header */}
               <div className="mb-6">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold mb-3">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>{dict.promo.claimBadge}</span>
-                </div>
-                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-                  {dict.phoneAuth.title}
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-500 mt-1.5 leading-relaxed">
-                  {dict.phoneAuth.subtitle}
-                </p>
+                {authMode === 'login' ? (
+                  <>
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold mb-3">
+                      <Lock className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>{lang === 'en' ? 'Direct Mobile Log-In' : 'प्रत्यक्ष मोबाइल लगइन'}</span>
+                    </div>
+                    <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                      {lang === 'en' ? 'Log In to Your Account' : 'सर्वभूमिमा लगइन गर्नुहोस्'}
+                    </h2>
+                    <p className="text-xs sm:text-sm text-slate-500 mt-1.5 leading-relaxed">
+                      {lang === 'en'
+                        ? 'Enter your registered Nepali mobile number to receive a secure 6-digit one-time code.'
+                        : 'आफ्नो दर्ता भएको नेपाली मोबाइल नम्बर प्रविष्ट गरी सुरक्षित ६-अङ्कको ओटीपी प्राप्त गर्नुहोस्।'}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold mb-3">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>{dict.promo.claimBadge}</span>
+                    </div>
+                    <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                      {lang === 'en' ? 'Create Your Free Account' : 'नयाँ निःशुल्क खाता खोल्नुहोस्'}
+                    </h2>
+                    <p className="text-xs sm:text-sm text-slate-500 mt-1.5 leading-relaxed">
+                      {lang === 'en'
+                        ? 'Register in 2 minutes to buy & sell property in Nepal with 0% middleman brokerage.'
+                        : '२ मिनेटमै दर्ता हुनुहोस् र बिना दलाल सिधै घरजग्गा कारोबार सुरु गर्नुहोस्।'}
+                    </p>
+                  </>
+                )}
               </div>
 
               <form onSubmit={handleSendOtp} className="space-y-5">
@@ -776,20 +855,43 @@ export default function AuthPage() {
                     </>
                   ) : (
                     <>
-                      <span>{dict.phoneAuth.sendOtpButton}</span>
+                      <span>
+                        {authMode === 'login'
+                          ? lang === 'en'
+                            ? 'Send Log In OTP'
+                            : 'लगइन ओटीपी पठाउनुहोस्'
+                          : dict.phoneAuth.sendOtpButton}
+                      </span>
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}
                 </button>
 
-                {/* Promotional Credit Highlight */}
-                <div className="pt-3 border-t border-slate-100 flex items-center gap-2.5 text-xs text-slate-600">
-                  <Coins className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>
-                    {lang === 'en'
-                      ? 'New signup bonus: 15 Free landowner contact unlock credits included.'
-                      : 'नयाँ दर्ता बोनस: १५ निःशुल्क जग्गाधनी सम्पर्क अनलक क्रेडिट उपलब्ध।'}
-                  </span>
+                {/* Mode-Specific Bottom Switcher */}
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
+                  {authMode === 'login' ? (
+                    <>
+                      <span>{lang === 'en' ? "Don't have an account?" : 'नयाँ प्रयोगकर्ता हुनुहुन्छ?'}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleSwitchMode('signup')}
+                        className="text-emerald-700 hover:text-emerald-800 font-bold hover:underline"
+                      >
+                        {lang === 'en' ? 'Create an Account' : 'साइन अप गर्नुहोस्'}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <span>{lang === 'en' ? 'Already registered?' : 'पहिले नै खाता छ?'}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleSwitchMode('login')}
+                        className="text-emerald-700 hover:text-emerald-800 font-bold hover:underline"
+                      >
+                        {lang === 'en' ? 'Log In here' : 'यहाँ लगइन गर्नुहोस्'}
+                      </button>
+                    </>
+                  )}
                 </div>
               </form>
             </div>
@@ -804,7 +906,7 @@ export default function AuthPage() {
                 <div className="flex items-center justify-between mb-3">
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">
                     <Lock className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>SMS Verification</span>
+                    <span>{authMode === 'login' ? 'Log In Verification' : 'Registration Verification'}</span>
                   </div>
                   <button
                     type="button"
@@ -894,7 +996,13 @@ export default function AuthPage() {
                     </>
                   ) : (
                     <>
-                      <span>{dict.otp.verifyButton}</span>
+                      <span>
+                        {authMode === 'login'
+                          ? lang === 'en'
+                            ? 'Verify & Log In'
+                            : 'प्रमाणित गरी लगइन गर्नुहोस्'
+                          : dict.otp.verifyButton}
+                      </span>
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}
@@ -1257,5 +1365,21 @@ export default function AuthPage() {
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center font-bold text-white text-xl animate-pulse">
+            स
+          </div>
+        </div>
+      }
+    >
+      <AuthContent />
+    </Suspense>
   );
 }
