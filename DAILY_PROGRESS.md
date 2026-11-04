@@ -33,6 +33,11 @@ This log tracks all architectural decisions, feature implementations, verificati
   - Direct live integration with `@sarvabhoomi/shared` and Supabase Auth.
 
 #### 2. Strict 4-Step Authentication & Onboarding Architecture (`apps/web/src/app/auth/page.tsx`)
+- **Differentiated Log In vs Sign Up Experiences:**
+  - Segmented `[ 🔐 Log In ]` and `[ ✨ Sign Up ]` tab toggle directly above the mobile input card.
+  - **Log In Mode (`/auth?mode=login`):** Streamlined 2-step verification (`1. Mobile` ➔ `2. Verify OTP`). Upon verification, existing onboarded users are immediately routed to the dashboard without unnecessary role/profile screens.
+  - **Sign Up Mode (`/auth?mode=signup`):** Full 4-step onboarding journey (`1. Mobile` ➔ `2. OTP` ➔ `3. Select Role` ➔ `4. Profile Details`) granting the 15 free promotional credits.
+  - Instant bottom mode-switchers (*"New to Sarvabhoomi? Create an Account"* / *"Already registered? Log In here"*).
 - **State-Skipping Bug Resolved:** Hard-reset state machine so `step` strictly initializes to `'PHONE'`. Removed the `useEffect` auto-forwarding bug so users always start at Step 1 unless already onboarded (`is_onboarded === true`).
 - **4-Step Visual Progress Bar:** Clean responsive tracker (`1. Mobile` ➔ `2. OTP` ➔ `3. Select Role` ➔ `4. Profile Details`) with emerald progress tracks and checkmark indicators.
 - **Step 1: Phone Input (`step === 'PHONE'`):** Fixed `🇳🇵 +977` prefix, 10-digit validation against `nepalPhoneRegex`, real-time NTC/Ncell carrier detection, and live `signInWithOtp`.
