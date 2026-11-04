@@ -100,11 +100,12 @@ This log tracks all architectural decisions, feature implementations, verificati
 
 #### 5. Consumer Marketplace Landing Page Redesign (`apps/web/src/app/page.tsx`)
 - **NoBroker-Inspired Consumer UX:** Completely stripped internal developer debug benches, DB schema cards, and workspace topologies from `localhost:3000`.
-- **Institutional Top Navbar:**
-  - Sarvabhoomi Devanagari emblem (**"स"**) with zero-brokerage brand badge.
+- **Top App Bar Actions (NoBroker Pattern):**
+  - **"Post Free Property"** direct badge.
+  - Distinct **"Log In"** link with Lucide icon.
+  - Highlighted **"Sign Up"** emerald primary CTA button.
+  - Authenticated session state: shows User Name, remaining credits, and a 1-click **Log Out** button that immediately switches back to the guest actions.
   - 1-click bilingual switch (`EN` ↔ `नेपाली`).
-  - "Post Free Property" direct CTA.
-  - Dynamic user auth state: shows active user name, 15 Free Credits pill, and Dashboard link when logged in.
 - **Hero Search Engine:**
   - Category selector tabs: `Buy Land / Ghaderi`, `Buy House / Villa`, `Commercial Land`, and `Valuation Tracker`.
   - District dropdown filter (Kathmandu, Lalitpur, Bhaktapur, Pokhara, Chitwan, Butwal, etc.).
