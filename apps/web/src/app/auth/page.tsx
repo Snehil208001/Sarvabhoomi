@@ -6,6 +6,7 @@ import {
   ShieldCheck,
   Phone,
   ArrowRight,
+  ArrowLeft,
   CheckCircle2,
   AlertCircle,
   Globe2,
@@ -16,11 +17,10 @@ import {
   MapPin,
   Sparkles,
   Lock,
-  ChevronRight,
   Check,
   RotateCcw,
   Coins,
-  Compass,
+  Briefcase,
   UserCheck,
 } from 'lucide-react';
 import {
@@ -29,14 +29,27 @@ import {
   HILLY_DISTRICTS,
   TERAI_DISTRICTS,
   getRegionForDistrict,
-  LAND_MEASUREMENT_SYSTEM_INFO,
   getAuthDict,
   UserIntent,
   PreferredRegion,
 } from '@sarvabhoomi/shared';
 import { supabase } from '@/lib/supabase';
 
-type AuthStep = 'PHONE' | 'OTP' | 'ONBOARDING';
+type AuthStep = 'PHONE' | 'OTP' | 'ROLE_SELECTION' | 'ONBOARDING_FORM';
+
+interface StepItem {
+  id: AuthStep;
+  num: number;
+  labelEn: string;
+  labelNe: string;
+}
+
+const STEPS: StepItem[] = [
+  { id: 'PHONE', num: 1, labelEn: 'Mobile', labelNe: 'मोबाइल' },
+  { id: 'OTP', num: 2, labelEn: 'OTP', labelNe: 'ओटीपी' },
+  { id: 'ROLE_SELECTION', num: 3, labelEn: 'Select Role', labelNe: 'भूमिका' },
+  { id: 'ONBOARDING_FORM', num: 4, labelEn: 'Profile Details', labelNe: 'विवरण' },
+];
 
 export default function AuthPage() {
   const router = useRouter();
@@ -45,7 +58,7 @@ export default function AuthPage() {
   const [lang, setLang] = useState<'en' | 'ne'>('en');
   const dict = getAuthDict(lang);
 
-  // Active step machine
+  // Active step machine: strictly initialized to 'PHONE'
   const [step, setStep] = useState<AuthStep>('PHONE');
 
   // Step 1: Phone State (clean, empty by default)
@@ -60,10 +73,10 @@ export default function AuthPage() {
   const [canResend, setCanResend] = useState<boolean>(false);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Step 3: Onboarding State
+  // Step 3 & 4: Role Selection & Onboarding State
   const [userId, setUserId] = useState<string | null>(null);
-  const [fullName, setFullName] = useState('');
   const [userIntent, setUserIntent] = useState<UserIntent>('BUYER');
+  const [fullName, setFullName] = useState('');
   const [selectedDistrict, setSelectedDistrict] = useState('Kathmandu');
   const [preferredRegion, setPreferredRegion] = useState<PreferredRegion>('HILLY');
   const [regionAutoDetected, setRegionAutoDetected] = useState(true);
@@ -83,11 +96,15 @@ export default function AuthPage() {
   };
 
   // Check initial Supabase authentication status on mount
+  // RULE: Only redirect if is_onboarded === true. Otherwise strictly remain at step 'PHONE'.
   useEffect(() => {
     let isMounted = true;
     async function checkAuthSession() {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
         if (user && isMounted) {
           setUserId(user.id);
           if (user.phone) {
@@ -106,18 +123,17 @@ export default function AuthPage() {
             return;
           }
 
+          // Do NOT fast-forward step here! Keep the user strictly on Step 1 ('PHONE').
+          // Pre-populate fields in case they progress forward.
           if (profile) {
             if (profile.full_name) setFullName(profile.full_name);
             if (profile.user_intent) setUserIntent(profile.user_intent);
             if (profile.preferred_district) setSelectedDistrict(profile.preferred_district);
             if (profile.preferred_region) setPreferredRegion(profile.preferred_region);
           }
-
-          // Transition to Onboarding if authenticated but profile incomplete
-          setStep('ONBOARDING');
         }
       } catch {
-        // Continue to phone input if no existing session
+        // Continue to Step 1: PHONE as guest
       }
     }
 
@@ -373,10 +389,11 @@ export default function AuthPage() {
           type: 'success',
           message:
             lang === 'en'
-              ? 'Phone verified! Complete your profile to claim 15 free contact credits.'
-              : 'फोन प्रमाणीकरण सम्पन्न! १५ निःशुल्क क्रेडिट प्राप्त गर्न प्रोफाइल भर्नुहोस्।',
+              ? 'Phone verified! Select your role to continue.'
+              : 'फोन प्रमाणीकरण सम्पन्न! अगाडि बढ्न आफ्नो भूमिका छनोट गर्नुहोस्।',
         });
-        setStep('ONBOARDING');
+        // Transition strictly to Step 3: ROLE_SELECTION
+        setStep('ROLE_SELECTION');
       }
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : dict.otp.invalidOtpError;
@@ -386,7 +403,7 @@ export default function AuthPage() {
     }
   };
 
-  // Step 3: Handle District Selection & Auto-Detection of Measurement System
+  // Step 4: Handle District Selection & Auto-Detection of Measurement System
   const handleDistrictChange = (newDistrict: string) => {
     setSelectedDistrict(newDistrict);
     const autoRegion = getRegionForDistrict(newDistrict);
@@ -400,7 +417,7 @@ export default function AuthPage() {
     setRegionAutoDetected(false);
   };
 
-  // Step 3: Complete Onboarding Submit Handler
+  // Step 4: Complete Onboarding Submit Handler
   const handleCompleteOnboarding = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -433,7 +450,9 @@ export default function AuthPage() {
     try {
       let targetUserId = userId;
       if (!targetUserId) {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         targetUserId = user?.id || null;
       }
 
@@ -484,25 +503,98 @@ export default function AuthPage() {
     }
   };
 
+  // Step Progress Index calculation
+  const getStepIndex = (s: AuthStep) => {
+    switch (s) {
+      case 'PHONE':
+        return 0;
+      case 'OTP':
+        return 1;
+      case 'ROLE_SELECTION':
+        return 2;
+      case 'ONBOARDING_FORM':
+        return 3;
+      default:
+        return 0;
+    }
+  };
+
+  const currentStepIdx = getStepIndex(step);
+
+  // Role Metadata Definition
+  const ROLES: {
+    id: UserIntent;
+    titleEn: string;
+    titleNe: string;
+    descEn: string;
+    descNe: string;
+    badgeEn: string;
+    badgeNe: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }[] = [
+    {
+      id: 'BUYER',
+      titleEn: 'Direct Property Buyer',
+      titleNe: 'प्रत्यक्ष खरिदकर्ता (Direct Buyer)',
+      descEn: 'Buy land (Ghaderi) or houses with 0% brokerage.',
+      descNe: 'कुनै पनि दलाली शुल्क बिना सिधै जग्गाधनीसँग घरजग्गा खरिद गर्नुहोस्।',
+      badgeEn: '0% Broker Commission',
+      badgeNe: '०% कमिसन',
+      icon: Home,
+    },
+    {
+      id: 'OWNER',
+      titleEn: 'Property Owner / Seller',
+      titleNe: 'जग्गाधनी तथा बिक्रेता (Property Owner)',
+      descEn: 'List land or residential property 100% free of charge.',
+      descNe: 'आफ्नो जग्गा वा घर १००% निःशुल्क सूचीकृत गरी सिधै बिक्री गर्नुहोस्।',
+      badgeEn: '100% Free Listing',
+      badgeNe: '१००% निःशुल्क सूची',
+      icon: Tag,
+    },
+    {
+      id: 'INVESTOR_NRN',
+      titleEn: 'NRN / Institutional Investor',
+      titleNe: 'लगानीकर्ता / एनआरएन (Investor / NRN)',
+      descEn: 'Track wealth, portfolio assets, and market vs. government valuations.',
+      descNe: 'पुँजी वृद्धि, पोर्टफोलियो सम्पत्ति तथा सरकारी र बजार मूल्याङ्कन ट्र्याक गर्नुहोस्।',
+      badgeEn: 'Wealth & Valuation Tracker',
+      badgeNe: 'पुँजी वृद्धि ट्र्याकर',
+      icon: TrendingUp,
+    },
+    {
+      id: 'AGENT_BROKER',
+      titleEn: 'Licensed Real Estate Agent / Facilitator',
+      titleNe: 'घरजग्गा सहजकर्ता / एजेन्ट (Facilitator / Agent)',
+      descEn: 'Manage multiple client portfolios with verified cadastral plots.',
+      descNe: 'प्रमाणित कित्ता नापी नक्सा सहित धेरै ग्राहकहरूको पोर्टफोलियो व्यवस्थापन गर्नुहोस्।',
+      badgeEn: 'Multi-Client GIS Portfolio',
+      badgeNe: 'बहु-ग्राहक जीआईएस',
+      icon: Briefcase,
+    },
+  ];
+
+  const selectedRoleMeta = ROLES.find((r) => r.id === userIntent) || ROLES[0];
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between font-sans selection:bg-emerald-600 selection:text-white">
       {/* Institutional Top Header */}
-      <header className="border-b border-slate-200 bg-white/95 backdrop-blur-md sticky top-0 z-40 shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
+      <header className="border-b border-slate-200 bg-white/95 backdrop-blur-md sticky top-0 z-40 shadow-xs">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-18 sm:h-20 flex items-center justify-between">
           {/* Sarvabhoomi Emblem & Brand Title */}
           <div className="flex items-center gap-3 sm:gap-4">
             <div className="relative group">
-              <div className="w-11 h-11 rounded-xl bg-emerald-600 flex items-center justify-center font-bold text-white text-2xl shadow-sm ring-4 ring-emerald-50 select-none">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-emerald-600 flex items-center justify-center font-bold text-white text-xl sm:text-2xl shadow-xs ring-4 ring-emerald-50 select-none">
                 स
               </div>
             </div>
 
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-bold tracking-tight text-slate-900 text-base sm:text-lg">
+                <span className="font-extrabold tracking-tight text-slate-900 text-base sm:text-lg">
                   {dict.brand.name}
                 </span>
-                <span className="hidden md:inline-flex px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200">
+                <span className="hidden md:inline-flex px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200">
                   Institutional P2P
                 </span>
               </div>
@@ -517,7 +609,7 @@ export default function AuthPage() {
             <button
               type="button"
               onClick={handleToggleLang}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 hover:text-slate-900 transition-all shadow-sm active:scale-95"
+              className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 hover:text-slate-900 transition-all shadow-xs active:scale-95"
               aria-label="Toggle Interface Language"
             >
               <Globe2 className="w-4 h-4 text-emerald-600" />
@@ -530,93 +622,52 @@ export default function AuthPage() {
       </header>
 
       {/* Main Content Card Container */}
-      <main className="flex-1 max-w-xl w-full mx-auto px-4 py-8 sm:py-12 flex flex-col justify-center">
-        {/* Unified 3-Step Card */}
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-xl shadow-slate-200/50 overflow-hidden">
-          {/* Top 3-Step Progress Bar */}
-          <div className="border-b border-slate-100 bg-slate-50/70 p-4 sm:px-6">
+      <main className="flex-1 max-w-2xl w-full mx-auto px-4 py-6 sm:py-10 flex flex-col justify-center">
+        {/* Unified 4-Step Card */}
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-lg shadow-slate-200/50 overflow-hidden">
+          {/* Top 4-Step Progress Bar */}
+          <div className="border-b border-slate-100 bg-slate-50/80 p-4 sm:px-6">
             <div className="flex items-center justify-between relative">
               {/* Connecting Progress Track */}
-              <div className="absolute top-1/2 left-8 right-8 -translate-y-1/2 h-0.5 bg-slate-200 -z-0" />
+              <div className="absolute top-1/2 left-6 right-6 -translate-y-1/2 h-0.5 bg-slate-200 -z-0" />
               <div
-                className="absolute top-1/2 left-8 -translate-y-1/2 h-0.5 bg-emerald-600 transition-all duration-500 -z-0"
+                className="absolute top-1/2 left-6 -translate-y-1/2 h-0.5 bg-emerald-600 transition-all duration-500 -z-0"
                 style={{
-                  width:
-                    step === 'PHONE' ? '0%' : step === 'OTP' ? '50%' : '100%',
+                  width: `${(currentStepIdx / (STEPS.length - 1)) * 100}%`,
                 }}
               />
 
-              {/* Step 1: PHONE */}
-              <div className="flex flex-col items-center gap-1.5 relative z-10">
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                    step === 'PHONE'
-                      ? 'bg-emerald-600 text-white ring-4 ring-emerald-100 shadow-sm'
-                      : step === 'OTP' || step === 'ONBOARDING'
-                      ? 'bg-emerald-50 border border-emerald-300 text-emerald-700 font-bold'
-                      : 'bg-white text-slate-400 border border-slate-200'
-                  }`}
-                >
-                  {step === 'OTP' || step === 'ONBOARDING' ? (
-                    <Check className="w-4 h-4" />
-                  ) : (
-                    '1'
-                  )}
-                </div>
-                <span
-                  className={`text-[11px] font-medium tracking-wide ${
-                    step === 'PHONE' ? 'text-emerald-700 font-semibold' : 'text-slate-500'
-                  }`}
-                >
-                  {lang === 'en' ? 'Mobile' : 'मोबाइल'}
-                </span>
-              </div>
+              {STEPS.map((s, idx) => {
+                const isCompleted = idx < currentStepIdx;
+                const isActive = idx === currentStepIdx;
 
-              {/* Step 2: OTP */}
-              <div className="flex flex-col items-center gap-1.5 relative z-10">
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                    step === 'OTP'
-                      ? 'bg-emerald-600 text-white ring-4 ring-emerald-100 shadow-sm'
-                      : step === 'ONBOARDING'
-                      ? 'bg-emerald-50 border border-emerald-300 text-emerald-700 font-bold'
-                      : 'bg-white text-slate-400 border border-slate-200'
-                  }`}
-                >
-                  {step === 'ONBOARDING' ? (
-                    <Check className="w-4 h-4" />
-                  ) : (
-                    '2'
-                  )}
-                </div>
-                <span
-                  className={`text-[11px] font-medium tracking-wide ${
-                    step === 'OTP' ? 'text-emerald-700 font-semibold' : 'text-slate-500'
-                  }`}
-                >
-                  {lang === 'en' ? 'OTP Code' : 'प्रमाणीकरण'}
-                </span>
-              </div>
-
-              {/* Step 3: ONBOARDING */}
-              <div className="flex flex-col items-center gap-1.5 relative z-10">
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                    step === 'ONBOARDING'
-                      ? 'bg-emerald-600 text-white ring-4 ring-emerald-100 shadow-sm'
-                      : 'bg-white text-slate-400 border border-slate-200'
-                  }`}
-                >
-                  3
-                </div>
-                <span
-                  className={`text-[11px] font-medium tracking-wide ${
-                    step === 'ONBOARDING' ? 'text-emerald-700 font-semibold' : 'text-slate-500'
-                  }`}
-                >
-                  {lang === 'en' ? 'Profile' : 'प्रोफाइल'}
-                </span>
-              </div>
+                return (
+                  <div key={s.id} className="flex flex-col items-center gap-1 relative z-10">
+                    <div
+                      className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                        isActive
+                          ? 'bg-emerald-600 text-white ring-4 ring-emerald-100 shadow-xs'
+                          : isCompleted
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-white text-slate-400 border border-slate-200'
+                      }`}
+                    >
+                      {isCompleted ? <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" /> : s.num}
+                    </div>
+                    <span
+                      className={`text-[10px] sm:text-[11px] font-medium tracking-tight ${
+                        isActive
+                          ? 'text-emerald-700 font-bold'
+                          : isCompleted
+                          ? 'text-slate-700 font-semibold'
+                          : 'text-slate-400'
+                      }`}
+                    >
+                      {lang === 'en' ? s.labelEn : s.labelNe}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -676,7 +727,7 @@ export default function AuthPage() {
                     )}
                   </div>
 
-                  <div className="relative flex rounded-xl overflow-hidden border border-slate-300 bg-white focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-100 transition-all shadow-sm">
+                  <div className="relative flex rounded-xl overflow-hidden border border-slate-300 bg-white focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-100 transition-all shadow-xs">
                     {/* Fixed Nepal Flag & Prefix */}
                     <div className="bg-slate-50 px-3.5 flex items-center border-r border-slate-200 text-sm font-mono text-slate-700 select-none gap-1.5 shrink-0">
                       <span className="text-base">🇳🇵</span>
@@ -716,7 +767,7 @@ export default function AuthPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting || phone.length !== 10}
-                  className="w-full py-3.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50 disabled:hover:bg-emerald-600 text-white font-semibold text-sm tracking-wide shadow-sm hover:shadow flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
+                  className="w-full py-3.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50 disabled:hover:bg-emerald-600 text-white font-semibold text-sm tracking-wide shadow-xs hover:shadow-sm flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
                 >
                   {isSubmitting ? (
                     <>
@@ -760,6 +811,7 @@ export default function AuthPage() {
                     onClick={() => {
                       setStep('PHONE');
                       setNotice(null);
+                      setOtpDigits(['', '', '', '', '', '']);
                     }}
                     className="text-xs text-emerald-700 hover:text-emerald-800 font-semibold flex items-center gap-1 hover:underline"
                   >
@@ -797,7 +849,7 @@ export default function AuthPage() {
                         onChange={(e) => handleOtpDigitChange(idx, e.target.value)}
                         onKeyDown={(e) => handleOtpKeyDown(idx, e)}
                         autoFocus={idx === 0}
-                        className="w-11 sm:w-13 h-14 sm:h-16 text-center text-xl sm:text-2xl font-mono font-bold text-slate-900 bg-white border border-slate-300 rounded-xl focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition-all shadow-sm"
+                        className="w-11 sm:w-13 h-14 sm:h-16 text-center text-xl sm:text-2xl font-mono font-bold text-slate-900 bg-white border border-slate-300 rounded-xl focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition-all shadow-xs"
                       />
                     ))}
                   </div>
@@ -833,7 +885,7 @@ export default function AuthPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting || otpDigits.join('').length !== 6}
-                  className="w-full py-3.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50 disabled:hover:bg-emerald-600 text-white font-semibold text-sm tracking-wide shadow-sm hover:shadow flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
+                  className="w-full py-3.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50 disabled:hover:bg-emerald-600 text-white font-semibold text-sm tracking-wide shadow-xs hover:shadow-sm flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
                 >
                   {isSubmitting ? (
                     <>
@@ -852,19 +904,134 @@ export default function AuthPage() {
           )}
 
           {/* ============================================================ */}
-          {/* STEP 3: NEPAL-SPECIFIC ONBOARDING */}
+          {/* STEP 3: ROLE SELECTION (STANDALONE SCREEN) */}
           {/* ============================================================ */}
-          {step === 'ONBOARDING' && (
+          {step === 'ROLE_SELECTION' && (
             <div className="p-6 sm:p-8">
               <div className="mb-6">
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold mb-3">
                   <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Profile & Measurement Setup</span>
+                  <span>{lang === 'en' ? 'Step 3 of 4: User Intent' : 'चरण ३: प्रयोगकर्ता भूमिका'}</span>
                 </div>
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                  {lang === 'en' ? 'Select Your Role in Nepal Real Estate' : 'नेपाल घरजग्गा बजारमा आफ्नो भूमिका रोज्नुहोस्'}
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-500 mt-1.5 leading-relaxed">
+                  {lang === 'en'
+                    ? 'Choose how you intend to use Sarvabhoomi to access customized zero-brokerage tools and parcel analytics.'
+                    : 'शून्य-दलाली सुविधा र कित्ता नापी नक्सा उपकरणहरू प्राप्त गर्न आफ्नो मुख्य उद्देश्य छनोट गर्नुहोस्।'}
+                </p>
+              </div>
+
+              {/* 4 Distinct Role Cards Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mb-6">
+                {ROLES.map((role) => {
+                  const isSelected = userIntent === role.id;
+                  const IconComponent = role.icon;
+
+                  return (
+                    <button
+                      key={role.id}
+                      type="button"
+                      onClick={() => setUserIntent(role.id)}
+                      className={`p-4 rounded-xl border text-left transition-all relative flex flex-col justify-between cursor-pointer group ${
+                        isSelected
+                          ? 'border-2 border-emerald-600 bg-emerald-50/70 shadow-sm ring-2 ring-emerald-100'
+                          : 'border border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/80 shadow-xs'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <div
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
+                            isSelected
+                              ? 'bg-emerald-600 text-white'
+                              : 'bg-slate-100 text-slate-600 group-hover:bg-emerald-100 group-hover:text-emerald-700'
+                          }`}
+                        >
+                          <IconComponent className="w-5 h-5" />
+                        </div>
+                        {isSelected ? (
+                          <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center">
+                            <Check className="w-3 h-3 stroke-[3]" />
+                          </div>
+                        ) : (
+                          <div className="w-5 h-5 rounded-full border border-slate-300" />
+                        )}
+                      </div>
+
+                      <div>
+                        <div className="text-sm font-bold text-slate-900 mb-1">
+                          {lang === 'en' ? role.titleEn : role.titleNe}
+                        </div>
+                        <div className="inline-block text-[10px] font-bold text-emerald-800 bg-emerald-100/70 border border-emerald-200 px-2 py-0.5 rounded-md uppercase tracking-wider mb-2">
+                          {lang === 'en' ? role.badgeEn : role.badgeNe}
+                        </div>
+                        <p className="text-xs text-slate-600 leading-relaxed">
+                          {lang === 'en' ? role.descEn : role.descNe}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Navigation Action Buttons */}
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setStep('OTP')}
+                  className="px-4 py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm flex items-center gap-1.5 transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>{lang === 'en' ? 'Back' : 'पछाडि'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setStep('ONBOARDING_FORM')}
+                  className="flex-1 py-3.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs sm:text-sm tracking-wide shadow-xs hover:shadow-sm flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
+                >
+                  <span>{lang === 'en' ? 'Continue to Profile Setup' : 'प्रोफाइल विवरण भर्न अगाडि बढ्नुहोस्'}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ============================================================ */}
+          {/* STEP 4: PROFILE & REGISTRATION FORM */}
+          {/* ============================================================ */}
+          {step === 'ONBOARDING_FORM' && (
+            <div className="p-6 sm:p-8">
+              {/* Role Summary Pill */}
+              <div className="mb-6 p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs">
+                    {React.createElement(selectedRoleMeta.icon, { className: 'w-4 h-4' })}
+                  </div>
+                  <div>
+                    <span className="text-[11px] text-slate-500 block leading-tight">
+                      {lang === 'en' ? 'Selected Role' : 'छनोट गरिएको भूमिका'}
+                    </span>
+                    <span className="text-xs font-bold text-slate-900">
+                      {lang === 'en' ? selectedRoleMeta.titleEn : selectedRoleMeta.titleNe}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setStep('ROLE_SELECTION')}
+                  className="text-xs text-emerald-700 hover:text-emerald-800 font-semibold underline underline-offset-2"
+                >
+                  {lang === 'en' ? 'Change Role' : 'परिवर्तन'}
+                </button>
+              </div>
+
+              <div className="mb-6">
                 <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
                   {dict.onboarding.title}
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-500 mt-1.5 leading-relaxed">
+                <p className="text-xs sm:text-sm text-slate-500 mt-1 leading-relaxed">
                   {dict.onboarding.subtitle}
                 </p>
               </div>
@@ -892,7 +1059,7 @@ export default function AuthPage() {
                       }
                     }}
                     placeholder={dict.onboarding.fullNamePlaceholder}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition-all text-sm shadow-sm"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition-all text-sm shadow-xs"
                   />
                   {onboardingErrors.fullName && (
                     <p className="mt-1.5 text-xs text-rose-600 flex items-center gap-1 font-medium">
@@ -902,132 +1069,7 @@ export default function AuthPage() {
                   )}
                 </div>
 
-                {/* 2. Interactive Role / Objective Selector Cards */}
-                <div>
-                  <div className="mb-2.5">
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
-                      {dict.onboarding.intentLabel}
-                    </label>
-                    <p className="text-[11px] text-slate-500">
-                      {dict.onboarding.intentSubtitle}
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                    {/* Role 1: BUYER */}
-                    <button
-                      type="button"
-                      onClick={() => setUserIntent('BUYER')}
-                      className={`p-3.5 rounded-xl border text-left transition-all relative flex flex-col justify-between ${
-                        userIntent === 'BUYER'
-                          ? 'border-2 border-emerald-600 bg-emerald-50/60 shadow-sm ring-1 ring-emerald-600/20'
-                          : 'border border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div
-                          className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                            userIntent === 'BUYER'
-                              ? 'bg-emerald-600 text-white'
-                              : 'bg-slate-100 text-slate-500'
-                          }`}
-                        >
-                          <Home className="w-4 h-4" />
-                        </div>
-                        {userIntent === 'BUYER' && (
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                        )}
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold text-slate-900 mb-0.5">
-                          {dict.onboarding.intents.BUYER.title}
-                        </div>
-                        <div className="text-[10px] font-semibold text-emerald-700 uppercase tracking-wider mb-1">
-                          {lang === 'en' ? '0% Commission' : '०% कमिसन'}
-                        </div>
-                        <div className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">
-                          {dict.onboarding.intents.BUYER.description}
-                        </div>
-                      </div>
-                    </button>
-
-                    {/* Role 2: OWNER */}
-                    <button
-                      type="button"
-                      onClick={() => setUserIntent('OWNER')}
-                      className={`p-3.5 rounded-xl border text-left transition-all relative flex flex-col justify-between ${
-                        userIntent === 'OWNER'
-                          ? 'border-2 border-emerald-600 bg-emerald-50/60 shadow-sm ring-1 ring-emerald-600/20'
-                          : 'border border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div
-                          className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                            userIntent === 'OWNER'
-                              ? 'bg-emerald-600 text-white'
-                              : 'bg-slate-100 text-slate-500'
-                          }`}
-                        >
-                          <Tag className="w-4 h-4" />
-                        </div>
-                        {userIntent === 'OWNER' && (
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                        )}
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold text-slate-900 mb-0.5">
-                          {dict.onboarding.intents.OWNER.title}
-                        </div>
-                        <div className="text-[10px] font-semibold text-emerald-700 uppercase tracking-wider mb-1">
-                          {lang === 'en' ? '100% Free Listing' : '१००% निःशुल्क सूची'}
-                        </div>
-                        <div className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">
-                          {dict.onboarding.intents.OWNER.description}
-                        </div>
-                      </div>
-                    </button>
-
-                    {/* Role 3: INVESTOR_NRN */}
-                    <button
-                      type="button"
-                      onClick={() => setUserIntent('INVESTOR_NRN')}
-                      className={`p-3.5 rounded-xl border text-left transition-all relative flex flex-col justify-between ${
-                        userIntent === 'INVESTOR_NRN'
-                          ? 'border-2 border-emerald-600 bg-emerald-50/60 shadow-sm ring-1 ring-emerald-600/20'
-                          : 'border border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div
-                          className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                            userIntent === 'INVESTOR_NRN'
-                              ? 'bg-emerald-600 text-white'
-                              : 'bg-slate-100 text-slate-500'
-                          }`}
-                        >
-                          <TrendingUp className="w-4 h-4" />
-                        </div>
-                        {userIntent === 'INVESTOR_NRN' && (
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                        )}
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold text-slate-900 mb-0.5">
-                          {dict.onboarding.intents.INVESTOR_NRN.title}
-                        </div>
-                        <div className="text-[10px] font-semibold text-emerald-700 uppercase tracking-wider mb-1">
-                          {lang === 'en' ? 'Wealth Tracker' : 'पुँजी वृद्धि ट्र्याकर'}
-                        </div>
-                        <div className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">
-                          {dict.onboarding.intents.INVESTOR_NRN.description}
-                        </div>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-
-                {/* 3. Primary District Selector */}
+                {/* 2. Primary District Selector */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label
@@ -1046,7 +1088,7 @@ export default function AuthPage() {
                       id={districtSelectId}
                       value={selectedDistrict}
                       onChange={(e) => handleDistrictChange(e.target.value)}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-900 appearance-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition-all text-sm shadow-sm"
+                      className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-900 appearance-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition-all text-sm shadow-xs"
                     >
                       <optgroup label="🏔️ Hilly & Valley Districts (पहाड तथा उपत्यका - Ropani System)">
                         {HILLY_DISTRICTS.map((d) => (
@@ -1069,7 +1111,7 @@ export default function AuthPage() {
                   </div>
                 </div>
 
-                {/* 4. Default Land Measurement System & 1-Click Override */}
+                {/* 3. Default Land Measurement System & 1-Click Override */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
@@ -1098,7 +1140,7 @@ export default function AuthPage() {
                       onClick={() => handleManualRegionOverride('HILLY')}
                       className={`p-3.5 rounded-xl border text-left transition-all ${
                         preferredRegion === 'HILLY'
-                          ? 'border-2 border-emerald-600 bg-emerald-50/60 shadow-sm ring-1 ring-emerald-600/20'
+                          ? 'border-2 border-emerald-600 bg-emerald-50/60 shadow-xs ring-1 ring-emerald-600/20'
                           : 'border border-slate-200 bg-white hover:border-slate-300'
                       }`}
                     >
@@ -1125,7 +1167,7 @@ export default function AuthPage() {
                       onClick={() => handleManualRegionOverride('TERAI')}
                       className={`p-3.5 rounded-xl border text-left transition-all ${
                         preferredRegion === 'TERAI'
-                          ? 'border-2 border-emerald-600 bg-emerald-50/60 shadow-sm ring-1 ring-emerald-600/20'
+                          ? 'border-2 border-emerald-600 bg-emerald-50/60 shadow-xs ring-1 ring-emerald-600/20'
                           : 'border border-slate-200 bg-white hover:border-slate-300'
                       }`}
                     >
@@ -1149,8 +1191,8 @@ export default function AuthPage() {
                 </div>
 
                 {/* Promotional Credit Trigger Callout Card */}
-                <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-start gap-3 shadow-sm">
-                  <div className="w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+                <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-start gap-3 shadow-xs">
+                  <div className="w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
                     <Coins className="w-5 h-5" />
                   </div>
                   <div>
@@ -1166,24 +1208,35 @@ export default function AuthPage() {
                   </div>
                 </div>
 
-                {/* Submit Onboarding Button */}
-                <button
-                  type="submit"
-                  disabled={isSubmitting || !fullName.trim()}
-                  className="w-full py-3.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50 disabled:hover:bg-emerald-600 text-white font-semibold text-sm tracking-wide shadow-sm hover:shadow flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin text-white" />
-                      <span>{dict.onboarding.submitting}</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>{dict.onboarding.submitButton}</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
+                {/* Action Buttons */}
+                <div className="flex items-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setStep('ROLE_SELECTION')}
+                    className="px-4 py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm flex items-center gap-1.5 transition-colors"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span>{lang === 'en' ? 'Back' : 'पछाडि'}</span>
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !fullName.trim()}
+                    className="flex-1 py-3.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50 disabled:hover:bg-emerald-600 text-white font-semibold text-xs sm:text-sm tracking-wide shadow-xs hover:shadow-sm flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                        <span>{dict.onboarding.submitting}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>{dict.onboarding.submitButton}</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                </div>
               </form>
             </div>
           )}

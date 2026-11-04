@@ -40,7 +40,7 @@ export type Database = {
           id: string;
           phone_np: string;
           full_name: string | null;
-          user_intent: 'BUYER' | 'OWNER' | 'INVESTOR_NRN' | null;
+          user_intent: 'BUYER' | 'OWNER' | 'INVESTOR_NRN' | 'AGENT_BROKER' | null;
           preferred_region: 'HILLY' | 'TERAI';
           preferred_district: string;
           preferred_lang: 'en' | 'ne';
@@ -53,7 +53,7 @@ export type Database = {
           id: string;
           phone_np: string;
           full_name?: string | null;
-          user_intent?: 'BUYER' | 'OWNER' | 'INVESTOR_NRN' | null;
+          user_intent?: 'BUYER' | 'OWNER' | 'INVESTOR_NRN' | 'AGENT_BROKER' | null;
           preferred_region?: 'HILLY' | 'TERAI';
           preferred_district?: string;
           preferred_lang?: 'en' | 'ne';
@@ -66,7 +66,7 @@ export type Database = {
           id?: string;
           phone_np?: string;
           full_name?: string | null;
-          user_intent?: 'BUYER' | 'OWNER' | 'INVESTOR_NRN' | null;
+          user_intent?: 'BUYER' | 'OWNER' | 'INVESTOR_NRN' | 'AGENT_BROKER' | null;
           preferred_region?: 'HILLY' | 'TERAI';
           preferred_district?: string;
           preferred_lang?: 'en' | 'ne';

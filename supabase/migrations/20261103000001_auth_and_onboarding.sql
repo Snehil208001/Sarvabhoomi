@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     phone_np VARCHAR(15) UNIQUE NOT NULL,
     full_name TEXT,
-    user_intent VARCHAR(20) CHECK (user_intent IN ('BUYER', 'OWNER', 'INVESTOR_NRN')),
+    user_intent VARCHAR(30) CHECK (user_intent IN ('BUYER', 'OWNER', 'INVESTOR_NRN', 'AGENT_BROKER')),
     preferred_region VARCHAR(10) DEFAULT 'HILLY' CHECK (preferred_region IN ('HILLY', 'TERAI')),
     preferred_district VARCHAR(60) DEFAULT 'Kathmandu',
     preferred_lang VARCHAR(2) DEFAULT 'en' CHECK (preferred_lang IN ('en', 'ne')),

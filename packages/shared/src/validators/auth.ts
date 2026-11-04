@@ -16,7 +16,7 @@ export const DISTRICT_MAX_LENGTH = 60;
 
 export const OTP_REGEX = new RegExp(`^\\d{${OTP_LENGTH}}$`);
 
-export const userIntentEnum = z.enum(['BUYER', 'OWNER', 'INVESTOR_NRN']);
+export const userIntentEnum = z.enum(['BUYER', 'OWNER', 'INVESTOR_NRN', 'AGENT_BROKER']);
 export type UserIntent = z.infer<typeof userIntentEnum>;
 
 export const regionEnum = z.enum(['HILLY', 'TERAI']);

@@ -52,6 +52,10 @@ export interface AuthDictionary {
         title: string;
         description: string;
       };
+      AGENT_BROKER: {
+        title: string;
+        description: string;
+      };
     };
     regionLabel: string;
     regionSubtitle: string;
@@ -145,6 +149,10 @@ export const authDictEn: AuthDictionary = {
         title: 'NRN / Institutional Investor',
         description: 'Building high-yield land banks, commercial plots, and tracking portfolio appreciation in Nepal.',
       },
+      AGENT_BROKER: {
+        title: 'Licensed Real Estate Agent / Facilitator',
+        description: 'Manage multiple client portfolios with verified cadastral plots.',
+      },
     },
     regionLabel: 'Preferred Land Measurement System',
     regionSubtitle: 'Nepal utilizes dual measurement systems. Choose your default unit view:',
@@ -237,6 +245,10 @@ export const authDictNe: AuthDictionary = {
       INVESTOR_NRN: {
         title: 'लगानीकर्ता / एनआरएन (Investor / NRN)',
         description: 'नेपालमा दीर्घकालीन जग्गा बैंकिङ, व्यावसायिक प्लट र पुँजी वृद्धि ट्र्याक गर्न।',
+      },
+      AGENT_BROKER: {
+        title: 'घरजग्गा सहजकर्ता / एजेन्ट (Facilitator / Agent)',
+        description: 'प्रमाणित कित्ता नापी नक्सा सहित धेरै ग्राहकहरूको पोर्टफोलियो व्यवस्थापन गर्न।',
       },
     },
     regionLabel: 'जग्गा नापी एकाइ प्रणाली छनोट',
