@@ -101,6 +101,8 @@ This log tracks all architectural decisions, feature implementations, verificati
 #### 5. Consumer Marketplace Landing Page Redesign (`apps/web/src/app/page.tsx`)
 - **NoBroker-Inspired Consumer UX:** Completely stripped internal developer debug benches, DB schema cards, and workspace topologies from `localhost:3000`.
 - **Top App Bar Actions (NoBroker Pattern):**
+  - **Spacious & Clean Layout:** Eliminated multi-line text wrapping on common 1080p scaled laptop screens by applying `whitespace-nowrap`, `shrink-0`, and responsive link thresholds.
+  - **Brand Header:** Streamlined to `Sarvabhoomi` + `0% Brokerage` pill.
   - **"Post Free Property"** direct badge.
   - Distinct **"Log In"** link with Lucide icon.
   - Highlighted **"Sign Up"** emerald primary CTA button.
