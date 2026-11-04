@@ -1,0 +1,21 @@
+{
+  "name": "sarvabhoomi-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sarvabhoomi Capital & Investment - Nepal's Zero-Brokerage P2P Property Marketplace & Wealth Tracker",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "type-check": "turbo type-check"
+  },
+  "devDependencies": {
+    "turbo": "^2.4.4",
+    "typescript": "^5.4.5"
+  },
+  "packageManager": "npm@10.9.2"
+}
