@@ -16,14 +16,24 @@ This log tracks all architectural decisions, feature implementations, verificati
 
 ### 📅 Session: November 3–4, 2026
 
-#### 🎯 Focus: Production Bilingual Auth, Nepal Onboarding & Live Supabase Verification
+#### 🎯 Focus: Production Bilingual Auth, Nepal Onboarding, Live Supabase Verification & Clean White/Emerald UI Overhaul
 
 ---
 
 ### ✅ Completed Milestones
 
-#### 1. Unified 3-Step Authentication & Onboarding State Machine (`apps/web/src/app/auth/page.tsx`)
-- **Aesthetic:** Institutional fintech dark mode (`bg-slate-950`, `bg-slate-900/90` frosted cards, `border-slate-800`, emerald-500 accents, ambient glow).
+#### 1. White & Emerald Green Institutional Theme Overhaul
+- **Base Background:** Crisp `bg-slate-50` with slate borders `border-slate-200`.
+- **Containers & Cards:** Elevated white cards `bg-white`, subtle borders, crisp modern typography.
+- **Brand Colors:** Emerald primary (`bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white`, `text-emerald-700`, `border-emerald-600`, `ring-emerald-100`).
+- **Typography:** `text-slate-900` headings and high-contrast readable copy.
+- **Removal of Mocks:**
+  - Removed all mock test numbers, pre-filled states, and dummy tokens.
+  - Inputs start clean (`phone = ""`, `otpDigits = ["", "", "", "", "", ""]`).
+  - Direct live integration with `@sarvabhoomi/shared` and Supabase Auth.
+
+#### 2. Unified 3-Step Authentication & Onboarding State Machine (`apps/web/src/app/auth/page.tsx`)
+- **Aesthetic:** Institutional fintech white & emerald green theme (`bg-slate-50`, `bg-white` cards, `border-slate-200`, emerald-600 accents).
 - **Header:**
   - Sarvabhoomi Devanagari emblem (**"स"**) with emerald gradient ring.
   - **Instant 1-Click Bilingual Toggle (`EN` ↔ `NE`)** powered by `@sarvabhoomi/shared` without page reload.
@@ -88,6 +98,26 @@ This log tracks all architectural decisions, feature implementations, verificati
   - Session JWT successfully created and persisted.
   - Schema resilience added to frontend to seamlessly handle pending remote database migrations.
 
+#### 5. Consumer Marketplace Landing Page Redesign (`apps/web/src/app/page.tsx`)
+- **NoBroker-Inspired Consumer UX:** Completely stripped internal developer debug benches, DB schema cards, and workspace topologies from `localhost:3000`.
+- **Institutional Top Navbar:**
+  - Sarvabhoomi Devanagari emblem (**"स"**) with zero-brokerage brand badge.
+  - 1-click bilingual switch (`EN` ↔ `नेपाली`).
+  - "Post Free Property" direct CTA.
+  - Dynamic user auth state: shows active user name, 15 Free Credits pill, and Dashboard link when logged in.
+- **Hero Search Engine:**
+  - Category selector tabs: `Buy Land / Ghaderi`, `Buy House / Villa`, `Commercial Land`, and `Valuation Tracker`.
+  - District dropdown filter (Kathmandu, Lalitpur, Bhaktapur, Pokhara, Chitwan, Butwal, etc.).
+  - Locality, ward, and landmark search bar with instant feedback.
+- **Value Proposition & Pillars:**
+  - 0% Brokerage badge, 100% Verified Lalpurja Kitta boundaries, and Direct Owner contacts.
+  - Three core audience cards: For Landowners, For Property Buyers, and For NRN / Wealth Trackers.
+  - Direct Savings Comparison matrix showing NPR 2–5 Lakhs saved compared to traditional Nepali middlemen/agents.
+- **Featured Verified Plots:**
+  - Realistic verified land cards in Budhanilkantha, Imadol, and Bharatpur with authentic local units (Aana / Kattha), road access (Pitched vs. Dhalan), and Mohada facing directions.
+- **Trust Reassurance & Nepali Real Estate FAQs:**
+  - Answers regarding Lalpurja verification, zero brokerage business model, and cadastral parcel accuracy.
+
 ---
 
 ## 🛠️ Verification & Build Status
@@ -95,10 +125,11 @@ This log tracks all architectural decisions, feature implementations, verificati
 | Check | Tool | Status |
 | :--- | :--- | :--- |
 | TypeScript Compilation | `turbo type-check` | ✅ **Passed (0 errors)** |
-| Next.js Production Build | `turbo build` | ✅ **Compiled & Optimized** |
+| Next.js Production Build | `turbo build` | ✅ **Compiled & Optimized (Static Prerender 6/6)** |
 | Local Development Server | `next dev -p 3000` | ✅ **Running on port 3000** |
-| Route `/auth` | HTTP Probe | ✅ **200 OK** |
-| Route `/dashboard` | HTTP Probe | ✅ **200 OK** |
+| Route `/` (Consumer Landing) | Static Build Probe | ✅ **200 OK (17.1 kB)** |
+| Route `/auth` | Static Build Probe | ✅ **200 OK (7.64 kB)** |
+| Route `/dashboard` | Static Build Probe | ✅ **200 OK (7.44 kB)** |
 | Live OTP Verification | Supabase Auth API | ✅ **200 OK Authenticated** |
 
 ---

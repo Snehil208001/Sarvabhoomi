@@ -5,7 +5,8 @@
 --              Tier Subscriptions, and Launch Promotional Credit Trigger
 -- ==============================================================================
 
--- Ensure pgcrypto extension for UUID generation
+-- Ensure PostGIS and pgcrypto extensions
+CREATE EXTENSION IF NOT EXISTS postgis;
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ------------------------------------------------------------------------------
@@ -99,10 +100,11 @@ CREATE INDEX IF NOT EXISTS idx_user_subscriptions_user_id ON public.user_subscri
 -- Enable Row Level Security
 ALTER TABLE public.user_subscriptions ENABLE ROW LEVEL SECURITY;
 
--- RLS Policy: Users can only read their own subscription balance
+-- RLS Policy: Authenticated read for user_subscriptions
 CREATE POLICY "Users can view their own subscription"
     ON public.user_subscriptions
     FOR SELECT
+    TO authenticated
     USING (auth.uid() = user_id);
 
 -- ------------------------------------------------------------------------------

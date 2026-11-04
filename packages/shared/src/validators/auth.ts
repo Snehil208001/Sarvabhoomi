@@ -7,6 +7,15 @@ import { z } from 'zod';
  */
 export const nepalPhoneRegex = /^(?:98[0-24-6]|97[045])\d{7}$/;
 
+// Validation constraints constants
+export const OTP_LENGTH = 6;
+export const FULL_NAME_MIN_LENGTH = 2;
+export const FULL_NAME_MAX_LENGTH = 100;
+export const DISTRICT_MIN_LENGTH = 2;
+export const DISTRICT_MAX_LENGTH = 60;
+
+export const OTP_REGEX = new RegExp(`^\\d{${OTP_LENGTH}}$`);
+
 export const userIntentEnum = z.enum(['BUYER', 'OWNER', 'INVESTOR_NRN']);
 export type UserIntent = z.infer<typeof userIntentEnum>;
 
@@ -44,8 +53,8 @@ export const otpVerificationSchema = z.object({
   otp: z
     .string()
     .trim()
-    .length(6, 'Verification OTP must be 6 digits.')
-    .regex(/^\d{6}$/, 'OTP must contain numbers only.'),
+    .length(OTP_LENGTH, `Verification OTP must be ${OTP_LENGTH} digits.`)
+    .regex(OTP_REGEX, 'OTP must contain numbers only.'),
 });
 export type OtpVerificationInput = z.infer<typeof otpVerificationSchema>;
 
@@ -56,14 +65,14 @@ export const onboardingSchema = z.object({
   fullName: z
     .string()
     .trim()
-    .min(2, 'Full name must be at least 2 characters.')
-    .max(100, 'Full name must not exceed 100 characters.'),
+    .min(FULL_NAME_MIN_LENGTH, `Full name must be at least ${FULL_NAME_MIN_LENGTH} characters.`)
+    .max(FULL_NAME_MAX_LENGTH, `Full name must not exceed ${FULL_NAME_MAX_LENGTH} characters.`),
   userIntent: userIntentEnum,
   preferredRegion: regionEnum,
   preferredDistrict: z
     .string()
     .trim()
-    .min(2, 'Please select or enter your primary district of interest.')
-    .max(60, 'District name must not exceed 60 characters.'),
+    .min(DISTRICT_MIN_LENGTH, 'Please select or enter your primary district of interest.')
+    .max(DISTRICT_MAX_LENGTH, `District name must not exceed ${DISTRICT_MAX_LENGTH} characters.`),
 });
 export type OnboardingInput = z.infer<typeof onboardingSchema>;
