@@ -296,3 +296,4 @@ CREATE POLICY "Authenticated users can delete their property photos"
 -- 7. Notify PostgREST to reload schema cache
 -- ------------------------------------------------------------------------------
 NOTIFY pgrst, 'reload schema';
+

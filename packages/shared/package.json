@@ -13,7 +13,7 @@
   "scripts": {
     "build": "tsc",
     "type-check": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run src/"
   },
   "dependencies": {
     "zod": "^3.23.8"

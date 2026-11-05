@@ -28,6 +28,10 @@ import {
   Layers,
   Sparkles,
   Maximize2,
+  Minimize2,
+  ChevronLeft,
+  ChevronRight,
+  X,
   ExternalLink,
 } from 'lucide-react';
 import {
@@ -67,6 +71,8 @@ export default function PropertyDetailPage() {
 
   // Photo viewer state
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
+  const [imageFitMode, setImageFitMode] = useState<'contain' | 'cover'>('contain');
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
   // Modal state
   const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false);
@@ -205,6 +211,23 @@ export default function PropertyDetailPage() {
       isMounted = false;
     };
   }, [propertyId]);
+
+  // Lightbox keyboard navigation & escape to close
+  useEffect(() => {
+    if (!isLightboxOpen) return;
+    const numPhotos = (property?.photos && property.photos.length > 0) ? property.photos.length : 1;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsLightboxOpen(false);
+      if (e.key === 'ArrowLeft' && numPhotos > 1) {
+        setActivePhotoIdx((prev) => (prev > 0 ? prev - 1 : numPhotos - 1));
+      }
+      if (e.key === 'ArrowRight' && numPhotos > 1) {
+        setActivePhotoIdx((prev) => (prev < numPhotos - 1 ? prev + 1 : 0));
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isLightboxOpen, property?.photos]);
 
   // Toggle favorite
   const handleToggleFavorite = async () => {
@@ -407,18 +430,97 @@ export default function PropertyDetailPage() {
         {/* Photo Gallery Showcase */}
         {/* ============================================================ */}
         <div className="space-y-3">
-          <div className="relative h-[320px] sm:h-[480px] w-full rounded-2xl overflow-hidden bg-slate-900 border border-slate-200 shadow-md">
-            <PropertyImage
-              src={photos[activePhotoIdx]}
-              alt={property.title}
-              fill
-              priority
-              sizes="(max-width: 1024px) 100vw, 66vw"
-              className="object-cover"
-            />
-            <div className="absolute bottom-4 right-4 px-3 py-1.5 rounded-lg bg-slate-900/80 backdrop-blur-xs text-white text-xs font-bold">
-              Photo {activePhotoIdx + 1} of {photos.length}
+          <div className="relative aspect-[16/10] sm:aspect-[16/9] max-h-[520px] w-full rounded-2xl overflow-hidden bg-slate-950 border border-slate-200 shadow-md group">
+            {/* Ambient Blurred Backdrop */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none select-none">
+              <PropertyImage
+                src={photos[activePhotoIdx]}
+                alt=""
+                fill
+                className="object-cover blur-3xl scale-125 opacity-40 brightness-75 transition-all duration-500"
+              />
+              <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-xs" />
             </div>
+
+            {/* Sharp Foreground Image */}
+            <div className="relative w-full h-full flex items-center justify-center p-2 sm:p-4">
+              <PropertyImage
+                src={photos[activePhotoIdx]}
+                alt={property.title}
+                fill
+                priority
+                sizes="(max-width: 1024px) 100vw, 66vw"
+                className={`${
+                  imageFitMode === 'contain' ? 'object-contain' : 'object-cover'
+                } transition-all duration-300 drop-shadow-xl`}
+              />
+            </div>
+
+            {/* Top Bar: Controls */}
+            <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none z-10">
+              <div className="pointer-events-auto px-3 py-1.5 rounded-lg bg-black/60 backdrop-blur-md text-white text-xs font-bold flex items-center gap-1.5 shadow-xs">
+                <span>Photo {activePhotoIdx + 1} of {photos.length}</span>
+              </div>
+
+              <div className="pointer-events-auto flex items-center gap-2">
+                {/* Fit Mode Toggle */}
+                <button
+                  type="button"
+                  onClick={() => setImageFitMode((prev) => (prev === 'contain' ? 'cover' : 'contain'))}
+                  className="px-2.5 py-1.5 rounded-lg bg-black/60 hover:bg-black/80 backdrop-blur-md text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
+                  title={imageFitMode === 'contain' ? 'Switch to Fill Frame' : 'Switch to Fit Entire Image'}
+                >
+                  {imageFitMode === 'contain' ? (
+                    <>
+                      <Maximize2 className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Fill Frame</span>
+                    </>
+                  ) : (
+                    <>
+                      <Minimize2 className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Fit Whole Image</span>
+                    </>
+                  )}
+                </button>
+
+                {/* Fullscreen Lightbox Button */}
+                <button
+                  type="button"
+                  onClick={() => setIsLightboxOpen(true)}
+                  className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg bg-black/60 hover:bg-black/80 backdrop-blur-md text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
+                  title="View Fullscreen"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Fullscreen</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Carousel Previous / Next Arrows */}
+            {photos.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActivePhotoIdx((prev) => (prev > 0 ? prev - 1 : photos.length - 1))
+                  }
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-black/85 backdrop-blur-md text-white flex items-center justify-center transition shadow-md opacity-80 hover:opacity-100 z-10"
+                  aria-label="Previous photo"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActivePhotoIdx((prev) => (prev < photos.length - 1 ? prev + 1 : 0))
+                  }
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-black/85 backdrop-blur-md text-white flex items-center justify-center transition shadow-md opacity-80 hover:opacity-100 z-10"
+                  aria-label="Next photo"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </>
+            )}
           </div>
 
           {/* Thumbnails row */}
@@ -431,7 +533,7 @@ export default function PropertyDetailPage() {
                   onClick={() => setActivePhotoIdx(idx)}
                   className={`relative w-20 h-16 rounded-xl overflow-hidden border-2 shrink-0 transition-all ${
                     activePhotoIdx === idx
-                      ? 'border-emerald-600 shadow-sm ring-2 ring-emerald-100'
+                      ? 'border-emerald-600 shadow-sm ring-2 ring-emerald-200'
                       : 'border-slate-200 opacity-70 hover:opacity-100'
                   }`}
                 >
@@ -834,6 +936,87 @@ export default function PropertyDetailPage() {
         onUnlockSuccess={handleUnlockSuccess}
         lang={lang}
       />
+
+      {/* Fullscreen Lightbox Modal */}
+      {isLightboxOpen && (
+        <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col justify-between p-4 sm:p-6 animate-in fade-in duration-200">
+          {/* Top Bar */}
+          <div className="flex items-center justify-between text-white max-w-7xl w-full mx-auto">
+            <div className="pr-4">
+              <h3 className="font-bold text-sm sm:text-base text-white/90 truncate max-w-md">
+                {property.title}
+              </h3>
+              <p className="text-xs text-white/60">
+                Photo {activePhotoIdx + 1} of {photos.length}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsLightboxOpen(false)}
+              className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
+              title="Close (Esc)"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* Main Image Viewer */}
+          <div className="relative flex-1 w-full max-w-7xl mx-auto my-3 flex items-center justify-center overflow-hidden">
+            <PropertyImage
+              src={photos[activePhotoIdx]}
+              alt={property.title}
+              fill
+              sizes="100vw"
+              className="object-contain"
+            />
+
+            {photos.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActivePhotoIdx((prev) => (prev > 0 ? prev - 1 : photos.length - 1))
+                  }
+                  className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center transition shadow-lg"
+                  aria-label="Previous photo"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActivePhotoIdx((prev) => (prev < photos.length - 1 ? prev + 1 : 0))
+                  }
+                  className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center transition shadow-lg"
+                  aria-label="Next photo"
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Bottom Thumbnails */}
+          {photos.length > 1 && (
+            <div className="flex items-center justify-center gap-2 overflow-x-auto py-1 max-w-4xl mx-auto">
+              {photos.map((url, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setActivePhotoIdx(idx)}
+                  className={`relative w-16 h-12 rounded-lg overflow-hidden border-2 shrink-0 transition-all ${
+                    activePhotoIdx === idx
+                      ? 'border-emerald-500 scale-105 ring-2 ring-emerald-400/50'
+                      : 'border-white/20 opacity-50 hover:opacity-100'
+                  }`}
+                >
+                  <PropertyImage src={url} alt={`Thumbnail ${idx + 1}`} fill sizes="64px" className="object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Institutional Light Footer */}
       <Footer lang={lang} />
