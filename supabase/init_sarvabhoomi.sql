@@ -203,6 +203,8 @@ CREATE TABLE IF NOT EXISTS public.properties (
     bedrooms INT,
     bathrooms INT,
     lalpurja_verified BOOLEAN DEFAULT FALSE,
+    owner_declared_lalpurja BOOLEAN DEFAULT FALSE,
+    admin_verified BOOLEAN DEFAULT FALSE,
     kitta_no VARCHAR(50),
     photos TEXT[] DEFAULT '{}',
     status VARCHAR(20) DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'DRAFT', 'SOLD', 'PAUSED')),
@@ -210,6 +212,25 @@ CREATE TABLE IF NOT EXISTS public.properties (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Sync trigger between admin_verified and legacy lalpurja_verified
+CREATE OR REPLACE FUNCTION public.sync_property_verification_status()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.admin_verified IS TRUE THEN
+        NEW.lalpurja_verified := TRUE;
+    ELSE
+        NEW.lalpurja_verified := FALSE;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_sync_property_verification_status ON public.properties;
+CREATE TRIGGER trg_sync_property_verification_status
+    BEFORE INSERT OR UPDATE OF admin_verified ON public.properties
+    FOR EACH ROW
+    EXECUTE FUNCTION public.sync_property_verification_status();
 
 CREATE INDEX IF NOT EXISTS idx_properties_status ON public.properties(status);
 CREATE INDEX IF NOT EXISTS idx_properties_district ON public.properties(district);
@@ -228,12 +249,21 @@ CREATE POLICY "Public can view active properties"
 DROP POLICY IF EXISTS "Owners can insert their properties" ON public.properties;
 CREATE POLICY "Owners can insert their properties"
     ON public.properties FOR INSERT TO authenticated
-    WITH CHECK (auth.uid() = owner_id);
+    WITH CHECK (
+        auth.uid() = owner_id
+        AND (admin_verified IS FALSE OR admin_verified IS NULL)
+    );
 
 DROP POLICY IF EXISTS "Owners can update their properties" ON public.properties;
 CREATE POLICY "Owners can update their properties"
     ON public.properties FOR UPDATE TO authenticated
-    USING (auth.uid() = owner_id) WITH CHECK (auth.uid() = owner_id);
+    USING (auth.uid() = owner_id)
+    WITH CHECK (
+        auth.uid() = owner_id
+        AND admin_verified IS NOT DISTINCT FROM (
+            SELECT p.admin_verified FROM public.properties p WHERE p.id = properties.id
+        )
+    );
 
 DROP POLICY IF EXISTS "Owners can delete their properties" ON public.properties;
 CREATE POLICY "Owners can delete their properties"

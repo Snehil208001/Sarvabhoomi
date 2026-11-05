@@ -55,3 +55,4 @@ CREATE POLICY "Authenticated users can delete their property photos"
     );
 
 NOTIFY pgrst, 'reload schema';
+
