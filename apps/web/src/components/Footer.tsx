@@ -54,3 +54,4 @@ export function Footer({ lang = 'en' }: FooterProps) {
     </footer>
   );
 }
+

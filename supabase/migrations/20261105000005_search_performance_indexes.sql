@@ -31,3 +31,4 @@ CREATE INDEX IF NOT EXISTS idx_properties_owner_created
     ON public.properties (owner_id, created_at DESC);
 
 NOTIFY pgrst, 'reload schema';
+

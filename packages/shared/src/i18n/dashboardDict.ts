@@ -67,3 +67,4 @@ export const dashboardDictNe: DashboardDictionary = {
 export function getDashboardDict(lang: 'en' | 'ne' = 'en'): DashboardDictionary {
   return lang === 'ne' ? dashboardDictNe : dashboardDictEn;
 }
+

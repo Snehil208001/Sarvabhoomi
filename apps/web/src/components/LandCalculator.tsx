@@ -141,3 +141,4 @@ export function LandCalculator({ lang = 'en' }: LandCalculatorProps) {
     </div>
   );
 }
+

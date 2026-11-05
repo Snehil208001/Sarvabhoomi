@@ -88,3 +88,4 @@ export const searchDictNe: SearchDictionary = {
 export function getSearchDict(lang: 'en' | 'ne' = 'en'): SearchDictionary {
   return lang === 'ne' ? searchDictNe : searchDictEn;
 }
+

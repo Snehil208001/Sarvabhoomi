@@ -253,3 +253,4 @@ export function Navbar({ lang = 'en', onToggleLang, currentUser }: NavbarProps) 
     </header>
   );
 }
+

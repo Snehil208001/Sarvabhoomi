@@ -67,3 +67,4 @@ export const propertyDictNe: PropertyDictionary = {
 export function getPropertyDict(lang: 'en' | 'ne' = 'en'): PropertyDictionary {
   return lang === 'ne' ? propertyDictNe : propertyDictEn;
 }
+

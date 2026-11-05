@@ -62,3 +62,4 @@ describe('Nepal 77 District & Region Mapping', () => {
     expect(getRegionForDistrict('UnknownPlace' as any)).toBe('HILLY');
   });
 });
+

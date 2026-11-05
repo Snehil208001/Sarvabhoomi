@@ -146,3 +146,4 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 ## 📄 License
 © 2026 Sarvabhoomi Capital & Investment Pvt. Ltd. Kathmandu, Nepal. All rights reserved.
+
