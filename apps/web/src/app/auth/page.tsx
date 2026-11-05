@@ -1116,8 +1116,8 @@ function AuthContent() {
                     {dict.otp.otpLabel}
                   </label>
 
-                  {/* 6 Individual Segmented Boxes */}
-                  <div className="flex justify-between gap-2 sm:gap-3" onPaste={handleOtpPaste}>
+                  {/* 6 Individual Segmented Boxes (Optimized for 360px mobile viewports) */}
+                  <div className="flex justify-center gap-1.5 sm:gap-3 max-w-xs sm:max-w-sm mx-auto" onPaste={handleOtpPaste}>
                     {otpDigits.map((digit, idx) => (
                       <input
                         key={idx}
@@ -1131,7 +1131,7 @@ function AuthContent() {
                         onChange={(e) => handleOtpDigitChange(idx, e.target.value)}
                         onKeyDown={(e) => handleOtpKeyDown(idx, e)}
                         autoFocus={idx === 0}
-                        className="w-11 sm:w-13 h-14 sm:h-16 text-center text-xl sm:text-2xl font-mono font-bold text-slate-900 bg-white border border-slate-300 rounded-xl focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition-all shadow-xs"
+                        className="w-10 sm:w-12 h-12 sm:h-14 text-center text-lg sm:text-2xl font-mono font-bold text-slate-900 bg-white border border-slate-300 rounded-xl focus:border-emerald-600 focus:ring-2 focus:ring-emerald-200 focus:outline-none transition-all shadow-xs"
                       />
                     ))}
                   </div>
@@ -1222,7 +1222,7 @@ function AuthContent() {
                       key={role.id}
                       type="button"
                       onClick={() => setUserIntent(role.id)}
-                      className={`p-4 rounded-xl border text-left transition-all relative flex flex-col justify-between cursor-pointer group ${
+                      className={`p-4 rounded-xl border text-left transition-all relative flex flex-col justify-between cursor-pointer group min-h-[165px] ${
                         isSelected
                           ? 'border-2 border-emerald-600 bg-emerald-50/70 shadow-sm ring-2 ring-emerald-100'
                           : 'border border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/80 shadow-xs'

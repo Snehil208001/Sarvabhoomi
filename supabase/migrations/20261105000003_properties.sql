@@ -264,3 +264,4 @@ CREATE POLICY "Authenticated users can upload property photos"
     WITH CHECK (bucket_id = 'property-photos');
 
 NOTIFY pgrst, 'reload schema';
+

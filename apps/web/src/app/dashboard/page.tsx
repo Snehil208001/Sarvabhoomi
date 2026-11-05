@@ -522,11 +522,11 @@ function DashboardContent() {
         {/* Tab Bar Header */}
         <div className="border-t border-slate-200 bg-slate-50/70">
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
-            <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto py-2 scrollbar-none text-xs sm:text-sm font-semibold">
+            <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto py-2 scrollbar-none text-xs sm:text-sm font-semibold flex-nowrap">
               <button
                 type="button"
                 onClick={() => setActiveTab('my-listings')}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border transition-all whitespace-nowrap ${
+                className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl border transition-all whitespace-nowrap min-h-touch ${
                   activeTab === 'my-listings'
                     ? 'bg-white border-emerald-300 text-emerald-800 shadow-sm'
                     : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/50'
@@ -542,7 +542,7 @@ function DashboardContent() {
               <button
                 type="button"
                 onClick={() => setActiveTab('shortlist')}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border transition-all whitespace-nowrap ${
+                className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl border transition-all whitespace-nowrap min-h-touch ${
                   activeTab === 'shortlist'
                     ? 'bg-white border-emerald-300 text-emerald-800 shadow-sm'
                     : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/50'
@@ -558,7 +558,7 @@ function DashboardContent() {
               <button
                 type="button"
                 onClick={() => setActiveTab('wallet')}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border transition-all whitespace-nowrap ${
+                className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl border transition-all whitespace-nowrap min-h-touch ${
                   activeTab === 'wallet'
                     ? 'bg-white border-emerald-300 text-emerald-800 shadow-sm'
                     : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/50'
@@ -574,7 +574,7 @@ function DashboardContent() {
               <button
                 type="button"
                 onClick={() => setActiveTab('profile')}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border transition-all whitespace-nowrap ${
+                className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl border transition-all whitespace-nowrap min-h-touch ${
                   activeTab === 'profile'
                     ? 'bg-white border-emerald-300 text-emerald-800 shadow-sm'
                     : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/50'

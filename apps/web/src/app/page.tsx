@@ -20,6 +20,7 @@ import {
   Tag,
   Compass,
   Building,
+  Building2,
   Check,
   ChevronRight,
   PhoneCall,
@@ -28,9 +29,10 @@ import {
   HelpCircle,
   FileCheck2,
   User,
-  UserPlus,
-  LogIn,
   LogOut,
+  Mountain,
+  Award,
+  Users,
 } from 'lucide-react';
 import {
   getAuthDict,
@@ -61,7 +63,9 @@ export default function HomePage() {
     let isMounted = true;
     async function checkSession() {
       try {
-        const { data: { user: authUser } } = await supabase.auth.getUser();
+        const {
+          data: { user: authUser },
+        } = await supabase.auth.getUser();
         if (authUser && isMounted) {
           const { data: profile } = await supabase
             .from('profiles')
@@ -132,7 +136,7 @@ export default function HomePage() {
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 sm:h-20 flex items-center justify-between gap-3 sm:gap-6">
           {/* Left: Brand Identity */}
-          <Link href="/" className="flex items-center gap-2.5 sm:gap-3 shrink-0 group">
+          <Link href="/" className="flex items-center gap-2.5 sm:gap-3 shrink-0 group min-h-touch">
             <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-emerald-600 flex items-center justify-center font-bold text-white text-xl sm:text-2xl shadow-xs ring-4 ring-emerald-50 select-none group-hover:bg-emerald-700 transition-colors">
               स
             </div>
@@ -153,62 +157,61 @@ export default function HomePage() {
 
           {/* Center: Concise Navigation Links (Desktop) */}
           <nav className="hidden xl:flex items-center gap-7 text-sm font-medium text-slate-600 shrink-0">
-            <a href="#how-it-works" className="hover:text-emerald-700 transition-colors whitespace-nowrap">
+            <a href="#how-it-works" className="hover:text-emerald-700 transition-colors whitespace-nowrap min-h-touch flex items-center">
               {lang === 'en' ? 'Why 0% Brokerage' : 'शून्य दलाली'}
             </a>
-            <a href="#featured-listings" className="hover:text-emerald-700 transition-colors whitespace-nowrap">
+            <a href="#featured-listings" className="hover:text-emerald-700 transition-colors whitespace-nowrap min-h-touch flex items-center">
               {lang === 'en' ? 'Verified Land' : 'प्रमाणित जग्गा'}
             </a>
-            <a href="#valuation-tracker" className="hover:text-emerald-700 transition-colors whitespace-nowrap">
+            <a href="#valuation-tracker" className="hover:text-emerald-700 transition-colors whitespace-nowrap min-h-touch flex items-center">
               {lang === 'en' ? 'Valuation & Kitta' : 'कित्ता नापी नक्सा'}
             </a>
-            <a href="#faqs" className="hover:text-emerald-700 transition-colors whitespace-nowrap">
+            <a href="#faqs" className="hover:text-emerald-700 transition-colors whitespace-nowrap min-h-touch flex items-center">
               {lang === 'en' ? 'FAQs' : 'प्रश्नोत्तर'}
             </a>
           </nav>
 
           {/* Right: Actions, Auth & Language Switcher */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* Post Free Property Badge */}
+            {/* Post Free Property CTA */}
             <Link
-              href={user ? '/dashboard' : '/auth?mode=signup'}
-              className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-full border border-emerald-600 bg-emerald-50/90 hover:bg-emerald-600 text-emerald-800 hover:text-white text-xs sm:text-sm font-bold transition-all shadow-xs active:scale-95 whitespace-nowrap"
+              href={user ? '/post-property' : '/auth?mode=signup'}
+              className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl border border-emerald-600 bg-emerald-50/90 hover:bg-emerald-600 text-emerald-800 hover:text-white text-xs sm:text-sm font-bold transition-all shadow-xs active:scale-95 whitespace-nowrap min-h-touch"
             >
-              <PlusCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <PlusCircle className="w-4 h-4 text-emerald-600 group-hover:text-white" />
               <span>{lang === 'en' ? 'Post Free Property' : 'जग्गा राख्नुहोस्'}</span>
             </Link>
 
-            {/* Authentication Actions: Log In & Sign Up */}
+            {/* Authentication Action: User Chip or Single Sign In CTA */}
             {user ? (
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <Link
                   href="/dashboard"
-                  className="flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100 text-xs sm:text-sm font-bold transition-all shadow-xs whitespace-nowrap"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100 text-xs sm:text-sm font-bold transition-all shadow-xs whitespace-nowrap min-h-touch"
                   title="Go to Dashboard Console"
                 >
-                  <User className="w-3.5 h-3.5 text-emerald-700" />
-                  <span className="hidden md:inline font-semibold">{user.fullName}</span>
+                  <User className="w-4 h-4 text-emerald-700" />
+                  <span className="hidden md:inline font-semibold truncate max-w-[110px]">{user.fullName}</span>
                   <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-bold">
-                    {user.credits} Credits
+                    {user.credits} C
                   </span>
                 </Link>
                 <button
                   type="button"
                   onClick={handleSignOut}
-                  className="p-1.5 sm:p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors text-xs font-semibold"
+                  className="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors text-xs font-semibold min-h-touch min-w-touch flex items-center justify-center"
                   title={lang === 'en' ? 'Log Out' : 'लगआउट'}
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
               </div>
             ) : (
-              /* Single Unified Auth Button (Saves Space, Handles Both Login & Signup via Phone OTP) */
               <Link
                 href="/auth"
-                className="flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs sm:text-sm font-bold transition-all shadow-xs hover:shadow-sm active:scale-95 whitespace-nowrap"
+                className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs sm:text-sm font-bold transition-all shadow-xs hover:shadow-sm active:scale-95 whitespace-nowrap min-h-touch"
                 title={lang === 'en' ? 'Log in or Create an Account' : 'लगइन वा नयाँ खाता'}
               >
-                <User className="w-3.5 h-3.5" />
+                <User className="w-4 h-4" />
                 <span>{lang === 'en' ? 'Sign In' : 'साइन इन'}</span>
               </Link>
             )}
@@ -217,10 +220,10 @@ export default function HomePage() {
             <button
               type="button"
               onClick={toggleLang}
-              className="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 sm:py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 transition-all shadow-xs whitespace-nowrap"
+              className="flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 transition-all shadow-xs whitespace-nowrap min-h-touch"
               title="Toggle Language"
             >
-              <Globe2 className="w-3.5 h-3.5 text-emerald-600" />
+              <Globe2 className="w-4 h-4 text-emerald-600" />
               <span>{lang === 'en' ? 'नेपाली' : 'EN'}</span>
             </button>
           </div>
@@ -233,7 +236,7 @@ export default function HomePage() {
       <section className="relative overflow-hidden bg-gradient-to-b from-white via-slate-50/80 to-slate-100 py-12 sm:py-20 border-b border-slate-200">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
           {/* Launch Benefit Badge */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold shadow-sm">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold shadow-xs">
             <Coins className="w-4 h-4 text-emerald-600" />
             <span>
               {lang === 'en'
@@ -273,57 +276,57 @@ export default function HomePage() {
           {/* NOBROKER SEARCH ENGINE CONTAINER */}
           {/* ======================================================== */}
           <div className="max-w-4xl mx-auto bg-white border border-slate-200 rounded-2xl shadow-xl shadow-slate-200/60 p-4 sm:p-6 text-left mt-6">
-            {/* Category Tabs */}
-            <div className="flex items-center gap-2 border-b border-slate-100 pb-3.5 overflow-x-auto scrollbar-none">
+            {/* Category Tabs (Clean Lucide SVGs, No Emojis, Horizontal Scroll on Mobile) */}
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-3.5 overflow-x-auto scrollbar-none flex-nowrap">
               <button
                 type="button"
                 onClick={() => setActiveTab('land')}
-                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all shrink-0 ${
+                className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all shrink-0 min-h-touch ${
                   activeTab === 'land'
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70 hover:text-slate-900'
                 }`}
               >
-                <span>🏔️</span>
+                <Mountain className="w-4 h-4" />
                 <span>{lang === 'en' ? 'Buy Land / Ghaderi' : 'जग्गा / घडेरी खरिद'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab('house')}
-                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all shrink-0 ${
+                className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all shrink-0 min-h-touch ${
                   activeTab === 'house'
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70 hover:text-slate-900'
                 }`}
               >
-                <span>🏡</span>
+                <Home className="w-4 h-4" />
                 <span>{lang === 'en' ? 'Buy House / Villa' : 'घर / भिल्ला खरिद'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab('commercial')}
-                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all shrink-0 ${
+                className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all shrink-0 min-h-touch ${
                   activeTab === 'commercial'
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70 hover:text-slate-900'
                 }`}
               >
-                <span>🏢</span>
+                <Building2 className="w-4 h-4" />
                 <span>{lang === 'en' ? 'Commercial Land' : 'व्यावसायिक जग्गा'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setActiveTab('valuation')}
-                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all shrink-0 ${
+                className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all shrink-0 min-h-touch ${
                   activeTab === 'valuation'
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70 hover:text-slate-900'
                 }`}
               >
-                <span>📈</span>
+                <TrendingUp className="w-4 h-4" />
                 <span>{lang === 'en' ? 'Valuation Tracker' : 'मूल्याङ्कन दर'}</span>
               </button>
             </div>
@@ -339,7 +342,7 @@ export default function HomePage() {
                   <select
                     value={selectedHub}
                     onChange={(e) => setSelectedHub(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-3 text-sm font-semibold text-slate-900 appearance-none focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-3 text-sm font-semibold text-slate-900 appearance-none focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 min-h-touch"
                   >
                     <option value="Kathmandu">Kathmandu (काठमाडौँ)</option>
                     <option value="Lalitpur">Lalitpur (ललितपुर)</option>
@@ -372,7 +375,7 @@ export default function HomePage() {
                         ? 'e.g., Budhanilkantha, Baneshwor Ward 10, Tikathali...'
                         : 'उदा. बुढानीलकण्ठ, बानेश्वर वडा १०, टीकाथली...'
                     }
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 min-h-touch"
                   />
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400">
                     <Search className="w-4 h-4" />
@@ -384,7 +387,7 @@ export default function HomePage() {
               <div className="w-full md:w-auto md:self-end">
                 <button
                   type="submit"
-                  className="w-full md:w-auto px-7 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-sm tracking-wide shadow-sm hover:shadow flex items-center justify-center gap-2 transition-all"
+                  className="w-full md:w-auto px-7 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-sm tracking-wide shadow-sm hover:shadow flex items-center justify-center gap-2 transition-all min-h-touch active:scale-95"
                 >
                   <Search className="w-4 h-4" />
                   <span>{lang === 'en' ? 'Search Properties' : 'सम्पत्ति खोज्नुहोस्'}</span>
@@ -440,7 +443,7 @@ export default function HomePage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Card 1: For Landowners */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow group">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 flex flex-col justify-between shadow-xs hover:shadow-md transition-shadow group">
             <div>
               <div className="flex items-center justify-between mb-4">
                 <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center group-hover:scale-105 transition-transform">
@@ -460,8 +463,8 @@ export default function HomePage() {
               </p>
             </div>
             <Link
-              href="/auth"
-              className="inline-flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider transition-colors shadow-sm"
+              href="/post-property"
+              className="inline-flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider transition-colors shadow-xs min-h-touch active:scale-95"
             >
               <span>{lang === 'en' ? 'Post Free Property' : 'जग्गा निःशुल्क राख्नुहोस्'}</span>
               <ArrowRight className="w-4 h-4" />
@@ -469,7 +472,7 @@ export default function HomePage() {
           </div>
 
           {/* Card 2: For Property Buyers */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow group">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 flex flex-col justify-between shadow-xs hover:shadow-md transition-shadow group">
             <div>
               <div className="flex items-center justify-between mb-4">
                 <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center group-hover:scale-105 transition-transform">
@@ -489,8 +492,8 @@ export default function HomePage() {
               </p>
             </div>
             <Link
-              href="/auth"
-              className="inline-flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase tracking-wider transition-colors shadow-sm"
+              href="/search"
+              className="inline-flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase tracking-wider transition-colors shadow-xs min-h-touch active:scale-95"
             >
               <span>{lang === 'en' ? 'Explore Verified Land' : 'प्रमाणित जग्गा हेर्नुहोस्'}</span>
               <ArrowRight className="w-4 h-4" />
@@ -498,7 +501,7 @@ export default function HomePage() {
           </div>
 
           {/* Card 3: Wealth & Valuation Tracker */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow group">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 flex flex-col justify-between shadow-xs hover:shadow-md transition-shadow group">
             <div>
               <div className="flex items-center justify-between mb-4">
                 <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center group-hover:scale-105 transition-transform">
@@ -518,8 +521,8 @@ export default function HomePage() {
               </p>
             </div>
             <Link
-              href="/auth"
-              className="inline-flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-xs uppercase tracking-wider transition-colors"
+              href="/dashboard?tab=profile"
+              className="inline-flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-xs uppercase tracking-wider transition-colors min-h-touch active:scale-95"
             >
               <span>{lang === 'en' ? 'Check Land Valuation' : 'जग्गाको भाउ जाँच्नुहोस्'}</span>
               <ArrowRight className="w-4 h-4" />
@@ -544,8 +547,8 @@ export default function HomePage() {
               </h2>
             </div>
             <Link
-              href="/auth"
-              className="inline-flex items-center gap-1.5 text-sm font-bold text-emerald-700 hover:text-emerald-800"
+              href="/search"
+              className="inline-flex items-center gap-1.5 text-sm font-bold text-emerald-700 hover:text-emerald-800 min-h-touch"
             >
               <span>{lang === 'en' ? 'View all direct listings' : 'सबै सूची हेर्नुहोस्'}</span>
               <ChevronRight className="w-4 h-4" />
@@ -554,7 +557,7 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Listing 1: Kathmandu */}
-            <div className="bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
               <div>
                 <div className="bg-emerald-800 text-white p-5 flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-wider bg-emerald-900/60 px-2.5 py-1 rounded-md">
@@ -571,7 +574,7 @@ export default function HomePage() {
                     Residential Plot in Budhanilkantha
                   </h4>
                   <p className="text-xs text-slate-500 flex items-center gap-1 mb-4">
-                    <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                    <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                     <span>Budhanilkantha Ward 4, Kathmandu</span>
                   </p>
 
@@ -594,8 +597,8 @@ export default function HomePage() {
 
               <div className="p-6 pt-0">
                 <Link
-                  href="/auth"
-                  className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider transition-colors shadow-sm"
+                  href="/search?district=Kathmandu"
+                  className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider transition-colors shadow-xs min-h-touch active:scale-95"
                 >
                   <PhoneCall className="w-3.5 h-3.5" />
                   <span>{lang === 'en' ? 'Unlock Owner Contact' : 'जग्गाधनी नम्बर खोल्नुहोस्'}</span>
@@ -604,7 +607,7 @@ export default function HomePage() {
             </div>
 
             {/* Listing 2: Chitwan */}
-            <div className="bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
               <div>
                 <div className="bg-slate-800 text-white p-5 flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-wider bg-slate-900/60 px-2.5 py-1 rounded-md">
@@ -621,7 +624,7 @@ export default function HomePage() {
                     Commercial Highway Plot in Bharatpur
                   </h4>
                   <p className="text-xs text-slate-500 flex items-center gap-1 mb-4">
-                    <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                    <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                     <span>Bharatpur-10, Bypass Road, Chitwan</span>
                   </p>
 
@@ -644,8 +647,8 @@ export default function HomePage() {
 
               <div className="p-6 pt-0">
                 <Link
-                  href="/auth"
-                  className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider transition-colors shadow-sm"
+                  href="/search?district=Chitwan"
+                  className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider transition-colors shadow-xs min-h-touch active:scale-95"
                 >
                   <PhoneCall className="w-3.5 h-3.5" />
                   <span>{lang === 'en' ? 'Unlock Owner Contact' : 'जग्गाधनी नम्बर खोल्नुहोस्'}</span>
@@ -654,7 +657,7 @@ export default function HomePage() {
             </div>
 
             {/* Listing 3: Lalitpur */}
-            <div className="bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
               <div>
                 <div className="bg-emerald-800 text-white p-5 flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-wider bg-emerald-900/60 px-2.5 py-1 rounded-md">
@@ -671,7 +674,7 @@ export default function HomePage() {
                     South-Facing Corner Ghaderi in Bhaisepati
                   </h4>
                   <p className="text-xs text-slate-500 flex items-center gap-1 mb-4">
-                    <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                    <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                     <span>Bhaisepati Heights, Lalitpur</span>
                   </p>
 
@@ -694,8 +697,8 @@ export default function HomePage() {
 
               <div className="p-6 pt-0">
                 <Link
-                  href="/auth"
-                  className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider transition-colors shadow-sm"
+                  href="/search?district=Lalitpur"
+                  className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider transition-colors shadow-xs min-h-touch active:scale-95"
                 >
                   <PhoneCall className="w-3.5 h-3.5" />
                   <span>{lang === 'en' ? 'Unlock Owner Contact' : 'जग्गाधनी नम्बर खोल्नुहोस्'}</span>
@@ -724,7 +727,7 @@ export default function HomePage() {
           </p>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
           <div className="grid grid-cols-3 bg-slate-100/80 p-4 font-bold text-xs uppercase tracking-wider text-slate-700 border-b border-slate-200">
             <div>{lang === 'en' ? 'Feature' : 'विशेषता'}</div>
             <div className="text-slate-500">{lang === 'en' ? 'Traditional Brokerage' : 'परम्परागत दलाल प्रणाली'}</div>
@@ -788,7 +791,7 @@ export default function HomePage() {
           <div className="space-y-4">
             <div className="p-4 sm:p-5 rounded-xl border border-slate-200 bg-slate-50/60">
               <h4 className="font-bold text-sm text-slate-900 mb-1 flex items-center gap-2">
-                <HelpCircle className="w-4 h-4 text-emerald-600" />
+                <HelpCircle className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span>How does Sarvabhoomi operate with zero brokerage?</span>
               </h4>
               <p className="text-xs text-slate-600 leading-relaxed pl-6">
@@ -798,7 +801,7 @@ export default function HomePage() {
 
             <div className="p-4 sm:p-5 rounded-xl border border-slate-200 bg-slate-50/60">
               <h4 className="font-bold text-sm text-slate-900 mb-1 flex items-center gap-2">
-                <HelpCircle className="w-4 h-4 text-emerald-600" />
+                <HelpCircle className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span>What are the 15 Free Contact-Unlock Credits?</span>
               </h4>
               <p className="text-xs text-slate-600 leading-relaxed pl-6">
@@ -808,7 +811,7 @@ export default function HomePage() {
 
             <div className="p-4 sm:p-5 rounded-xl border border-slate-200 bg-slate-50/60">
               <h4 className="font-bold text-sm text-slate-900 mb-1 flex items-center gap-2">
-                <HelpCircle className="w-4 h-4 text-emerald-600" />
+                <HelpCircle className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span>How are dual land measurement systems handled?</span>
               </h4>
               <p className="text-xs text-slate-600 leading-relaxed pl-6">
@@ -832,11 +835,11 @@ export default function HomePage() {
               <span className="font-bold text-slate-900 text-sm">{dict.brand.name}</span>
             </div>
             <div className="flex flex-wrap items-center gap-6 text-slate-600 font-medium">
-              <Link href="/auth?mode=login" className="hover:text-emerald-700">{lang === 'en' ? 'Log In' : 'लगइन'}</Link>
-              <Link href="/auth?mode=signup" className="hover:text-emerald-700">{lang === 'en' ? 'Sign Up' : 'साइन अप'}</Link>
-              <Link href="/dashboard" className="hover:text-emerald-700">Marketplace Console</Link>
-              <a href="#how-it-works" className="hover:text-emerald-700">Why Zero Brokerage</a>
-              <a href="#faqs" className="hover:text-emerald-700">FAQs</a>
+              <Link href="/auth?mode=login" className="hover:text-emerald-700 min-h-touch flex items-center">{lang === 'en' ? 'Log In' : 'लगइन'}</Link>
+              <Link href="/auth?mode=signup" className="hover:text-emerald-700 min-h-touch flex items-center">{lang === 'en' ? 'Sign Up' : 'साइन अप'}</Link>
+              <Link href="/dashboard" className="hover:text-emerald-700 min-h-touch flex items-center">Marketplace Console</Link>
+              <a href="#how-it-works" className="hover:text-emerald-700 min-h-touch flex items-center">Why Zero Brokerage</a>
+              <a href="#faqs" className="hover:text-emerald-700 min-h-touch flex items-center">FAQs</a>
             </div>
           </div>
 

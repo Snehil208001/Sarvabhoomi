@@ -14,6 +14,66 @@ This log tracks all architectural decisions, feature implementations, verificati
 
 ## 🗓️ Engineering Log
 
+### 📅 Session: November 5, 2026 (UI/UX Refactor via `ui-ux-pro-max` Skill)
+
+#### 🎯 Focus: UI/UX-Only Institutional Polish, NoBroker Clean Aesthetic, Zero Emojis as Icons, Accessible Keyboard Navigation, 360px Mobile Responsiveness, and Semantic Design Tokens
+
+---
+
+### ✅ Completed Milestones
+
+#### 1. Skill Verification & Generated Design Authority
+- Verified installation of `ui-ux-pro-max` at `.agents/skills/ui-ux-pro-max/SKILL.md`.
+- Executed `python .agents/skills/ui-ux-pro-max/scripts/search.py "real estate marketplace P2P Nepal property" --design-system -p "Sarvabhoomi"`:
+  - **Pattern**: Marketplace / Directory (Search bar is the CTA; reduce friction to search; popular search suggestions; hero search + navbar 'Post Free Property').
+  - **Style**: Exaggerated Minimalism (bold minimalism, high contrast, negative space, clean typography, whitespace).
+  - **Colors**: Primary Emerald/Teal `#059669` / `#0F766E`, Background `#F8FAFC`, Foreground `#0F172A`, Muted `#F1F5F9`, Border `#E2E8F0`, Destructive `#DC2626`, Ring `#10B981`.
+  - **Pre-Delivery Checklist**: No emojis as icons (Heroicons/Lucide only), cursor-pointer on all clickables, hover states with smooth transitions, text contrast 4.5:1 minimum, visible focus states for keyboard navigation, `prefers-reduced-motion` respected, responsive at 360px, 375px, 768px, 1024px, 1440px.
+
+#### 2. Design Tokens & Styling Foundation (`apps/web/tailwind.config.ts`, `globals.css`)
+- **Semantic Color Tokens**: Added full `brand` palette (50–950), `surface` semantic layers (`surface-subtle`, `surface-muted`, `surface-border`, `surface-borderHover`).
+- **Touch Target Dimensions**: Added `min-h-touch: 44px` and `min-w-touch: 44px` for mobile touch target compliance.
+- **Card Shadows**: Standardized `shadow-subtle`, `shadow-card`, and `shadow-cardHover`.
+- **Global Accessible Focus & Interactions (`globals.css`)**:
+  - Global `cursor: pointer` on all buttons, links, selects, and checkboxes.
+  - Global `*:focus-visible` with `2px solid #059669` and `2px outline-offset`.
+  - `@media (prefers-reduced-motion: reduce)` disabling non-essential transitions for accessibility.
+  - Subpixel antialiasing and smooth scrolling defaults.
+  - Responsive scrollbar utility `.scrollbar-none`.
+
+#### 3. Route-by-Route Polish
+- **Landing & Navbar (`apps/web/src/app/page.tsx`)**:
+  - Fixed navbar crowding across desktop and mobile; consolidated navigation items with responsive priorities.
+  - Clean CTA hierarchy: High-contrast "Post Free Property" + unified "Sign In" / User chip + bilingual switcher.
+  - Converted category search tabs from emojis (`🏔️`, `🏡`, `🏢`, `📈`) to Lucide icons (`Mountain`, `Home`, `Building2`, `TrendingUp`).
+  - Search category tabs now smoothly swipe with one thumb on mobile (`overflow-x-auto scrollbar-none flex-nowrap`).
+  - Search inputs and buttons adhere to touch targets >= 44px (`min-h-touch`).
+  - Replaced hardcoded `/auth` links on featured property cards with direct links to `/search` with district query parameters.
+- **Auth Flow (`apps/web/src/app/auth/page.tsx`)**:
+  - Optimized 6-digit OTP grid for 360px mobile viewports (`gap-1.5 sm:gap-3`, `w-10 sm:w-12 h-12 sm:h-14`) preventing horizontal container blowouts.
+  - Balanced 4-card role selector to equal minimum heights (`min-h-[165px]`) to eliminate jagged layouts across English and longer Devanagari text.
+  - Ensured all role cards and interactive toggles feature high-contrast visible focus rings.
+- **Search & Property Cards (`apps/web/src/app/search/page.tsx`)**:
+  - Removed emoji icons from property cards (`🛣️`, `🧭`, `🛏️`), replacing them with Lucide SVGs (`Milestone`, `Compass`, `Bed`).
+  - Enhanced badge alignment to prevent clipping on mobile or narrow grid columns.
+  - Contact Owner and favorite actions feature minimum 44px touch targets.
+- **Listing Details (`apps/web/src/app/properties/[id]/page.tsx`)**:
+  - Sticky right-column landowner contact card optimized to avoid viewport lock on mobile screens.
+  - Full Lucide SVG icon hierarchy across specifications matrix, landmark distances, and cadastral survey simulator.
+- **Post Property Wizard (`apps/web/src/app/post-property/page.tsx`)**:
+  - Clear multi-step wizard progress tracker with responsive active titles.
+  - Clean photo upload dropzone with preview grid and dismiss buttons.
+  - Clear error feedback banners with inline validation guidance.
+- **Dashboard (`apps/web/src/app/dashboard/page.tsx`)**:
+  - Horizontally swipeable tabs with touch targets >= 44px (`min-h-touch`).
+  - Wallet balance and 90-day expiration tracker with high-contrast emerald styling.
+
+#### 4. Verification
+- `turbo type-check`: **0 errors** across both packages (`@sarvabhoomi/shared` and `web`).
+- `turbo build`: **0 errors**, all 7 routes compiled with static & dynamic optimization.
+
+---
+
 ### 📅 Session: November 5, 2026 (Phase 1–6: Full Zero-Brokerage NoBroker-Style Marketplace Architecture)
 
 #### 🎯 Focus: End-to-End Direct Owner-to-Buyer Real Estate Marketplace for Nepal with Lalpurja Verification, Cadastral Maps, Credits Wallet, and Multi-Step Listing Flow

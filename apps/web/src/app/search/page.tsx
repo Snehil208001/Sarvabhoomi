@@ -26,6 +26,9 @@ import {
   Coins,
   Globe2,
   Check,
+  Compass,
+  Bed,
+  Milestone,
 } from 'lucide-react';
 import {
   Property,
@@ -689,18 +692,21 @@ function SearchContent() {
                       {/* Specifications Tags */}
                       <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[11px] text-slate-600">
                         {prop.road_access && (
-                          <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-medium">
-                            🛣️ {prop.road_access}
+                          <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-medium inline-flex items-center gap-1">
+                            <Milestone className="w-3 h-3 text-slate-500" />
+                            <span>{prop.road_access}</span>
                           </span>
                         )}
                         {prop.facing && (
-                          <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-medium">
-                            🧭 {prop.facing}
+                          <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-medium inline-flex items-center gap-1">
+                            <Compass className="w-3 h-3 text-slate-500" />
+                            <span>{prop.facing}</span>
                           </span>
                         )}
                         {prop.bedrooms && (
-                          <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-medium">
-                            🛏️ {prop.bedrooms} BHK
+                          <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-medium inline-flex items-center gap-1">
+                            <Bed className="w-3 h-3 text-slate-500" />
+                            <span>{prop.bedrooms} BHK</span>
                           </span>
                         )}
                       </div>

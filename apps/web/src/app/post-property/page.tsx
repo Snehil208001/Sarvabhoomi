@@ -975,3 +975,4 @@ export default function PostPropertyPage() {
     </div>
   );
 }
+

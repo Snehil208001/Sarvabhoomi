@@ -144,9 +144,10 @@ export function ContactUnlockModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+            className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors min-h-touch min-w-touch flex items-center justify-center"
+            title="Close modal"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -366,3 +367,4 @@ export function ContactUnlockModal({
     </div>
   );
 }
+
