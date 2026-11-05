@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   ShieldCheck,
   MapPin,
@@ -42,6 +43,7 @@ import { supabase } from '@/lib/supabase';
 type SearchCategory = 'land' | 'house' | 'commercial' | 'valuation';
 
 export default function HomePage() {
+  const router = useRouter();
   const [lang, setLang] = useState<'en' | 'ne'>('en');
   const dict = getAuthDict(lang);
 
@@ -104,15 +106,22 @@ export default function HomePage() {
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const queryTerm = searchQuery.trim() || selectedHub;
-    setSearchFeedback(
-      lang === 'en'
-        ? `Searching verified direct-owner ${activeTab} listings in ${queryTerm}...`
-        : `${queryTerm} मा प्रमाणित प्रत्यक्ष जग्गाधनीका सूचीहरू खोजिँदैछ...`
-    );
-    setTimeout(() => {
-      setSearchFeedback(null);
-    }, 4000);
+    const typeMapping: Record<SearchCategory, string> = {
+      land: 'BUY_LAND',
+      house: 'BUY_HOUSE',
+      commercial: 'COMMERCIAL',
+      valuation: 'BUY_LAND',
+    };
+    const mappedType = typeMapping[activeTab] || 'BUY_LAND';
+    const params = new URLSearchParams();
+    params.set('type', mappedType);
+    if (selectedHub && selectedHub !== 'All') {
+      params.set('district', selectedHub);
+    }
+    if (searchQuery.trim()) {
+      params.set('q', searchQuery.trim());
+    }
+    router.push(`/search?${params.toString()}`);
   };
 
   return (

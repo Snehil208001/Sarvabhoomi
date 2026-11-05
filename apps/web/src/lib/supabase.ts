@@ -107,6 +107,167 @@ export type Database = {
         };
         Relationships: [];
       };
+      properties: {
+        Row: {
+          id: string;
+          owner_id: string;
+          title: string;
+          description: string | null;
+          listing_type: 'BUY_LAND' | 'BUY_HOUSE' | 'RENT_HOUSE' | 'COMMERCIAL';
+          price_npr: number;
+          district: string;
+          municipality: string | null;
+          ward: number | null;
+          locality: string;
+          area_value: number;
+          area_unit: 'ROPANI' | 'AANA' | 'BIGHA' | 'KATTHA' | 'SQFT';
+          area_sqft: number;
+          road_access: string | null;
+          facing: 'EAST' | 'WEST' | 'NORTH' | 'SOUTH' | 'NORTH_EAST' | 'SOUTH_EAST' | 'NORTH_WEST' | 'SOUTH_WEST' | null;
+          bedrooms: number | null;
+          bathrooms: number | null;
+          lalpurja_verified: boolean;
+          kitta_no: string | null;
+          photos: string[];
+          status: 'ACTIVE' | 'DRAFT' | 'SOLD' | 'PAUSED';
+          views_count: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          title: string;
+          description?: string | null;
+          listing_type: 'BUY_LAND' | 'BUY_HOUSE' | 'RENT_HOUSE' | 'COMMERCIAL';
+          price_npr: number;
+          district: string;
+          municipality?: string | null;
+          ward?: number | null;
+          locality: string;
+          area_value: number;
+          area_unit: 'ROPANI' | 'AANA' | 'BIGHA' | 'KATTHA' | 'SQFT';
+          area_sqft: number;
+          road_access?: string | null;
+          facing?: 'EAST' | 'WEST' | 'NORTH' | 'SOUTH' | 'NORTH_EAST' | 'SOUTH_EAST' | 'NORTH_WEST' | 'SOUTH_WEST' | null;
+          bedrooms?: number | null;
+          bathrooms?: number | null;
+          lalpurja_verified?: boolean;
+          kitta_no?: string | null;
+          photos?: string[];
+          status?: 'ACTIVE' | 'DRAFT' | 'SOLD' | 'PAUSED';
+          views_count?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          owner_id?: string;
+          title?: string;
+          description?: string | null;
+          listing_type?: 'BUY_LAND' | 'BUY_HOUSE' | 'RENT_HOUSE' | 'COMMERCIAL';
+          price_npr?: number;
+          district?: string;
+          municipality?: string | null;
+          ward?: number | null;
+          locality?: string;
+          area_value?: number;
+          area_unit?: 'ROPANI' | 'AANA' | 'BIGHA' | 'KATTHA' | 'SQFT';
+          area_sqft?: number;
+          road_access?: string | null;
+          facing?: 'EAST' | 'WEST' | 'NORTH' | 'SOUTH' | 'NORTH_EAST' | 'SOUTH_EAST' | 'NORTH_WEST' | 'SOUTH_WEST' | null;
+          bedrooms?: number | null;
+          bathrooms?: number | null;
+          lalpurja_verified?: boolean;
+          kitta_no?: string | null;
+          photos?: string[];
+          status?: 'ACTIVE' | 'DRAFT' | 'SOLD' | 'PAUSED';
+          views_count?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "properties_owner_id_fkey";
+            columns: ["owner_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      property_favourites: {
+        Row: {
+          id: string;
+          user_id: string;
+          property_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          property_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          property_id?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "property_favourites_property_id_fkey";
+            columns: ["property_id"];
+            isOneToOne: false;
+            referencedRelation: "properties";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "property_favourites_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      contact_unlocks: {
+        Row: {
+          id: string;
+          user_id: string;
+          property_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          property_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          property_id?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "contact_unlocks_property_id_fkey";
+            columns: ["property_id"];
+            isOneToOne: false;
+            referencedRelation: "properties";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contact_unlocks_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -126,6 +287,22 @@ export type Database = {
           user_intent: 'BUYER' | 'OWNER' | 'INVESTOR_NRN' | 'AGENT_BROKER' | null;
         };
       };
+      unlock_property_contact: {
+        Args: {
+          p_property_id: string;
+        };
+        Returns: {
+          success: boolean;
+          error?: string;
+          is_owner?: boolean;
+          already_unlocked?: boolean;
+          unlocked_now?: boolean;
+          owner_phone?: string;
+          owner_name?: string;
+          owner_intent?: string;
+          credits_remaining?: number;
+        };
+      };
     };
     Enums: {
       [_ in never]: never;
@@ -139,6 +316,11 @@ export type Database = {
 export type Profile = Database['public']['Tables']['profiles']['Row'];
 export type UserSubscription = Database['public']['Tables']['user_subscriptions']['Row'];
 export type AppConfig = Database['public']['Tables']['app_config']['Row'];
+export type PropertyRow = Database['public']['Tables']['properties']['Row'];
+export type PropertyInsert = Database['public']['Tables']['properties']['Insert'];
+export type PropertyUpdate = Database['public']['Tables']['properties']['Update'];
+export type PropertyFavourite = Database['public']['Tables']['property_favourites']['Row'];
+export type ContactUnlock = Database['public']['Tables']['contact_unlocks']['Row'];
 
 export interface CheckUserStatusResult {
   exists: boolean;

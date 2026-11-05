@@ -14,7 +14,81 @@ This log tracks all architectural decisions, feature implementations, verificati
 
 ## 🗓️ Engineering Log
 
-### 📅 Session: November 5, 2026
+### 📅 Session: November 5, 2026 (Phase 1–6: Full Zero-Brokerage NoBroker-Style Marketplace Architecture)
+
+#### 🎯 Focus: End-to-End Direct Owner-to-Buyer Real Estate Marketplace for Nepal with Lalpurja Verification, Cadastral Maps, Credits Wallet, and Multi-Step Listing Flow
+
+---
+
+### ✅ Completed Milestones
+
+#### 1. Phase 1 — Property Data Model, Units & Seed Data
+- **Supabase Schema (`supabase/migrations/20261105000003_properties.sql`):**
+  - Created `public.properties` table supporting `listing_type` (`BUY_LAND`, `BUY_HOUSE`, `RENT_HOUSE`, `COMMERCIAL`), `area_unit` (`ROPANI`, `AANA`, `BIGHA`, `KATTHA`, `SQFT`), `area_sqft`, `road_access`, `facing`, `lalpurja_verified`, `kitta_no`, `photos text[]`, and `status` (`ACTIVE`, `DRAFT`, `SOLD`, `PAUSED`).
+  - Created `public.property_favourites` table for persisted user bookmarks.
+  - Created `public.contact_unlocks` table logging unlocks, timestamp, and credits spent.
+  - Implemented atomic `unlock_property_contact(p_property_id)` stored procedure in PL/pgSQL: validates caller authentication, checks if owner or already unlocked, decrements 1 credit atomically from `user_subscriptions`, logs into `contact_unlocks`, increments property `unlocks_count`, and returns owner contact details safely.
+  - Created `property-photos` storage bucket with public read access and authenticated upload policies.
+- **Shared Schemas & Conversions (`packages/shared`):**
+  - Created `packages/shared/src/validators/property.ts` with Zod validation, TypeScript definitions, and filter params.
+  - Created `packages/shared/src/units/conversion.ts` with accurate mathematical conversions: `toSqFt`, `fromSqFt`, `formatArea` (e.g. `1-2-1-0 Ropani` or `0-15-5 Bigha`), `formatPriceNPR` (with Lakh/Crore notation), and `formatPricePerUnit`.
+- **Seed Listings (`supabase/seed_properties.sql`):**
+  - Authored 12 realistic ACTIVE listings across Kathmandu Valley (Budhanilkantha, Imadol, New Baneshwor, Tokha, Sanepa, Suryabinayak, Bhaisepati), Pokhara, Chitwan, Butwal, Biratnagar, and Dhulikhel with Unsplash real estate image placeholders.
+- **Consolidated Setup (`supabase/init_sarvabhoomi.sql`):**
+  - Unified script containing `app_config`, `profiles`, `user_subscriptions`, `properties`, `property_favourites`, `contact_unlocks`, triggers, RPCs, and PostgREST schema reloads for 1-click execution.
+
+#### 2. Phase 2 — Search & Listings Marketplace (`/search`)
+- **Interactive Search Engine (`apps/web/src/app/search/page.tsx`):**
+  - Tabs: `Buy Land (Ghaderi)`, `Buy House`, `Rent House`, `Commercial`, `All Properties`.
+  - Search inputs with debounced locality query, Nepal district dropdown (all 77 districts), price presets (Under 50 Lakhs, 50L - 1 Cr, 1 - 2.5 Cr, 2.5 - 5 Cr, 5 Cr+), and Lalpurja Verified filter.
+  - Sorting: Newest First, Price (Low to High), Price (High to Low), Area (Largest First).
+  - High-converting property cards: photo badge, NPR price in Lakh/Cr with per-unit rates, area in local units + sq ft, facing & road width, Lalpurja Verified trust badge, 0% Brokerage badge, shortlist heart button, and "Contact Owner" CTA.
+  - Landing page hero search connected to `/search` with parameters.
+
+#### 3. Phase 3 — Detail Page & Contact Unlock Modal (`/properties/[id]`)
+- **Comprehensive Listing View (`apps/web/src/app/properties/[id]/page.tsx`):**
+  - Photo gallery with active thumbnail selector and full preview.
+  - Prominent price header with per-aana / per-kattha calculation.
+  - Technical specifications grid: property type, plot area in local units + sq ft + m², road access, facing, bedrooms/bathrooms, cadastral Kitta plot number, and listing date.
+  - Interactive Cadastral Survey & Boundary Visualization card simulating government land survey sheet coordinates.
+  - Sticky right-column Landowner Contact Card:
+    - Locked state: displays "Unlock Landowner Contact with 1 Free Credit" with security guarantees.
+    - Unlocked state: displays verified phone number, 1-click Direct Call (`tel:`) and WhatsApp chat (`wa.me`) buttons.
+  - Similar properties section matching district and listing type.
+- **Reusable Modal (`apps/web/src/components/ContactUnlockModal.tsx`):**
+  - Handles 4 states: Unauthenticated (redirects to `/auth`), Active user with credits (confirms 1 credit unlock), Already unlocked / Owner (direct contact revealed), Zero credits (upgrade prompt).
+
+#### 4. Phase 4 — Post Free Property 5-Step Wizard (`/post-property`)
+- **Auth-Protected Listing Engine (`apps/web/src/app/post-property/page.tsx`):**
+  - Step 1: Type & Location (Listing type, District auto-detecting measurement unit, Municipality, Ward, Locality).
+  - Step 2: Area & Specifications (Area value + unit, road access, facing, house specs, title, description).
+  - Step 3: Photos (Direct upload to Supabase Storage bucket `property-photos` with preview grid, max 10 photos).
+  - Step 4: Price & Ownership (NPR price with live Lakh/Cr formatting, Kitta number, Lalpurja verification checkbox, and legal non-brokerage declaration).
+  - Step 5: Review & Publish (Summary card, "Publish Free Property" sets `ACTIVE` and routes to listing page, "Save as Draft" sets `DRAFT`).
+
+#### 5. Phase 5 — Dashboard / Investor Console (`/dashboard`)
+- **4-Tab P2P Console (`apps/web/src/app/dashboard/page.tsx`):**
+  - **Tab 1: My Listings:** Manage active, paused, or sold listings, view impressions, contact unlock counts, and quick-status actions.
+  - **Tab 2: My Shortlist:** Persisted bookmarks from `property_favourites` with 1-click Contact Landowner modal and removal action.
+  - **Tab 3: Credits Wallet:** Live credits counter (15 promotional credits), 90-day expiry tracker, and table of unlocked landowner contacts with direct call and WhatsApp buttons.
+  - **Tab 4: Profile & Land Units:** Profile details, primary district selector, Hilly ↔ Terai unit system switcher, and interactive 3-way converter between Ropani, Bigha, Sq Ft, and Sq Meters.
+  - **Deep Link Route (`apps/web/src/app/dashboard/shortlist/page.tsx`):** Seamless client redirect to `/dashboard?tab=shortlist`.
+
+#### 6. Phase 6 — Verification & Polish
+- **Type-Check Verification:** `npm run type-check` (via Turborepo) passed with **0 errors** across both packages (`@sarvabhoomi/shared` and `web`).
+- **Production Build Verification:** `npm run build` completed in 46.2s with static prerendering for all 7 routes:
+  - `○ /` (Landing Page)
+  - `○ /auth` (Mobile OTP & Role Onboarding)
+  - `○ /search` (Filterable Marketplace)
+  - `ƒ /properties/[id]` (Dynamic Listing Details)
+  - `○ /post-property` (5-Step Listing Wizard)
+  - `○ /dashboard` (P2P Investor Console)
+  - `○ /dashboard/shortlist` (Shortlist Deep Link)
+  - `ƒ /api/auth/check-user` (Dynamic Branching API)
+
+---
+
+### 📅 Session: November 5, 2026 (Auth Refactor)
 
 #### 🎯 Focus: Dynamic "Check User" Branching Flow, Dynamic OTP Routing, and White/Emerald Institutional Auth Refactor
 

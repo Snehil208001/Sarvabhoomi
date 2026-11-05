@@ -106,6 +106,18 @@ export const TERAI_DISTRICTS = Object.entries(DISTRICT_REGION_MAP)
 
 export const ALL_DISTRICTS = Object.keys(DISTRICT_REGION_MAP).sort();
 
+export interface DistrictInfo {
+  nameEn: string;
+  nameNe: string;
+  region: PreferredRegion;
+}
+
+export const ALL_NEPAL_DISTRICTS: DistrictInfo[] = ALL_DISTRICTS.map((d) => ({
+  nameEn: d,
+  nameNe: d,
+  region: DISTRICT_REGION_MAP[d],
+}));
+
 /**
  * Returns the default land measurement region for a given Nepal district.
  * Defaults to 'HILLY' if not found.
