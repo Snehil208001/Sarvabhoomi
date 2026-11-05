@@ -624,9 +624,12 @@ function AuthContent() {
         .upsert(profileData, { onConflict: 'id' });
 
       if (upsertError) {
+        const isSchemaCache = upsertError.message?.includes('schema cache') || (upsertError as { code?: string }).code === 'PGRST205';
         setNotice({
           type: 'error',
-          message: upsertError.message || 'Failed to update profile. Please try again.',
+          message: isSchemaCache
+            ? 'The database tables are not yet created in your Supabase project. Please run the SQL initialization script in Supabase SQL Editor.'
+            : upsertError.message || 'Failed to update profile. Please try again.',
         });
         return;
       }
