@@ -14,6 +14,41 @@ This log tracks all architectural decisions, feature implementations, verificati
 
 ## 🗓️ Engineering Log
 
+### 📅 Session: November 5, 2026 (Phase 2 — P0: Correctness & Performance)
+
+#### 🎯 Focus: Search Server-Side Pagination & ILIKE Text Search, Compound Database Indexes Migration, and Next.js Image Optimization with Graceful SVG Fallbacks
+
+---
+
+### ✅ Completed Milestones
+
+#### 1. Server-Side Search Pagination & Range Queries (`apps/web/src/app/search/page.tsx`)
+- Replaced unconstrained client-side array filtering with Supabase `.range(from, to)` paging (12 listings per page).
+- Implemented exact count tracking `{ count: 'exact' }` to determine accurate global page totals.
+- Migrated locality and title filtering from client-side arrays to server-side Postgres pattern matching (`query.or('locality.ilike.%...%,title.ilike.%...%,district.ilike.%...%,municipality.ilike.%...%')`).
+- Built responsive pagination controls (Previous, Page X of Y, Next, Item range indicator) with automatic scroll-to-top on page change.
+- Added 1-click filter reset on empty states when zero properties match applied filters.
+
+#### 2. Composite Database Search Indexes (`supabase/migrations/20261105000005_search_performance_indexes.sql`)
+- Enabled PostgreSQL trigram extension (`pg_trgm`).
+- Created composite index `idx_properties_search` on `(status, listing_type, district, price_npr)` for multi-dimensional search queries.
+- Added partial indexes:
+  - `idx_properties_admin_verified` on `(admin_verified) WHERE admin_verified = TRUE`.
+  - `idx_properties_owner_declared` on `(owner_declared_lalpurja) WHERE owner_declared_lalpurja = TRUE`.
+- Created GIN trigram indexes `idx_properties_locality_trgm` and `idx_properties_title_trgm` for high-throughput substring searches.
+- Created dashboard index `idx_properties_owner_created` on `(owner_id, created_at DESC)`.
+
+#### 3. Next.js Image Optimization & Graceful Fallbacks (`apps/web/src/components/PropertyImage.tsx`, `next.config.mjs`)
+- Configured `next.config.mjs` with `images.remotePatterns` for `images.unsplash.com`, `plus.unsplash.com`, and `*.supabase.co`.
+- Added security headers: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, and `Permissions-Policy`.
+- Created unified `<PropertyImage>` component wrapping Next.js `<Image>` with:
+  - Responsive `sizes` and `fill` or explicit dimensions.
+  - Custom SVG cadastral blurDataURL and placeholder.
+  - Automatic error catching (`onError`) rendering clean, branded fallback icons without broken image outlines.
+- Replaced all raw `<img>` tags across `/search`, `/properties/[id]`, `/dashboard`, `/post-property`, and `ContactUnlockModal`.
+
+---
+
 ### 📅 Session: November 5, 2026 (Phase 1 — P0: Trust & Safety Hardening)
 
 #### 🎯 Focus: Secrets Eradication, Lalpurja Verification Authority Split, Supabase Fail-Fast Config, API Enumeration Rate Limiting, and Scoped Storage Upload Policies

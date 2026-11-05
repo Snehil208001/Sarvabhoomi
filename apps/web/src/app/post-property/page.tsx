@@ -35,6 +35,7 @@ import {
   getAuthDict,
 } from '@sarvabhoomi/shared';
 import { supabase } from '@/lib/supabase';
+import { PropertyImage } from '@/components/PropertyImage';
 
 type WizardStep = 1 | 2 | 3 | 4 | 5;
 
@@ -736,7 +737,7 @@ export default function PostPropertyPage() {
                 <h4 className="text-sm font-bold text-slate-900">
                   {uploadingPhotos ? 'Uploading to storage...' : 'Click to select or drag & drop photos'}
                 </h4>
-                <p className="text-xs text-slate-500 mt-1">JPG, PNG, WebP up to 10MB each</p>
+                <p className="text-xs text-slate-500 mt-1">JPG, PNG, WebP up to 5MB each (Max 10 photos)</p>
               </div>
 
               {/* Photos Preview Grid */}
@@ -744,7 +745,7 @@ export default function PostPropertyPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {photos.map((url, idx) => (
                     <div key={idx} className="relative group rounded-xl overflow-hidden border border-slate-200 h-28 bg-slate-100">
-                      <img src={url} alt={`Upload ${idx + 1}`} className="w-full h-full object-cover" />
+                      <PropertyImage src={url} alt={`Upload ${idx + 1}`} fill sizes="150px" className="object-cover" />
                       <button
                         type="button"
                         onClick={() => handleRemovePhoto(idx)}

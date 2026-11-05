@@ -57,6 +57,7 @@ import {
 } from '@sarvabhoomi/shared';
 import { supabase, Profile, UserSubscription } from '@/lib/supabase';
 import { ContactUnlockModal } from '@/components/ContactUnlockModal';
+import { PropertyImage } from '@/components/PropertyImage';
 
 type DashboardTab = 'my-listings' | 'shortlist' | 'wallet' | 'profile';
 
@@ -672,18 +673,13 @@ function DashboardContent() {
                     <div>
                       {/* Photo Header */}
                       <div className="relative h-44 bg-slate-100 overflow-hidden">
-                        {property.photos && property.photos.length > 0 ? (
-                          <img
-                            src={property.photos[0]}
-                            alt={property.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-slate-50">
-                            <Building className="w-10 h-10 mb-1 text-slate-300" />
-                            <span className="text-[11px]">No Photo Provided</span>
-                          </div>
-                        )}
+                        <PropertyImage
+                          src={property.photos && property.photos.length > 0 ? property.photos[0] : null}
+                          alt={property.title}
+                          fill
+                          sizes="(max-width: 768px) 100vw, 33vw"
+                          className="object-cover"
+                        />
 
                         {/* Status Badge */}
                         <div className="absolute top-3 left-3 flex items-center gap-1.5">
@@ -893,18 +889,13 @@ function DashboardContent() {
                     <div>
                       {/* Photo */}
                       <div className="relative h-44 bg-slate-100 overflow-hidden">
-                        {property.photos && property.photos.length > 0 ? (
-                          <img
-                            src={property.photos[0]}
-                            alt={property.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-slate-50">
-                            <Building className="w-10 h-10 mb-1 text-slate-300" />
-                            <span className="text-[11px]">No Photo</span>
-                          </div>
-                        )}
+                        <PropertyImage
+                          src={property.photos && property.photos.length > 0 ? property.photos[0] : null}
+                          alt={property.title}
+                          fill
+                          sizes="(max-width: 768px) 100vw, 33vw"
+                          className="object-cover"
+                        />
 
                         {/* Badges */}
                         <div className="absolute top-3 left-3 flex items-center gap-1.5">

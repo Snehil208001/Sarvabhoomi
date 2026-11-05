@@ -45,6 +45,7 @@ import {
 } from '@sarvabhoomi/shared';
 import { supabase } from '@/lib/supabase';
 import { ContactUnlockModal } from '@/components/ContactUnlockModal';
+import { PropertyImage } from '@/components/PropertyImage';
 
 type SortOption = 'newest' | 'price_asc' | 'price_desc' | 'area_desc';
 
@@ -79,6 +80,12 @@ function SearchContent() {
   const [facingFilter, setFacingFilter] = useState<PropertyFacing | 'ALL'>('ALL');
   const [lalpurjaOnly, setLalpurjaOnly] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
+
+  // Pagination State
+  const PAGE_SIZE = 12;
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   // Mobile filters panel open state
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -155,15 +162,19 @@ function SearchContent() {
     };
   }, []);
 
-  // Fetch properties from Supabase
-  const fetchProperties = async () => {
+  // Fetch properties from Supabase with server-side pagination & filtering
+  const fetchProperties = async (targetPage = currentPage) => {
     setLoading(true);
     setError(null);
+
+    const from = (targetPage - 1) * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
 
     try {
       let query = supabase
         .from('properties')
-        .select(`
+        .select(
+          `
           *,
           owner:profiles (
             id,
@@ -171,8 +182,18 @@ function SearchContent() {
             phone_np,
             user_intent
           )
-        `)
+        `,
+          { count: 'exact' }
+        )
         .eq('status', 'ACTIVE');
+
+      // Server-side text search across locality, title, municipality, district
+      const trimmedQ = searchQuery.trim().replace(/[%_]/g, '');
+      if (trimmedQ) {
+        query = query.or(
+          `locality.ilike.%${trimmedQ}%,title.ilike.%${trimmedQ}%,district.ilike.%${trimmedQ}%,municipality.ilike.%${trimmedQ}%`
+        );
+      }
 
       // Apply Listing Type Filter
       if (activeTab !== 'ALL') {
@@ -214,33 +235,28 @@ function SearchContent() {
         query = query.order('created_at', { ascending: false });
       }
 
-      const { data, error: fetchErr } = await query;
+      // Apply Server-Side Pagination
+      query = query.range(from, to);
+
+      const { data, count, error: fetchErr } = await query;
 
       if (fetchErr) {
         console.warn('Properties query warning:', fetchErr.message);
-        // Clean empty state when table is fresh
         setProperties([]);
+        setTotalCount(0);
         return;
       }
 
       if (data) {
-        // Client-side text search for locality / title
-        let filtered = (data as unknown) as Property[];
-        if (searchQuery.trim()) {
-          const q = searchQuery.toLowerCase().trim();
-          filtered = filtered.filter(
-            (p) =>
-              p.title.toLowerCase().includes(q) ||
-              p.locality.toLowerCase().includes(q) ||
-              (p.municipality && p.municipality.toLowerCase().includes(q)) ||
-              p.district.toLowerCase().includes(q)
-          );
-        }
-        setProperties(filtered);
+        setProperties(data as unknown as Property[]);
+      } else {
+        setProperties([]);
       }
+      setTotalCount(count ?? 0);
     } catch (err: unknown) {
       console.error('Error fetching properties:', err);
       setProperties([]);
+      setTotalCount(0);
     } finally {
       setLoading(false);
     }
@@ -248,13 +264,21 @@ function SearchContent() {
 
   // Re-fetch when core filters change
   useEffect(() => {
-    fetchProperties();
+    setCurrentPage(1);
+    fetchProperties(1);
   }, [activeTab, selectedDistrict, pricePreset, facingFilter, lalpurjaOnly, sortBy]);
 
   // Handle manual search submit
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchProperties();
+    setCurrentPage(1);
+    fetchProperties(1);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    fetchProperties(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Reset all filters
@@ -266,6 +290,7 @@ function SearchContent() {
     setFacingFilter('ALL');
     setLalpurjaOnly(false);
     setSortBy('newest');
+    setCurrentPage(1);
   };
 
   // Toggle favorite / shortlist item
@@ -591,8 +616,9 @@ function SearchContent() {
             </button>
           </div>
         ) : (
-          /* Cards Grid */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <>
+            {/* Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {properties.map((prop) => {
               const isFav = favouriteIds.has(prop.id);
               const isUnlocked = unlockedIds.has(prop.id);
@@ -609,11 +635,13 @@ function SearchContent() {
                   <div>
                     {/* Card Image Banner */}
                     <div className="relative h-52 w-full overflow-hidden bg-slate-100">
-                      <Link href={`/properties/${prop.id}`}>
-                        <img
+                      <Link href={`/properties/${prop.id}`} className="block relative w-full h-full">
+                        <PropertyImage
                           src={photoUrl}
                           alt={prop.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          fill
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                          className="object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                       </Link>
 
@@ -760,7 +788,53 @@ function SearchContent() {
               );
             })}
           </div>
-        )}
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-slate-200">
+              <div className="text-xs text-slate-500 font-medium">
+                {lang === 'en' ? (
+                  <>
+                    Showing <span className="font-bold text-slate-900">{(currentPage - 1) * PAGE_SIZE + 1}</span> -{' '}
+                    <span className="font-bold text-slate-900">{Math.min(currentPage * PAGE_SIZE, totalCount)}</span> of{' '}
+                    <span className="font-bold text-slate-900">{totalCount}</span> properties
+                  </>
+                ) : (
+                  <>
+                    जम्मा <span className="font-bold text-slate-900">{totalCount}</span> मध्ये{' '}
+                    <span className="font-bold text-slate-900">{(currentPage - 1) * PAGE_SIZE + 1}</span> -{' '}
+                    <span className="font-bold text-slate-900">{Math.min(currentPage * PAGE_SIZE, totalCount)}</span>
+                  </>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={currentPage <= 1 || loading}
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
+                >
+                  {lang === 'en' ? 'Previous' : 'अघिल्लो'}
+                </button>
+
+                <div className="px-3 py-1.5 text-xs font-mono font-bold text-emerald-800 bg-emerald-50 rounded-lg border border-emerald-200">
+                  {currentPage} / {totalPages}
+                </div>
+
+                <button
+                  type="button"
+                  disabled={currentPage >= totalPages || loading}
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
+                >
+                  {lang === 'en' ? 'Next' : 'पछिल्लो'}
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
       </main>
 
       {/* Contact Unlock Modal */}

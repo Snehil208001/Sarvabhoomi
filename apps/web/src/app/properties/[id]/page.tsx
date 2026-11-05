@@ -40,6 +40,7 @@ import {
 } from '@sarvabhoomi/shared';
 import { supabase } from '@/lib/supabase';
 import { ContactUnlockModal } from '@/components/ContactUnlockModal';
+import { PropertyImage } from '@/components/PropertyImage';
 
 export default function PropertyDetailPage() {
   const params = useParams();
@@ -406,10 +407,13 @@ export default function PropertyDetailPage() {
         {/* ============================================================ */}
         <div className="space-y-3">
           <div className="relative h-[320px] sm:h-[480px] w-full rounded-2xl overflow-hidden bg-slate-900 border border-slate-200 shadow-md">
-            <img
+            <PropertyImage
               src={photos[activePhotoIdx]}
               alt={property.title}
-              className="w-full h-full object-cover"
+              fill
+              priority
+              sizes="(max-width: 1024px) 100vw, 66vw"
+              className="object-cover"
             />
             <div className="absolute bottom-4 right-4 px-3 py-1.5 rounded-lg bg-slate-900/80 backdrop-blur-xs text-white text-xs font-bold">
               Photo {activePhotoIdx + 1} of {photos.length}
@@ -424,13 +428,13 @@ export default function PropertyDetailPage() {
                   key={idx}
                   type="button"
                   onClick={() => setActivePhotoIdx(idx)}
-                  className={`w-20 h-16 rounded-xl overflow-hidden border-2 shrink-0 transition-all ${
+                  className={`relative w-20 h-16 rounded-xl overflow-hidden border-2 shrink-0 transition-all ${
                     activePhotoIdx === idx
                       ? 'border-emerald-600 shadow-sm ring-2 ring-emerald-100'
                       : 'border-slate-200 opacity-70 hover:opacity-100'
                   }`}
                 >
-                  <img src={url} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                  <PropertyImage src={url} alt={`Thumbnail ${idx + 1}`} fill sizes="80px" className="object-cover" />
                 </button>
               ))}
             </div>
@@ -748,15 +752,17 @@ export default function PropertyDetailPage() {
                   href={`/properties/${sim.id}`}
                   className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-md hover:border-emerald-300 transition-all group"
                 >
-                  <div className="h-40 w-full overflow-hidden bg-slate-100">
-                    <img
+                  <div className="relative h-40 w-full overflow-hidden bg-slate-100">
+                    <PropertyImage
                       src={
                         sim.photos && sim.photos[0]
                           ? sim.photos[0]
                           : 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=600&q=80'
                       }
                       alt={sim.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      fill
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                      className="object-cover group-hover:scale-105 transition-transform"
                     />
                   </div>
                   <div className="p-4 space-y-2">

@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Property, formatPriceNPR, formatArea } from '@sarvabhoomi/shared';
 import { supabase } from '@/lib/supabase';
+import { PropertyImage } from '@/components/PropertyImage';
 
 interface ContactUnlockModalProps {
   isOpen: boolean;
@@ -156,11 +157,15 @@ export function ContactUnlockModal({
           {/* Property Summary Pill */}
           <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center gap-3">
             {property.photos && property.photos[0] && (
-              <img
-                src={property.photos[0]}
-                alt={property.title}
-                className="w-14 h-14 rounded-lg object-cover border border-slate-200 shrink-0"
-              />
+              <div className="relative w-14 h-14 rounded-lg overflow-hidden border border-slate-200 shrink-0">
+                <PropertyImage
+                  src={property.photos[0]}
+                  alt={property.title}
+                  fill
+                  sizes="56px"
+                  className="object-cover"
+                />
+              </div>
             )}
             <div className="min-w-0 flex-1">
               <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 uppercase tracking-wide">
