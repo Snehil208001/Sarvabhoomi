@@ -193,23 +193,15 @@ export default function HomePage() {
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-1 sm:gap-1.5">
-                {/* Log In Link */}
-                <Link
-                  href="/auth?mode=login"
-                  className="px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-slate-700 hover:text-emerald-700 hover:bg-slate-100 rounded-lg transition-colors whitespace-nowrap"
-                >
-                  {lang === 'en' ? 'Log In' : 'लगइन'}
-                </Link>
-
-                {/* Sign Up Primary CTA Button */}
-                <Link
-                  href="/auth?mode=signup"
-                  className="px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs sm:text-sm font-bold transition-all shadow-xs hover:shadow-sm active:scale-95 whitespace-nowrap"
-                >
-                  {lang === 'en' ? 'Sign Up' : 'साइन अप'}
-                </Link>
-              </div>
+              /* Single Unified Auth Button (Saves Space, Handles Both Login & Signup via Phone OTP) */
+              <Link
+                href="/auth"
+                className="flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs sm:text-sm font-bold transition-all shadow-xs hover:shadow-sm active:scale-95 whitespace-nowrap"
+                title={lang === 'en' ? 'Log in or Create an Account' : 'लगइन वा नयाँ खाता'}
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>{lang === 'en' ? 'Sign In' : 'साइन इन'}</span>
+              </Link>
             )}
 
             {/* Bilingual Switcher */}
