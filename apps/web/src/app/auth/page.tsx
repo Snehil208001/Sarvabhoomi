@@ -37,8 +37,8 @@ import {
 } from '@sarvabhoomi/shared';
 import { supabase } from '@/lib/supabase';
 
-type AuthStep = 'PHONE' | 'OTP' | 'ROLE_SELECTION' | 'ONBOARDING_FORM';
-type AuthMode = 'login' | 'signup';
+export type AuthStep = 'PHONE' | 'OTP' | 'ROLE_SELECT' | 'PROFILE_FORM';
+export type AuthMode = 'login' | 'signup';
 
 interface StepItem {
   id: AuthStep;
@@ -50,23 +50,23 @@ interface StepItem {
 const SIGNUP_STEPS: StepItem[] = [
   { id: 'PHONE', num: 1, labelEn: 'Mobile', labelNe: 'मोबाइल' },
   { id: 'OTP', num: 2, labelEn: 'OTP', labelNe: 'ओटीपी' },
-  { id: 'ROLE_SELECTION', num: 3, labelEn: 'Select Role', labelNe: 'भूमिका' },
-  { id: 'ONBOARDING_FORM', num: 4, labelEn: 'Profile Details', labelNe: 'विवरण' },
+  { id: 'ROLE_SELECT', num: 3, labelEn: 'Select Role', labelNe: 'भूमिका' },
+  { id: 'PROFILE_FORM', num: 4, labelEn: 'Profile Details', labelNe: 'विवरण' },
 ];
 
 const LOGIN_STEPS: StepItem[] = [
   { id: 'PHONE', num: 1, labelEn: 'Mobile', labelNe: 'मोबाइल' },
-  { id: 'OTP', num: 2, labelEn: 'Verify OTP', labelNe: 'ओटीपी' },
+  { id: 'OTP', num: 2, labelEn: 'Verify & Sign In', labelNe: 'लगइन प्रमाणीकरण' },
 ];
 
 function AuthContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Mode: 'login' or 'signup'
+  // Mode: 'login' or 'signup' (initialized from URL ?mode=login / ?mode=signup)
   const [authMode, setAuthMode] = useState<AuthMode>('signup');
 
-  // Sync mode with URL query parameter
+  // Sync mode with URL query parameter on mount and when query changes
   useEffect(() => {
     const modeParam = searchParams.get('mode');
     if (modeParam === 'login' || modeParam === 'signup') {
@@ -81,10 +81,16 @@ function AuthContent() {
   // Active step machine: strictly initialized to 'PHONE'
   const [step, setStep] = useState<AuthStep>('PHONE');
 
-  // Step 1: Phone State (clean, empty by default)
-  const [phone, setPhone] = useState('');
+  // Step 1: Phone State (clean, empty by default, no hardcoded values)
+  const [phoneLocal, setPhoneLocal] = useState('');
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [detectedCarrier, setDetectedCarrier] = useState<string | null>(null);
+  const [isExistingUser, setIsExistingUser] = useState<boolean>(false);
+  const [userCheckPreview, setUserCheckPreview] = useState<{
+    exists: boolean;
+    isOnboarded: boolean;
+    userIntent: string | null;
+  } | null>(null);
 
   // Step 2: OTP State (clean, empty by default)
   const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
@@ -93,12 +99,12 @@ function AuthContent() {
   const [canResend, setCanResend] = useState<boolean>(false);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Step 3 & 4: Role Selection & Onboarding State
+  // Step 3 & 4: Role Selection & Profile Form State
   const [userId, setUserId] = useState<string | null>(null);
   const [userIntent, setUserIntent] = useState<UserIntent>('BUYER');
   const [fullName, setFullName] = useState('');
-  const [selectedDistrict, setSelectedDistrict] = useState('Kathmandu');
-  const [preferredRegion, setPreferredRegion] = useState<PreferredRegion>('HILLY');
+  const [district, setDistrict] = useState('Kathmandu');
+  const [regionSystem, setRegionSystem] = useState<PreferredRegion>('HILLY');
   const [regionAutoDetected, setRegionAutoDetected] = useState(true);
   const [onboardingErrors, setOnboardingErrors] = useState<Record<string, string>>({});
 
@@ -128,7 +134,7 @@ function AuthContent() {
         if (user && isMounted) {
           setUserId(user.id);
           if (user.phone) {
-            setPhone(cleanPhone(user.phone));
+            setPhoneLocal(cleanPhone(user.phone));
           }
 
           // Check if already onboarded in public.profiles
@@ -143,12 +149,15 @@ function AuthContent() {
             return;
           }
 
-          // Pre-populate fields in case they progress forward, but keep on Step 1 ('PHONE')
+          // Pre-populate fields in case they progress forward, but keep strictly on Step 1 ('PHONE')
           if (profile) {
             if (profile.full_name) setFullName(profile.full_name);
             if (profile.user_intent) setUserIntent(profile.user_intent);
-            if (profile.preferred_district) setSelectedDistrict(profile.preferred_district);
-            if (profile.preferred_region) setPreferredRegion(profile.preferred_region);
+            if (profile.preferred_district) {
+              setDistrict(profile.preferred_district);
+              setRegionSystem(getRegionForDistrict(profile.preferred_district));
+            }
+            if (profile.preferred_region) setRegionSystem(profile.preferred_region);
           }
         }
       } catch {
@@ -179,6 +188,42 @@ function AuthContent() {
     return () => clearInterval(interval);
   }, [step, resendTimer]);
 
+  // Debounced check to detect user registration & onboarding status while typing
+  useEffect(() => {
+    const cleaned = cleanPhone(phoneLocal);
+    if (!nepalPhoneRegex.test(cleaned)) {
+      setUserCheckPreview(null);
+      return;
+    }
+
+    let isMounted = true;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/auth/check-user?phone=${cleaned}`);
+        if (res.ok && isMounted) {
+          const json = await res.json();
+          if (json.success && json.data) {
+            setUserCheckPreview({
+              exists: json.data.exists,
+              isOnboarded: json.data.isOnboarded,
+              userIntent: json.data.userIntent,
+            });
+            // Update isExistingUser state automatically
+            const userExists = Boolean(json.data.exists && json.data.isOnboarded);
+            setIsExistingUser(userExists);
+          }
+        }
+      } catch (err) {
+        console.warn('Debounced user status check warning:', err);
+      }
+    }, 350);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [phoneLocal]);
+
   // Toggle Language between English and Nepali
   const handleToggleLang = () => {
     setLang((prev) => (prev === 'en' ? 'ne' : 'en'));
@@ -195,11 +240,12 @@ function AuthContent() {
   // Evaluate phone input with real-time carrier detection
   const handlePhoneInputChange = (raw: string) => {
     const cleaned = cleanPhone(raw);
-    setPhone(cleaned);
+    setPhoneLocal(cleaned);
 
     if (!cleaned) {
       setPhoneError(null);
       setDetectedCarrier(null);
+      setUserCheckPreview(null);
       return;
     }
 
@@ -225,6 +271,7 @@ function AuthContent() {
       }
     } else {
       setDetectedCarrier(null);
+      setUserCheckPreview(null);
       if (cleaned.length === 10) {
         setPhoneError(dict.phoneAuth.invalidPhoneError);
       } else {
@@ -233,10 +280,12 @@ function AuthContent() {
     }
   };
 
-  // Step 1: Send OTP Submit Handler
+  // =========================================================================
+  // STEP 1: Phone & Dynamic Check User Handler
+  // =========================================================================
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleaned = cleanPhone(phone);
+    const cleaned = cleanPhone(phoneLocal);
 
     if (!nepalPhoneRegex.test(cleaned)) {
       setPhoneError(dict.phoneAuth.invalidPhoneError);
@@ -250,6 +299,39 @@ function AuthContent() {
     const fullPhone = `+977${cleaned}`;
 
     try {
+      // 1. Dynamic Check-User Pre-flight Verification via POST /api/auth/check-user
+      let resolvedExisting = false;
+      try {
+        const checkRes = await fetch('/api/auth/check-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: fullPhone }),
+        });
+
+        if (checkRes.ok) {
+          const checkJson = await checkRes.json();
+          if (checkJson.success && checkJson.data) {
+            const { exists, isOnboarded, userIntent: dbIntent } = checkJson.data;
+            resolvedExisting = Boolean(exists && isOnboarded);
+            setIsExistingUser(resolvedExisting);
+
+            if (dbIntent) {
+              setUserIntent(dbIntent);
+            }
+
+            // Adapt authMode if needed
+            if (resolvedExisting) {
+              setAuthMode('login');
+            } else {
+              setAuthMode('signup');
+            }
+          }
+        }
+      } catch (checkErr) {
+        console.warn('Pre-flight check warning:', checkErr);
+      }
+
+      // 2. Dispatch OTP via live Supabase Auth
       const { error } = await supabase.auth.signInWithOtp({
         phone: fullPhone,
       });
@@ -262,12 +344,23 @@ function AuthContent() {
         return;
       }
 
+      // 3. Set context-aware message based on dynamic branching
+      let successMsg: string;
+      if (resolvedExisting) {
+        successMsg =
+          lang === 'en'
+            ? `Welcome back! Account found. 6-digit login code sent to ${fullPhone}.`
+            : `स्वागत छ! दर्ता भएको खाता भेटियो। लगइन कोड ${fullPhone} मा पठाइयो।`;
+      } else {
+        successMsg =
+          lang === 'en'
+            ? `New account verification: 6-digit OTP code sent to ${fullPhone}. Claim 15 Free Credits upon sign in.`
+            : `नयाँ खाता प्रमाणीकरण: ६-अङ्कको ओटीपी ${fullPhone} मा पठाइयो। १५ निःशुल्क क्रेडिट प्राप्त गर्नुहोस्।`;
+      }
+
       setNotice({
         type: 'success',
-        message:
-          lang === 'en'
-            ? `6-Digit OTP dispatched to ${fullPhone}`
-            : `६-अङ्कको OTP कोड ${fullPhone} मा पठाइयो`,
+        message: successMsg,
       });
       setResendTimer(30);
       setCanResend(false);
@@ -322,7 +415,7 @@ function AuthContent() {
   // Resend OTP
   const handleResendOtp = async () => {
     if (!canResend) return;
-    const cleaned = cleanPhone(phone);
+    const cleaned = cleanPhone(phoneLocal);
     setIsSubmitting(true);
     setNotice(null);
 
@@ -359,11 +452,13 @@ function AuthContent() {
     }
   };
 
-  // Step 2: Verify OTP Submit Handler
+  // =========================================================================
+  // STEP 2: Verify OTP Handler with Dynamic Branching
+  // =========================================================================
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     const token = otpDigits.join('');
-    const cleaned = cleanPhone(phone);
+    const cleaned = cleanPhone(phoneLocal);
 
     if (token.length !== 6 || !/^\d{6}$/.test(token)) {
       setOtpError(dict.otp.invalidOtpError);
@@ -392,37 +487,45 @@ function AuthContent() {
       if (verifiedUser) {
         setUserId(verifiedUser.id);
 
-        // Query public.profiles table for onboarding status
+        // CASE A: User ALREADY EXISTS & isOnboarded === true -> route directly to /dashboard
+        if (isExistingUser) {
+          router.push('/dashboard');
+          return;
+        }
+
+        // Double-check public.profiles in case status updated
         const { data: profile } = await supabase
           .from('profiles')
           .select('is_onboarded, full_name, user_intent, preferred_district, preferred_region')
           .eq('id', verifiedUser.id)
           .maybeSingle();
 
-        // If user already completed onboarding, route to /dashboard directly!
         if (profile?.is_onboarded) {
           router.push('/dashboard');
           return;
         }
 
-        // If user was attempting to log in, but has no complete profile, guide them to role selection
+        // CASE B: User DOES NOT EXIST or isOnboarded === false
+        // Pre-fill any existing profile fields
         if (profile) {
           if (profile.full_name) setFullName(profile.full_name);
           if (profile.user_intent) setUserIntent(profile.user_intent);
-          if (profile.preferred_district) setSelectedDistrict(profile.preferred_district);
-          if (profile.preferred_region) setPreferredRegion(profile.preferred_region);
+          if (profile.preferred_district) {
+            setDistrict(profile.preferred_district);
+            setRegionSystem(getRegionForDistrict(profile.preferred_district));
+          }
+          if (profile.preferred_region) setRegionSystem(profile.preferred_region);
         }
 
-        // Switch to signup mode if they need to complete profile
-        setAuthMode('signup');
+        // Route to Step 3: Role Selection
         setNotice({
           type: 'success',
           message:
             lang === 'en'
-              ? 'Phone verified! Select your role to set up your profile.'
+              ? 'Phone verified! Select your role to unlock zero-brokerage tools.'
               : 'फोन प्रमाणीकरण सम्पन्न! अगाडि बढ्न आफ्नो भूमिका छनोट गर्नुहोस्।',
         });
-        setStep('ROLE_SELECTION');
+        setStep('ROLE_SELECT');
       }
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : dict.otp.invalidOtpError;
@@ -432,29 +535,33 @@ function AuthContent() {
     }
   };
 
-  // Step 4: Handle District Selection & Auto-Detection of Measurement System
+  // =========================================================================
+  // STEP 4: Handle District Selection & Auto-Detection of Measurement System
+  // =========================================================================
   const handleDistrictChange = (newDistrict: string) => {
-    setSelectedDistrict(newDistrict);
+    setDistrict(newDistrict);
     const autoRegion = getRegionForDistrict(newDistrict);
-    setPreferredRegion(autoRegion);
+    setRegionSystem(autoRegion);
     setRegionAutoDetected(true);
   };
 
   // Manual override for Land Measurement System
   const handleManualRegionOverride = (region: PreferredRegion) => {
-    setPreferredRegion(region);
+    setRegionSystem(region);
     setRegionAutoDetected(false);
   };
 
-  // Step 4: Complete Onboarding Submit Handler
+  // =========================================================================
+  // STEP 4: Complete Onboarding & Save Profile
+  // =========================================================================
   const handleCompleteOnboarding = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const parseResult = onboardingSchema.safeParse({
       fullName,
       userIntent,
-      preferredRegion,
-      preferredDistrict: selectedDistrict,
+      preferredRegion: regionSystem,
+      preferredDistrict: district,
     });
 
     if (!parseResult.success) {
@@ -472,7 +579,7 @@ function AuthContent() {
     setIsSubmitting(true);
     setNotice(null);
 
-    const cleaned = cleanPhone(phone);
+    const cleaned = cleanPhone(phoneLocal);
     const fullPhone = `+977${cleaned}`;
 
     try {
@@ -498,8 +605,8 @@ function AuthContent() {
         phone_np: fullPhone,
         full_name: fullName.trim(),
         user_intent: userIntent,
-        preferred_region: preferredRegion,
-        preferred_district: selectedDistrict,
+        preferred_region: regionSystem,
+        preferred_district: district,
         preferred_lang: lang,
         is_onboarded: true,
         updated_at: new Date().toISOString(),
@@ -529,8 +636,9 @@ function AuthContent() {
     }
   };
 
-  // Active step list depends on whether user is Logging In vs Signing Up
-  const activeSteps = authMode === 'login' ? LOGIN_STEPS : SIGNUP_STEPS;
+  // Active steps dynamically reflect whether user is logging in vs registering
+  const isLoginFlow = authMode === 'login' || isExistingUser;
+  const activeSteps = isLoginFlow ? LOGIN_STEPS : SIGNUP_STEPS;
 
   const getStepIndex = (s: AuthStep) => {
     switch (s) {
@@ -538,9 +646,9 @@ function AuthContent() {
         return 0;
       case 'OTP':
         return 1;
-      case 'ROLE_SELECTION':
+      case 'ROLE_SELECT':
         return 2;
-      case 'ONBOARDING_FORM':
+      case 'PROFILE_FORM':
         return 3;
       default:
         return 0;
@@ -549,7 +657,7 @@ function AuthContent() {
 
   const currentStepIdx = getStepIndex(step);
 
-  // Role Metadata Definition
+  // Role Metadata Definition (4 Distinct Roles)
   const ROLES: {
     id: UserIntent;
     titleEn: string;
@@ -592,7 +700,7 @@ function AuthContent() {
     },
     {
       id: 'AGENT_BROKER',
-      titleEn: 'Licensed Real Estate Agent / Facilitator',
+      titleEn: 'Certified Real Estate Agent / Facilitator',
       titleNe: 'घरजग्गा सहजकर्ता / एजेन्ट (Facilitator / Agent)',
       descEn: 'Manage multiple client portfolios with verified cadastral plots.',
       descNe: 'प्रमाणित कित्ता नापी नक्सा सहित धेरै ग्राहकहरूको पोर्टफोलियो व्यवस्थापन गर्नुहोस्।',
@@ -722,7 +830,7 @@ function AuthContent() {
           )}
 
           {/* ============================================================ */}
-          {/* STEP 1: MOBILE NUMBER INPUT (LOG IN vs SIGN UP MODES) */}
+          {/* STEP 1: MOBILE NUMBER INPUT & DYNAMIC USER DETECTION */}
           {/* ============================================================ */}
           {step === 'PHONE' && (
             <div className="p-6 sm:p-8">
@@ -751,31 +859,31 @@ function AuthContent() {
                   }`}
                 >
                   <UserPlus className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>{lang === 'en' ? 'Sign Up (New User)' : 'साइन अप (नयाँ प्रयोगकर्ता)'}</span>
+                  <span>{lang === 'en' ? 'Sign Up (15 Free Credits)' : 'साइन अप (१५ निःशुल्क क्रेडिट)'}</span>
                 </button>
               </div>
 
-              {/* Mode-Specific Header */}
+              {/* Mode-Specific Clear Header */}
               <div className="mb-6">
                 {authMode === 'login' ? (
                   <>
                     <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold mb-3">
                       <Lock className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>{lang === 'en' ? 'Direct Mobile Log-In' : 'प्रत्यक्ष मोबाइल लगइन'}</span>
+                      <span>{lang === 'en' ? 'Registered User Log-In' : 'प्रत्यक्ष मोबाइल लगइन'}</span>
                     </div>
                     <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-                      {lang === 'en' ? 'Log In to Your Account' : 'सर्वभूमिमा लगइन गर्नुहोस्'}
+                      {lang === 'en' ? 'Welcome Back to Sarvabhoomi' : 'सर्वभूमिमा लगइन गर्नुहोस्'}
                     </h2>
                     <p className="text-xs sm:text-sm text-slate-500 mt-1.5 leading-relaxed">
                       {lang === 'en'
-                        ? 'Enter your registered Nepali mobile number to receive a secure 6-digit one-time code.'
-                        : 'आफ्नो दर्ता भएको नेपाली मोबाइल नम्बर प्रविष्ट गरी सुरक्षित ६-अङ्कको ओटीपी प्राप्त गर्नुहोस्।'}
+                        ? 'Enter your registered 10-digit Nepali mobile number to access your verified dashboard.'
+                        : 'आफ्नो दर्ता भएको १०-अङ्कको नेपाली मोबाइल नम्बर प्रविष्ट गरी सुरक्षित ६-अङ्कको ओटीपी प्राप्त गर्नुहोस्।'}
                     </p>
                   </>
                 ) : (
                   <>
                     <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold mb-3">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
                       <span>{dict.promo.claimBadge}</span>
                     </div>
                     <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
@@ -817,7 +925,7 @@ function AuthContent() {
                     <input
                       id={phoneInputId}
                       type="tel"
-                      value={phone}
+                      value={phoneLocal}
                       onChange={(e) => handlePhoneInputChange(e.target.value)}
                       placeholder={dict.phoneAuth.phonePlaceholder}
                       maxLength={10}
@@ -840,12 +948,55 @@ function AuthContent() {
                       {dict.phoneAuth.phoneHint}
                     </p>
                   )}
+
+                  {/* Real-time Dynamic Detection Status Indicator */}
+                  {userCheckPreview && !phoneError && (
+                    <div className="mt-2.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                      {userCheckPreview.exists && userCheckPreview.isOnboarded ? (
+                        <div className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 shadow-2xs">
+                          <span className="flex items-center gap-1.5 font-semibold">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            {lang === 'en'
+                              ? 'Registered Account Found'
+                              : 'दर्ता भएको खाता फेला पर्यो'}
+                          </span>
+                          <span className="text-[10px] font-bold text-emerald-700 bg-white/90 border border-emerald-200 px-2 py-0.5 rounded-full">
+                            {lang === 'en' ? 'Direct Log In' : 'प्रत्यक्ष लगइन'}
+                          </span>
+                        </div>
+                      ) : !userCheckPreview.exists ? (
+                        <div className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80 text-xs text-emerald-900 shadow-2xs">
+                          <span className="flex items-center gap-1.5 font-semibold">
+                            <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            {lang === 'en'
+                              ? 'New Number Detected'
+                              : 'नयाँ मोबाइल नम्बर फेला पर्यो'}
+                          </span>
+                          <span className="text-[10px] font-bold text-emerald-700 bg-white/90 border border-emerald-200 px-2 py-0.5 rounded-full">
+                            {lang === 'en' ? '15 Free Credits Offer' : '१५ निःशुल्क क्रेडिट'}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 shadow-2xs">
+                          <span className="flex items-center gap-1.5 font-semibold">
+                            <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                            {lang === 'en'
+                              ? 'Profile Setup Pending'
+                              : 'प्रोफाइल विवरण बाँकी'}
+                          </span>
+                          <span className="text-[10px] font-bold text-amber-700 bg-white/90 border border-amber-200 px-2 py-0.5 rounded-full">
+                            {lang === 'en' ? 'Complete Onboarding' : 'अनबोर्डिङ पूरा गर्नुहोस्'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Submit Send OTP Button */}
                 <button
                   type="submit"
-                  disabled={isSubmitting || phone.length !== 10}
+                  disabled={isSubmitting || phoneLocal.length !== 10}
                   className="w-full py-3.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50 disabled:hover:bg-emerald-600 text-white font-semibold text-sm tracking-wide shadow-xs hover:shadow-sm flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
                 >
                   {isSubmitting ? (
@@ -867,7 +1018,7 @@ function AuthContent() {
                   )}
                 </button>
 
-                {/* Mode-Specific Bottom Switcher */}
+                {/* Bottom Switcher Link */}
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
                   {authMode === 'login' ? (
                     <>
@@ -904,10 +1055,29 @@ function AuthContent() {
             <div className="p-6 sm:p-8">
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-3">
+                  {/* Dynamic Badge for Existing vs New User */}
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">
-                    <Lock className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>{authMode === 'login' ? 'Log In Verification' : 'Registration Verification'}</span>
+                    {isExistingUser ? (
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>
+                          {lang === 'en'
+                            ? 'Welcome Back! Enter your 6-digit code to sign in.'
+                            : 'स्वागत छ! लगइन गर्न ६-अङ्कको कोड प्रविष्ट गर्नुहोस्।'}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>
+                          {lang === 'en'
+                            ? 'New Account Verification: Enter code to verify your phone.'
+                            : 'नयाँ खाता प्रमाणीकरण: फोन प्रमाणित गर्न कोड प्रविष्ट गर्नुहोस्।'}
+                        </span>
+                      </>
+                    )}
                   </div>
+
                   <button
                     type="button"
                     onClick={() => {
@@ -915,7 +1085,7 @@ function AuthContent() {
                       setNotice(null);
                       setOtpDigits(['', '', '', '', '', '']);
                     }}
-                    className="text-xs text-emerald-700 hover:text-emerald-800 font-semibold flex items-center gap-1 hover:underline"
+                    className="text-xs text-emerald-700 hover:text-emerald-800 font-semibold flex items-center gap-1 hover:underline shrink-0 ml-2"
                   >
                     <RotateCcw className="w-3 h-3" />
                     <span>{dict.otp.changePhone}</span>
@@ -926,7 +1096,7 @@ function AuthContent() {
                   {dict.otp.title}
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-500 mt-1.5 leading-relaxed">
-                  {dict.otp.subtitle(phone)}
+                  {dict.otp.subtitle(phoneLocal)}
                 </p>
               </div>
 
@@ -997,10 +1167,10 @@ function AuthContent() {
                   ) : (
                     <>
                       <span>
-                        {authMode === 'login'
+                        {isExistingUser
                           ? lang === 'en'
-                            ? 'Verify & Log In'
-                            : 'प्रमाणित गरी लगइन गर्नुहोस्'
+                            ? 'Verify & Enter Dashboard'
+                            : 'प्रमाणित गरी ड्यासबोर्ड जानुहोस्'
                           : dict.otp.verifyButton}
                       </span>
                       <ArrowRight className="w-4 h-4" />
@@ -1012,9 +1182,9 @@ function AuthContent() {
           )}
 
           {/* ============================================================ */}
-          {/* STEP 3: ROLE SELECTION (STANDALONE SCREEN) */}
+          {/* STEP 3: ROLE SELECTION (STANDALONE SCREEN - 4 DISTINCT ROLES) */}
           {/* ============================================================ */}
-          {step === 'ROLE_SELECTION' && (
+          {step === 'ROLE_SELECT' && (
             <div className="p-6 sm:p-8">
               <div className="mb-6">
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold mb-3">
@@ -1096,7 +1266,7 @@ function AuthContent() {
 
                 <button
                   type="button"
-                  onClick={() => setStep('ONBOARDING_FORM')}
+                  onClick={() => setStep('PROFILE_FORM')}
                   className="flex-1 py-3.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs sm:text-sm tracking-wide shadow-xs hover:shadow-sm flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
                 >
                   <span>{lang === 'en' ? 'Continue to Profile Setup' : 'प्रोफाइल विवरण भर्न अगाडि बढ्नुहोस्'}</span>
@@ -1109,7 +1279,7 @@ function AuthContent() {
           {/* ============================================================ */}
           {/* STEP 4: PROFILE & REGISTRATION FORM */}
           {/* ============================================================ */}
-          {step === 'ONBOARDING_FORM' && (
+          {step === 'PROFILE_FORM' && (
             <div className="p-6 sm:p-8">
               {/* Role Summary Pill */}
               <div className="mb-6 p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
@@ -1128,7 +1298,7 @@ function AuthContent() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setStep('ROLE_SELECTION')}
+                  onClick={() => setStep('ROLE_SELECT')}
                   className="text-xs text-emerald-700 hover:text-emerald-800 font-semibold underline underline-offset-2"
                 >
                   {lang === 'en' ? 'Change Role' : 'परिवर्तन'}
@@ -1194,7 +1364,7 @@ function AuthContent() {
                   <div className="relative">
                     <select
                       id={districtSelectId}
-                      value={selectedDistrict}
+                      value={district}
                       onChange={(e) => handleDistrictChange(e.target.value)}
                       className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-900 appearance-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition-all text-sm shadow-xs"
                     >
@@ -1247,7 +1417,7 @@ function AuthContent() {
                       type="button"
                       onClick={() => handleManualRegionOverride('HILLY')}
                       className={`p-3.5 rounded-xl border text-left transition-all ${
-                        preferredRegion === 'HILLY'
+                        regionSystem === 'HILLY'
                           ? 'border-2 border-emerald-600 bg-emerald-50/60 shadow-xs ring-1 ring-emerald-600/20'
                           : 'border border-slate-200 bg-white hover:border-slate-300'
                       }`}
@@ -1257,7 +1427,7 @@ function AuthContent() {
                           <span>🏔️</span>
                           <span>{lang === 'en' ? 'Hilly / Valley' : 'पहाड / उपत्यका'}</span>
                         </span>
-                        {preferredRegion === 'HILLY' && (
+                        {regionSystem === 'HILLY' && (
                           <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                         )}
                       </div>
@@ -1274,7 +1444,7 @@ function AuthContent() {
                       type="button"
                       onClick={() => handleManualRegionOverride('TERAI')}
                       className={`p-3.5 rounded-xl border text-left transition-all ${
-                        preferredRegion === 'TERAI'
+                        regionSystem === 'TERAI'
                           ? 'border-2 border-emerald-600 bg-emerald-50/60 shadow-xs ring-1 ring-emerald-600/20'
                           : 'border border-slate-200 bg-white hover:border-slate-300'
                       }`}
@@ -1284,7 +1454,7 @@ function AuthContent() {
                           <span>🌾</span>
                           <span>{lang === 'en' ? 'Terai Plains' : 'तराई / भित्री मधेस'}</span>
                         </span>
-                        {preferredRegion === 'TERAI' && (
+                        {regionSystem === 'TERAI' && (
                           <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                         )}
                       </div>
@@ -1320,7 +1490,7 @@ function AuthContent() {
                 <div className="flex items-center gap-3 pt-2">
                   <button
                     type="button"
-                    onClick={() => setStep('ROLE_SELECTION')}
+                    onClick={() => setStep('ROLE_SELECT')}
                     className="px-4 py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm flex items-center gap-1.5 transition-colors"
                   >
                     <ArrowLeft className="w-4 h-4" />

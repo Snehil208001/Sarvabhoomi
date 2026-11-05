@@ -14,6 +14,46 @@ This log tracks all architectural decisions, feature implementations, verificati
 
 ## 🗓️ Engineering Log
 
+### 📅 Session: November 5, 2026
+
+#### 🎯 Focus: Dynamic "Check User" Branching Flow, Dynamic OTP Routing, and White/Emerald Institutional Auth Refactor
+
+---
+
+### ✅ Completed Milestones
+
+#### 1. Dynamic "Check User" Branching Architecture (`apps/web/src/app/auth/page.tsx`)
+- **Step State Machine Aligned:**
+  - Defined strict state union: `type AuthStep = 'PHONE' | 'OTP' | 'ROLE_SELECT' | 'PROFILE_FORM';`.
+  - State variables: `step = 'PHONE'`, clean `phoneLocal = ''`, `otpDigits = ['', '', '', '', '', '']`, `isExistingUser = false`, `userIntent = 'BUYER'`, `fullName = ''`, `district = 'Kathmandu'`, `regionSystem = 'HILLY'`.
+- **Pre-flight Dynamic User Lookup (`/api/auth/check-user`):**
+  - As user enters their 10-digit Nepali mobile number, real-time debounced check runs against `/api/auth/check-user`.
+  - On Step 1 submit, performs `POST /api/auth/check-user` with `{ phone: '+977' + phoneLocal }` to determine `exists` and `isOnboarded`.
+- **CASE A: Existing & Onboarded User (`isExistingUser === true`):**
+  - Dispatches OTP via `supabase.auth.signInWithOtp`.
+  - Shows 2-step progress bar: `1. Mobile` ── `2. Verify & Sign In`.
+  - Step 2 OTP displays badge: *"Welcome Back! Enter your 6-digit code to sign in."*
+  - Upon successful `supabase.auth.verifyOtp()`, routes **directly to `/dashboard`**, skipping redundant role/profile screens.
+- **CASE B: New User or Incomplete Onboarding (`isExistingUser === false`):**
+  - Dispatches OTP via `supabase.auth.signInWithOtp`.
+  - Shows 4-step progress bar: `1. Mobile` ── `2. OTP` ── `3. Select Role` ── `4. Profile Details`.
+  - Step 2 OTP displays badge: *"New Account Verification: Enter code to verify your phone."* (with 15 Free Credits callout).
+  - Upon successful `supabase.auth.verifyOtp()`, advances strictly to **Step 3 (`ROLE_SELECT`)**.
+- **Step 3: Role Selection (`step === 'ROLE_SELECT'`):**
+  - Standalone screen presenting 4 distinct roles (`BUYER`, `OWNER`, `INVESTOR_NRN`, `AGENT_BROKER`).
+  - Interactive selection with emerald checkmarks, badges, and bilingual descriptions.
+  - "Continue to Profile Setup" button sets `step = 'PROFILE_FORM'`.
+- **Step 4: Profile Details & Unit Preference (`step === 'PROFILE_FORM'`):**
+  - Selected role summary badge with "Change Role" link back to Step 3.
+  - Inputs for Full Legal Name (as per Citizenship/Lalpurja).
+  - District dropdown for all 77 districts, auto-configuring `regionSystem` via `DISTRICT_REGION_MAP`.
+  - 1-click manual toggle between Hilly (Ropani-Aana-Paisa-Daam) and Terai (Bigha-Kattha-Dhur) with explanatory details.
+  - Promotional 15 Free Credits claim card.
+  - Submitting calls `supabase.from('profiles').upsert(...)` with `is_onboarded: true` and redirects to `/dashboard`.
+- **Suspense Prerendering Boundary:** Wrapped in `<Suspense fallback={<AuthLoading />}>` to ensure Next.js 14 App Router static prerendering (`○ (Static)`) builds cleanly without bailouts.
+
+---
+
 ### 📅 Session: November 3–4, 2026
 
 #### 🎯 Focus: Production Bilingual Auth, Nepal Onboarding, Live Supabase Verification & Clean White/Emerald UI Overhaul
@@ -119,23 +159,55 @@ This log tracks all architectural decisions, feature implementations, verificati
 
 ---
 
+### 📅 Session: November 5, 2026
+
+#### 🎯 Focus: Server-Side Check-User Verification Endpoint, Database RPC & Dynamic Auth Branching
+
+---
+
+### ✅ Completed Milestones
+
+#### 1. Database Stored Procedure / RPC Migration (`supabase/migrations/20261105000002_check_user_exists.sql`)
+- Implemented `public.check_user_status(p_phone TEXT)` returning `JSONB` (`exists`, `is_onboarded`, `user_intent`).
+- Enhanced query matching to support both international `+977` and raw 10-digit formats using `regexp_replace`.
+- Configured `SECURITY DEFINER` and explicitly set `search_path = public` for security hardening.
+- Granted execution rights to both `anon` and `authenticated` roles for pre-flight auth branching.
+
+#### 2. Typed Supabase Database Helper & Resilient Client (`apps/web/src/lib/supabase.ts`)
+- Added `check_user_status` RPC signature and `CheckUserStatusResult` interface to the typed database schema.
+- Built reusable `checkUserStatus(phone, client?)` utility.
+- Integrated dual-layer resilience: seamlessly falls back to direct profile table queries if the remote database migration is still pending execution in Supabase.
+
+#### 3. Server-Side Verification Endpoint (`apps/web/src/app/api/auth/check-user/route.ts`)
+- Created Next.js App Router dynamic route supporting both `POST` and `GET`.
+- Strict input validation against 10-digit Nepal mobile operators (NTC: `984`, `985`, `986`, `974`, `975` & Ncell: `980`, `981`, `982`, `970`).
+- Provides dynamic branching suggestions (`suggestedMode`: `'login'` vs `'signup'`) and context-aware messaging:
+  - Existing & onboarded: `'login'` (skip straight to OTP and dashboard).
+  - Existing but not onboarded: `'signup'` (guide to role selection & profile details).
+  - New user: `'signup'` (promote 15 free promotional credits).
+- Error handling returning clean HTTP 400 JSON on invalid/missing parameters and HTTP 500 on unexpected errors with `no-store` caching headers.
+
+#### 4. Real-time Frontend Dynamic Auth Branching (`apps/web/src/app/auth/page.tsx`)
+- Added 400ms debounced user verification while typing a 10-digit number.
+- Visual real-time indicator cards notifying users whether an existing account was found or if they are eligible for the 15 free launch credits.
+- Automatic auth mode switching during OTP dispatch (`handleSendOtp`), ensuring users are routed to the proper journey.
+
+---
+
 ## 🛠️ Verification & Build Status
 
 | Check | Tool | Status |
 | :--- | :--- | :--- |
-| TypeScript Compilation | `turbo type-check` | ✅ **Passed (0 errors)** |
-| Next.js Production Build | `turbo build` | ✅ **Compiled & Optimized (Static Prerender 6/6)** |
-| Local Development Server | `next dev -p 3000` | ✅ **Running on port 3000** |
-| Route `/` (Consumer Landing) | Static Build Probe | ✅ **200 OK (17.1 kB)** |
-| Route `/auth` | Static Build Probe | ✅ **200 OK (7.64 kB)** |
-| Route `/dashboard` | Static Build Probe | ✅ **200 OK (7.44 kB)** |
-| Live OTP Verification | Supabase Auth API | ✅ **200 OK Authenticated** |
+| TypeScript Compilation | `turbo type-check` | ✅ **Passed (0 errors across monorepo)** |
+| Next.js Production Build | `turbo build` | ✅ **Compiled & Optimized (Static Prerender 6/6 + Dynamic API)** |
+| Route `/api/auth/check-user` | Production Server Probe (GET & POST) | ✅ **200 OK & 400 Validation Tested** |
+| Dynamic Auth Branching | Interactive UI Test | ✅ **Tested & Verified** |
 
 ---
 
 ## 📋 Next Priorities & Action Items
 
-- [ ] **Run SQL Migration:** Execute [`20261103000001_auth_and_onboarding.sql`](supabase/migrations/20261103000001_auth_and_onboarding.sql) in the Supabase Dashboard SQL Editor for project `qmwrkhjtbbleskjmeauo`.
+- [ ] **Run SQL Migrations:** Execute [`20261103000001_auth_and_onboarding.sql`](supabase/migrations/20261103000001_auth_and_onboarding.sql) and [`20261105000002_check_user_exists.sql`](supabase/migrations/20261105000002_check_user_exists.sql) in the Supabase Dashboard SQL Editor for project `qmwrkhjtbbleskjmeauo`.
 - [ ] **Direct Property Listing Wizard:** Build multi-step property upload form supporting Lalpurja ownership verification and photos.
 - [ ] **Cadastral GIS Map Sheets:** Integrate MapLibre/Leaflet with cadastral parcel boundary overlays for Kathmandu Valley and Terai.
 - [ ] **Contact Unlock Modal:** Deduct 1 credit per landowner phone unlock and log transaction in `user_subscriptions`.
