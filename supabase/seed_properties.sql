@@ -47,7 +47,7 @@ BEGIN
     -- 1. Budhanilkantha Residential Land (Kathmandu)
     INSERT INTO public.properties (
         owner_id, title, description, listing_type, price_npr, district, municipality, ward, locality,
-        area_value, area_unit, area_sqft, road_access, facing, lalpurja_verified, kitta_no, photos, status
+        area_value, area_unit, area_sqft, road_access, facing, owner_declared_lalpurja, admin_verified, lalpurja_verified, kitta_no, photos, status
     ) VALUES (
         v_owner_1,
         'Prime 4.25 Aana Residential Ghaderi near Golfutar',
@@ -63,7 +63,7 @@ BEGIN
         1454.56,
         '16 ft Pitched',
         'EAST',
-        true,
+        true, true, true,
         'KITTA-402',
         ARRAY[
             'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80',
@@ -75,7 +75,7 @@ BEGIN
     -- 2. Imadol Modern House (Lalitpur)
     INSERT INTO public.properties (
         owner_id, title, description, listing_type, price_npr, district, municipality, ward, locality,
-        area_value, area_unit, area_sqft, road_access, facing, bedrooms, bathrooms, lalpurja_verified, kitta_no, photos, status
+        area_value, area_unit, area_sqft, road_access, facing, bedrooms, bathrooms, owner_declared_lalpurja, admin_verified, lalpurja_verified, kitta_no, photos, status
     ) VALUES (
         v_owner_1,
         'Brand New 2.5 Storey Contemporary Villa in Imadol',
@@ -93,7 +93,7 @@ BEGIN
         'SOUTH_EAST',
         4,
         4,
-        true,
+        true, true, true,
         'KITTA-118',
         ARRAY[
             'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80',
@@ -106,7 +106,7 @@ BEGIN
     -- 3. New Baneshwor Commercial Building / Land (Kathmandu)
     INSERT INTO public.properties (
         owner_id, title, description, listing_type, price_npr, district, municipality, ward, locality,
-        area_value, area_unit, area_sqft, road_access, facing, lalpurja_verified, kitta_no, photos, status
+        area_value, area_unit, area_sqft, road_access, facing, owner_declared_lalpurja, admin_verified, lalpurja_verified, kitta_no, photos, status
     ) VALUES (
         v_owner_1,
         'Commercial Land Plot on Main Road in New Baneshwor',
@@ -122,7 +122,7 @@ BEGIN
         2738.0,
         '32 ft Pitched',
         'NORTH',
-        true,
+        true, false, false,
         'KITTA-88',
         ARRAY[
             'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80',
@@ -134,7 +134,7 @@ BEGIN
     -- 4. Pokhara Lakeside Tourism Plot (Kaski)
     INSERT INTO public.properties (
         owner_id, title, description, listing_type, price_npr, district, municipality, ward, locality,
-        area_value, area_unit, area_sqft, road_access, facing, lalpurja_verified, kitta_no, photos, status
+        area_value, area_unit, area_sqft, road_access, facing, owner_declared_lalpurja, admin_verified, lalpurja_verified, kitta_no, photos, status
     ) VALUES (
         v_owner_1,
         '1 Ropani Panoramic Annapurna View Land at Lakeside',
@@ -150,7 +150,7 @@ BEGIN
         5476.0,
         '20 ft Pitched',
         'WEST',
-        true,
+        true, true, true,
         'KITTA-521',
         ARRAY[
             'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&w=1200&q=80',
@@ -162,7 +162,7 @@ BEGIN
     -- 5. Bharatpur Residential / Agriculture Land (Chitwan)
     INSERT INTO public.properties (
         owner_id, title, description, listing_type, price_npr, district, municipality, ward, locality,
-        area_value, area_unit, area_sqft, road_access, facing, lalpurja_verified, kitta_no, photos, status
+        area_value, area_unit, area_sqft, road_access, facing, owner_declared_lalpurja, admin_verified, lalpurja_verified, kitta_no, photos, status
     ) VALUES (
         v_owner_1,
         '15 Kattha High-Yield Land Plot in Bharatpur',
@@ -178,7 +178,7 @@ BEGIN
         54675.0,
         '24 ft Graveled',
         'SOUTH',
-        true,
+        true, false, false,
         'KITTA-903',
         ARRAY[
             'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80'
@@ -189,7 +189,7 @@ BEGIN
     -- 6. Butwal Highway Commercial Land (Rupandehi)
     INSERT INTO public.properties (
         owner_id, title, description, listing_type, price_npr, district, municipality, ward, locality,
-        area_value, area_unit, area_sqft, road_access, facing, lalpurja_verified, kitta_no, photos, status
+        area_value, area_unit, area_sqft, road_access, facing, owner_declared_lalpurja, admin_verified, lalpurja_verified, kitta_no, photos, status
     ) VALUES (
         v_owner_1,
         '10 Kattha Commercial Highway Plot in Kalikanagar',
@@ -205,7 +205,7 @@ BEGIN
         36450.0,
         '40 ft Pitched',
         'SOUTH',
-        false,
+        false, false, false,
         'KITTA-774',
         ARRAY[
             'https://images.unsplash.com/photo-1582407947304-fd86f028f716?auto=format&fit=crop&w=1200&q=80'
@@ -216,7 +216,7 @@ BEGIN
     -- 7. Suryabinayak Peaceful Ghaderi (Bhaktapur)
     INSERT INTO public.properties (
         owner_id, title, description, listing_type, price_npr, district, municipality, ward, locality,
-        area_value, area_unit, area_sqft, road_access, facing, lalpurja_verified, kitta_no, photos, status
+        area_value, area_unit, area_sqft, road_access, facing, owner_declared_lalpurja, admin_verified, lalpurja_verified, kitta_no, photos, status
     ) VALUES (
         v_owner_1,
         '4 Aana Residential Plot in Peaceful Suryabinayak Colony',
@@ -232,7 +232,7 @@ BEGIN
         1369.0,
         '14 ft Dhalan',
         'SOUTH',
-        true,
+        true, true, true,
         'KITTA-312',
         ARRAY[
             'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80'
@@ -243,7 +243,7 @@ BEGIN
     -- 8. Tokha Ready-to-Build Land (Kathmandu)
     INSERT INTO public.properties (
         owner_id, title, description, listing_type, price_npr, district, municipality, ward, locality,
-        area_value, area_unit, area_sqft, road_access, facing, lalpurja_verified, kitta_no, photos, status
+        area_value, area_unit, area_sqft, road_access, facing, owner_declared_lalpurja, admin_verified, lalpurja_verified, kitta_no, photos, status
     ) VALUES (
         v_owner_1,
         '3.5 Aana Square Plot in Tokha Chandeshwori Height',
@@ -259,7 +259,7 @@ BEGIN
         1197.88,
         '16 ft Pitched',
         'EAST',
-        true,
+        true, true, true,
         'KITTA-208',
         ARRAY[
             'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80'
@@ -270,7 +270,7 @@ BEGIN
     -- 9. Sanepa Luxury Residence (Lalitpur)
     INSERT INTO public.properties (
         owner_id, title, description, listing_type, price_npr, district, municipality, ward, locality,
-        area_value, area_unit, area_sqft, road_access, facing, bedrooms, bathrooms, lalpurja_verified, kitta_no, photos, status
+        area_value, area_unit, area_sqft, road_access, facing, bedrooms, bathrooms, owner_declared_lalpurja, admin_verified, lalpurja_verified, kitta_no, photos, status
     ) VALUES (
         v_owner_1,
         'Architectural 4 BHK Luxury Bungalow in Sanepa',
@@ -288,7 +288,7 @@ BEGIN
         'NORTH_EAST',
         4,
         5,
-        true,
+        true, false, false,
         'KITTA-14',
         ARRAY[
             'https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=1200&q=80',
@@ -300,7 +300,7 @@ BEGIN
     -- 10. Biratnagar Industrial / Commercial Land (Morang)
     INSERT INTO public.properties (
         owner_id, title, description, listing_type, price_npr, district, municipality, ward, locality,
-        area_value, area_unit, area_sqft, road_access, facing, lalpurja_verified, kitta_no, photos, status
+        area_value, area_unit, area_sqft, road_access, facing, owner_declared_lalpurja, admin_verified, lalpurja_verified, kitta_no, photos, status
     ) VALUES (
         v_owner_1,
         '1 Bigha Commercial Parcel on Biratnagar Ring Road',
@@ -316,7 +316,7 @@ BEGIN
         72900.0,
         '30 ft Pitched',
         'EAST',
-        true,
+        true, true, true,
         'KITTA-1002',
         ARRAY[
             'https://images.unsplash.com/photo-1582407947304-fd86f028f716?auto=format&fit=crop&w=1200&q=80'
@@ -327,7 +327,7 @@ BEGIN
     -- 11. Dhulikhel Resort / Villa Land (Kavre)
     INSERT INTO public.properties (
         owner_id, title, description, listing_type, price_npr, district, municipality, ward, locality,
-        area_value, area_unit, area_sqft, road_access, facing, lalpurja_verified, kitta_no, photos, status
+        area_value, area_unit, area_sqft, road_access, facing, owner_declared_lalpurja, admin_verified, lalpurja_verified, kitta_no, photos, status
     ) VALUES (
         v_owner_1,
         '2 Ropani Resort / Second-Home Plot in Dhulikhel',
@@ -343,7 +343,7 @@ BEGIN
         10952.0,
         '16 ft Pitched',
         'NORTH',
-        true,
+        true, false, false,
         'KITTA-661',
         ARRAY[
             'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&w=1200&q=80'
@@ -354,7 +354,7 @@ BEGIN
     -- 12. Bhaisepati Modern Villa for Rent / Sale (Lalitpur)
     INSERT INTO public.properties (
         owner_id, title, description, listing_type, price_npr, district, municipality, ward, locality,
-        area_value, area_unit, area_sqft, road_access, facing, bedrooms, bathrooms, lalpurja_verified, kitta_no, photos, status
+        area_value, area_unit, area_sqft, road_access, facing, bedrooms, bathrooms, owner_declared_lalpurja, admin_verified, lalpurja_verified, kitta_no, photos, status
     ) VALUES (
         v_owner_1,
         '3 BHK Modern Villa with Garden in Bhaisepati',
@@ -372,7 +372,7 @@ BEGIN
         'WEST',
         3,
         3,
-        true,
+        true, false, false,
         'KITTA-84',
         ARRAY[
             'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80',

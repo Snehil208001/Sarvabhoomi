@@ -14,6 +14,58 @@ This log tracks all architectural decisions, feature implementations, verificati
 
 ## 🗓️ Engineering Log
 
+### 📅 Session: November 5, 2026 (Phase 1 — P0: Trust & Safety Hardening)
+
+#### 🎯 Focus: Secrets Eradication, Lalpurja Verification Authority Split, Supabase Fail-Fast Config, API Enumeration Rate Limiting, and Scoped Storage Upload Policies
+
+---
+
+### ✅ Completed Milestones
+
+#### 1. Secrets Eradication from Public Documentation
+- Scrubbed all real test phone numbers, Supabase project URLs, test UUIDs, and verification OTPs across `DAILY_PROGRESS.md`, `supabase/init_sarvabhoomi.sql`, and API route comments.
+- Replaced with generic placeholders (`<your-test-phone>`, `<your-supabase-url>`, `<test-user-uuid>`, `98XXXXXXXX`).
+- Real environment secrets remain strictly in `apps/web/.env.local` (untracked by git).
+- **Security Notice on Git History**: While working tree files are sanitized, older commits in git history still contain previously committed secrets. *Note: Git history rewriting requires explicit authorization and repository coordination.*
+
+#### 2. Lalpurja Self-Declaration vs. Administrative Verification Split
+- **Database Migration (`supabase/migrations/20261105000004_lalpurja_verification_split.sql`)**:
+  - Added `owner_declared_lalpurja BOOLEAN DEFAULT FALSE` and `admin_verified BOOLEAN DEFAULT FALSE`.
+  - Migrated legacy `lalpurja_verified` data into `owner_declared_lalpurja`.
+  - Created PL/pgSQL sync trigger `trg_sync_property_verification_status` to ensure backwards-compatibility.
+  - **RLS Enforcement**:
+    - `INSERT`: Owners can set `owner_declared_lalpurja`, but `admin_verified` is restricted (`admin_verified IS FALSE OR admin_verified IS NULL`).
+    - `UPDATE`: Owners can update details but cannot modify `admin_verified` (`admin_verified IS NOT DISTINCT FROM (SELECT p.admin_verified FROM public.properties p WHERE p.id = properties.id)`). Only administrative/service roles can certify cadastral verification.
+- **Shared Package Types (`packages/shared/src/validators/property.ts`)**:
+  - Updated `Property`, `createPropertySchema`, and `PropertyFilterParams` with `owner_declared_lalpurja` and `admin_verified`.
+- **UI Trust Signals**:
+  - Search cards (`/search`), Property Details (`/properties/[id]`), and Dashboard (`/dashboard`) now display the emerald **"Lalpurja Verified"** badge ONLY if `admin_verified === true` (with tooltip "Government cadastral verified by Sarvabhoomi").
+  - If `owner_declared_lalpurja === true && !admin_verified`, the badge renders as an amber/slate tag: **"Lalpurja Claimed (Pending Verification)"**.
+  - Property submission form (`/post-property`) updated: checkbox text changed to *"I possess a legal Lalpurja (Land Ownership Certificate) for this property (subject to verification)"*.
+
+#### 3. Fail-Fast Supabase Runtime Config (`apps/web/src/lib/supabase.ts`)
+- Replaced silent fallback dummy URLs (`'https://placeholder-project.supabase.co'`) with runtime validation in `createClient()`.
+- Explicitly throws descriptive error at startup if `NEXT_PUBLIC_SUPABASE_URL` or `NEXT_PUBLIC_SUPABASE_ANON_KEY` is missing or placeholder.
+
+#### 4. User Enumeration & Abuse Throttling (`/api/auth/check-user`)
+- Implemented sliding-window in-memory rate-limiter in `apps/web/src/app/api/auth/check-user/route.ts`:
+  - Enforces max 5 requests per 60 seconds per IP address and per phone number.
+  - Returns HTTP `429 Too Many Requests` with dynamic `Retry-After` header.
+- **Removed Security Bypass**: Removed direct `public.profiles` query fallback in `checkUserStatus` (`apps/web/src/lib/supabase.ts`) that previously bypassed RPC checks.
+- **Residual Risk & Mitigation**: Phone enumeration remains theoretically possible below the 5 req/min threshold. For production public launch, an anti-bot challenge (such as Cloudflare Turnstile) and SMS carrier fraud scoring are recommended.
+
+#### 5. Storage Upload Hardening (`apps/web/src/app/post-property/page.tsx` & Migration)
+- Client-side validation:
+  - Allowed MIME types strictly limited to `image/jpeg`, `image/png`, and `image/webp`.
+  - Max file size limited to 5 MB per image.
+  - Max file count capped at 10 images per listing.
+- Storage path isolation:
+  - Switched file path structure to `${userId}/${Date.now()}-${cleanFileName}`.
+- Storage RLS Policy (`20261105000004_lalpurja_verification_split.sql`):
+  - Enforced `(storage.foldername(name))[1] = auth.uid()::text` for `INSERT`, `UPDATE`, and `DELETE` on the `property-photos` bucket, preventing user cross-directory file overwrites.
+
+---
+
 ### 📅 Session: November 5, 2026 (UI/UX Refactor via `ui-ux-pro-max` Skill)
 
 #### 🎯 Focus: UI/UX-Only Institutional Polish, NoBroker Clean Aesthetic, Zero Emojis as Icons, Accessible Keyboard Navigation, 360px Mobile Responsiveness, and Semantic Design Tokens
@@ -259,12 +311,12 @@ This log tracks all architectural decisions, feature implementations, verificati
 ---
 
 #### 4. Live Verification & End-to-End QA Test
-- **Target Number:** `+9779820770232` (Ncell)
-- **Supabase Instance:** `https://qmwrkhjtbbleskjmeauo.supabase.co`
+- **Target Number:** `<your-test-phone>` (Ncell / NTC)
+- **Supabase Instance:** `<your-supabase-url>`
 - **Result:**
-  - `signInWithOtp({ phone: '+9779820770232' })` returned `200 OK`.
-  - `verifyOtp({ phone: '+9779820770232', token: '123456', type: 'sms' })` returned **`SUCCESS (200 OK)`**.
-  - Authenticated User ID: `5dcb6e16-69a8-4acd-8d81-644f032c901b`.
+  - `signInWithOtp({ phone: '<your-test-phone>' })` returned `200 OK`.
+  - `verifyOtp({ phone: '<your-test-phone>', token: '<test-otp>', type: 'sms' })` returned **`SUCCESS (200 OK)`**.
+  - Authenticated User ID: `<test-user-uuid>`.
   - Session JWT successfully created and persisted.
   - Schema resilience added to frontend to seamlessly handle pending remote database migrations.
 
@@ -341,7 +393,7 @@ This log tracks all architectural decisions, feature implementations, verificati
 
 ## 📋 Next Priorities & Action Items
 
-- [ ] **Run SQL Migrations:** Execute [`20261103000001_auth_and_onboarding.sql`](supabase/migrations/20261103000001_auth_and_onboarding.sql) and [`20261105000002_check_user_exists.sql`](supabase/migrations/20261105000002_check_user_exists.sql) in the Supabase Dashboard SQL Editor for project `qmwrkhjtbbleskjmeauo`.
+- [ ] **Run SQL Migrations:** Execute [`20261103000001_auth_and_onboarding.sql`](supabase/migrations/20261103000001_auth_and_onboarding.sql) and [`20261105000002_check_user_exists.sql`](supabase/migrations/20261105000002_check_user_exists.sql) in the Supabase Dashboard SQL Editor for your project (`<your-supabase-project-ref>`).
 - [ ] **Direct Property Listing Wizard:** Build multi-step property upload form supporting Lalpurja ownership verification and photos.
 - [ ] **Cadastral GIS Map Sheets:** Integrate MapLibre/Leaflet with cadastral parcel boundary overlays for Kathmandu Valley and Terai.
 - [ ] **Contact Unlock Modal:** Deduct 1 credit per landowner phone unlock and log transaction in `user_subscriptions`.

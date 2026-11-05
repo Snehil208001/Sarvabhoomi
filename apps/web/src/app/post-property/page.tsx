@@ -138,9 +138,30 @@ export default function PostPropertyPage() {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    if (photos.length + files.length > 10) {
-      setPhotoError('You can upload a maximum of 10 photos.');
+    if (!userId) {
+      setPhotoError('You must be signed in to upload listing photos.');
       return;
+    }
+
+    if (photos.length + files.length > 10) {
+      setPhotoError('You can upload a maximum of 10 photos per listing.');
+      return;
+    }
+
+    const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+    const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
+
+    // Validate MIME types and file sizes before attempting upload
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+        setPhotoError(`Invalid file format for "${file.name}". Only JPEG, PNG, and WebP images are permitted.`);
+        return;
+      }
+      if (file.size > MAX_SIZE_BYTES) {
+        setPhotoError(`File "${file.name}" exceeds the 5MB size limit.`);
+        return;
+      }
     }
 
     setUploadingPhotos(true);
@@ -150,20 +171,21 @@ export default function PostPropertyPage() {
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const fileExt = file.name.split('.').pop() || 'jpg';
-      const fileName = `${userId}-${Date.now()}-${i}.${fileExt}`;
-      const filePath = `listings/${fileName}`;
+      const cleanFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const filePath = `${userId}/${Date.now()}-${cleanFileName}`;
 
       try {
         const { data, error } = await supabase.storage
           .from('property-photos')
-          .upload(filePath, file, { cacheControl: '3600', upsert: false });
+          .upload(filePath, file, { 
+            cacheControl: '3600', 
+            upsert: false,
+            contentType: file.type,
+          });
 
         if (error) {
-          console.warn('Storage upload error, using local object preview:', error);
-          // Fallback object URL
-          const localUrl = URL.createObjectURL(file);
-          uploadedUrls.push(localUrl);
+          console.warn('Storage upload error:', error.message);
+          setPhotoError(`Upload failed for "${file.name}": ${error.message}`);
         } else if (data) {
           const { data: pubUrl } = supabase.storage
             .from('property-photos')
@@ -171,13 +193,14 @@ export default function PostPropertyPage() {
           uploadedUrls.push(pubUrl.publicUrl);
         }
       } catch (uploadErr) {
-        console.warn('Upload exception:', uploadErr);
-        const localUrl = URL.createObjectURL(file);
-        uploadedUrls.push(localUrl);
+        console.error('Upload exception:', uploadErr);
+        setPhotoError(`Unexpected error uploading "${file.name}".`);
       }
     }
 
-    setPhotos((prev) => [...prev, ...uploadedUrls]);
+    if (uploadedUrls.length > 0) {
+      setPhotos((prev) => [...prev, ...uploadedUrls]);
+    }
     setUploadingPhotos(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -270,7 +293,9 @@ export default function PostPropertyPage() {
       facing,
       bedrooms: listingType === 'BUY_HOUSE' || listingType === 'RENT_HOUSE' ? parseInt(bedrooms, 10) : null,
       bathrooms: listingType === 'BUY_HOUSE' || listingType === 'RENT_HOUSE' ? parseInt(bathrooms, 10) : null,
-      lalpurja_verified: hasLalpurja,
+      owner_declared_lalpurja: hasLalpurja,
+      admin_verified: false,
+      lalpurja_verified: false,
       kitta_no: kittaNo.trim() || null,
       photos: defaultPhotos,
       status,
@@ -802,10 +827,10 @@ export default function PostPropertyPage() {
                   />
                   <div>
                     <span className="text-xs font-bold text-emerald-950 block">
-                      Include "Lalpurja Verified" Trust Badge
+                      I possess a legal Lalpurja (Land Ownership Certificate) for this property (subject to verification)
                     </span>
                     <span className="text-[11px] text-emerald-800 leading-relaxed block mt-0.5">
-                      I hold a clear land ownership certificate (लालपुर्जा) and can present it to interested buyers upon inspection.
+                      Self-declared certificates are displayed as &quot;Lalpurja claimed by owner — pending verification&quot; until official cadastral survey verification is conducted by Sarvabhoomi.
                     </span>
                   </div>
                 </label>
@@ -887,8 +912,8 @@ export default function PostPropertyPage() {
                   </div>
                   <div>
                     <span className="text-slate-500 block text-[10px]">Verification</span>
-                    <span className="font-bold text-emerald-800">
-                      {hasLalpurja ? 'Lalpurja Verified' : 'Standard'}
+                    <span className="font-bold text-amber-700">
+                      {hasLalpurja ? 'Lalpurja Claimed (Pending)' : 'Standard'}
                     </span>
                   </div>
                 </div>

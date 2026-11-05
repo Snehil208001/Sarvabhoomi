@@ -40,6 +40,8 @@ export interface Property {
   bedrooms: number | null;
   bathrooms: number | null;
   lalpurja_verified: boolean;
+  owner_declared_lalpurja: boolean;
+  admin_verified: boolean;
   kitta_no: string | null;
   photos: string[];
   status: PropertyStatus;
@@ -74,6 +76,8 @@ export const createPropertySchema = z.object({
   bedrooms: z.number().int().nonnegative().optional(),
   bathrooms: z.number().int().nonnegative().optional(),
   kitta_no: z.string().trim().optional(),
+  owner_declared_lalpurja: z.boolean().default(false),
+  admin_verified: z.boolean().default(false),
   lalpurja_verified: z.boolean().default(false),
   photos: z.array(z.string().url()).max(10).default([]),
 });
@@ -92,6 +96,8 @@ export interface PropertyFilterParams {
   facing?: PropertyFacing;
   road_access?: string;
   lalpurja_verified?: boolean;
+  owner_declared_lalpurja?: boolean;
+  admin_verified?: boolean;
   bedrooms?: number;
   bathrooms?: number;
   sort_by?: 'newest' | 'price_asc' | 'price_desc' | 'area_asc' | 'area_desc';

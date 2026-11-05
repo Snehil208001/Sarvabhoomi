@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   ShieldCheck,
+  ShieldAlert,
   MapPin,
   Sparkles,
   Phone,
@@ -697,12 +698,23 @@ function DashboardContent() {
                           >
                             {property.status}
                           </span>
-                          {property.lalpurja_verified && (
-                            <span className="px-2 py-1 rounded-lg text-[10px] font-bold bg-white/95 text-emerald-800 border border-emerald-200 shadow-sm flex items-center gap-1">
+                          {property.admin_verified ? (
+                            <span 
+                              title="Government cadastral verified by Sarvabhoomi"
+                              className="px-2 py-1 rounded-lg text-[10px] font-bold bg-white/95 text-emerald-800 border border-emerald-200 shadow-sm flex items-center gap-1"
+                            >
                               <ShieldCheck className="w-3 h-3 text-emerald-600" />
                               <span>Lalpurja</span>
                             </span>
-                          )}
+                          ) : property.owner_declared_lalpurja ? (
+                            <span 
+                              title="Claimed by owner — pending verification"
+                              className="px-2 py-1 rounded-lg text-[10px] font-semibold bg-white/95 text-amber-800 border border-amber-200 shadow-sm flex items-center gap-1"
+                            >
+                              <ShieldAlert className="w-3 h-3 text-amber-600" />
+                              <span>Pending</span>
+                            </span>
+                          ) : null}
                         </div>
 
                         {/* Views & Unlocks counter */}
@@ -896,12 +908,23 @@ function DashboardContent() {
 
                         {/* Badges */}
                         <div className="absolute top-3 left-3 flex items-center gap-1.5">
-                          {property.lalpurja_verified && (
-                            <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-white/95 text-emerald-800 border border-emerald-200 shadow-sm flex items-center gap-1">
+                          {property.admin_verified ? (
+                            <span 
+                              title="Government cadastral verified by Sarvabhoomi"
+                              className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-white/95 text-emerald-800 border border-emerald-200 shadow-sm flex items-center gap-1"
+                            >
                               <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                               <span>Lalpurja Verified</span>
                             </span>
-                          )}
+                          ) : property.owner_declared_lalpurja ? (
+                            <span 
+                              title="Lalpurja claimed by owner — pending verification"
+                              className="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-white/95 text-amber-800 border border-amber-200 shadow-sm flex items-center gap-1"
+                            >
+                              <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
+                              <span>Lalpurja Claimed</span>
+                            </span>
+                          ) : null}
                         </div>
 
                         {/* Remove heart */}

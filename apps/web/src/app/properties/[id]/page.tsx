@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   MapPin,
   ShieldCheck,
+  ShieldAlert,
   CheckCircle2,
   Phone,
   PhoneCall,
@@ -347,12 +348,23 @@ export default function PropertyDetailPage() {
             <span className="px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold uppercase tracking-wider">
               {property.listing_type.replace('_', ' ')}
             </span>
-            {property.lalpurja_verified && (
-              <span className="px-2.5 py-1 rounded-md bg-emerald-600 text-white text-xs font-bold flex items-center gap-1 shadow-xs">
+            {property.admin_verified ? (
+              <span 
+                title="Government cadastral verified by Sarvabhoomi"
+                className="px-2.5 py-1 rounded-md bg-emerald-600 text-white text-xs font-bold flex items-center gap-1 shadow-xs"
+              >
                 <ShieldCheck className="w-4 h-4" />
                 <span>Lalpurja Verified Ownership</span>
               </span>
-            )}
+            ) : property.owner_declared_lalpurja ? (
+              <span 
+                title="Lalpurja claimed by owner — pending official cadastral survey verification"
+                className="px-2.5 py-1 rounded-md bg-amber-50 text-amber-900 border border-amber-200 text-xs font-semibold flex items-center gap-1 shadow-2xs"
+              >
+                <ShieldAlert className="w-4 h-4 text-amber-600" />
+                <span>Lalpurja claimed by owner — pending verification</span>
+              </span>
+            ) : null}
             <span className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold">
               0% Brokerage Direct P2P
             </span>

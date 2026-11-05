@@ -18,10 +18,61 @@ interface CheckUserResponse {
   error?: string;
 }
 
+// -----------------------------------------------------------------------------
+// In-Memory Sliding-Window Rate Limiter
+// Throttles to max 5 requests per minute per IP address and per phone number
+// -----------------------------------------------------------------------------
+interface RateLimitRecord {
+  timestamps: number[];
+}
+
+const rateLimitStore = new Map<string, RateLimitRecord>();
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const MAX_REQUESTS_PER_WINDOW = 5;
+
+function checkRateLimit(key: string): { allowed: boolean; retryAfter: number } {
+  const now = Date.now();
+  const record = rateLimitStore.get(key) || { timestamps: [] };
+
+  // Evict timestamps outside the sliding window
+  record.timestamps = record.timestamps.filter((ts) => now - ts < RATE_LIMIT_WINDOW_MS);
+
+  if (record.timestamps.length >= MAX_REQUESTS_PER_WINDOW) {
+    const oldest = record.timestamps[0];
+    const retryAfter = Math.max(1, Math.ceil((oldest + RATE_LIMIT_WINDOW_MS - now) / 1000));
+    return { allowed: false, retryAfter };
+  }
+
+  record.timestamps.push(now);
+  rateLimitStore.set(key, record);
+
+  // Periodic pruning if store exceeds threshold
+  if (rateLimitStore.size > 5000) {
+    rateLimitStore.forEach((v, k) => {
+      v.timestamps = v.timestamps.filter((ts: number) => now - ts < RATE_LIMIT_WINDOW_MS);
+      if (v.timestamps.length === 0) {
+        rateLimitStore.delete(k);
+      }
+    });
+  }
+
+  return { allowed: true, retryAfter: 0 };
+}
+
+function getClientIdentifier(req: NextRequest): string {
+  const forwarded = req.headers.get('x-forwarded-for');
+  if (forwarded) {
+    return forwarded.split(',')[0].trim();
+  }
+  const realIp = req.headers.get('x-real-ip');
+  if (realIp) return realIp.trim();
+  return 'client-default-ip';
+}
+
 /**
  * Normalizes any Nepali phone representation into:
- * - raw 10-digit format (e.g., "9820770232")
- * - E.164 format with Nepal country code (e.g., "+9779820770232")
+ * - raw 10-digit format (e.g., "98XXXXXXXX")
+ * - E.164 format with Nepal country code (e.g., "+97798XXXXXXXX")
  */
 function normalizeNepalPhone(input: string): { raw10: string; fullPhone: string } | null {
   const cleaned = input.replace(/^(?:\+977|977)/, '').replace(/[-\s]/g, '');
@@ -37,7 +88,26 @@ function normalizeNepalPhone(input: string): { raw10: string; fullPhone: string 
 /**
  * Core verification logic shared between GET and POST handlers
  */
-async function handleCheckUser(phoneNumber: string): Promise<NextResponse<CheckUserResponse>> {
+async function handleCheckUser(req: NextRequest, phoneNumber: string): Promise<NextResponse<CheckUserResponse>> {
+  const clientIp = getClientIdentifier(req);
+  const ipLimit = checkRateLimit(`ip:${clientIp}`);
+
+  if (!ipLimit.allowed) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: `Too many verification requests from this IP. Please wait ${ipLimit.retryAfter} seconds before trying again.`,
+      },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(ipLimit.retryAfter),
+          'Cache-Control': 'no-store, max-age=0',
+        },
+      }
+    );
+  }
+
   const normalized = normalizeNepalPhone(phoneNumber);
 
   if (!normalized) {
@@ -49,6 +119,24 @@ async function handleCheckUser(phoneNumber: string): Promise<NextResponse<CheckU
       {
         status: 400,
         headers: {
+          'Cache-Control': 'no-store, max-age=0',
+        },
+      }
+    );
+  }
+
+  // Rate limit by phone number to prevent targeted user enumeration
+  const phoneLimit = checkRateLimit(`phone:${normalized.fullPhone}`);
+  if (!phoneLimit.allowed) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: `Too many verification attempts for this phone number. Please wait ${phoneLimit.retryAfter} seconds.`,
+      },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(phoneLimit.retryAfter),
           'Cache-Control': 'no-store, max-age=0',
         },
       }
@@ -133,7 +221,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    return await handleCheckUser(phone);
+    return await handleCheckUser(req, phone);
   } catch {
     return NextResponse.json(
       {
@@ -161,5 +249,5 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  return await handleCheckUser(phone);
+  return await handleCheckUser(req, phone);
 }

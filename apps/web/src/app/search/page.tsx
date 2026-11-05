@@ -12,6 +12,7 @@ import {
   Building,
   Tag,
   ShieldCheck,
+  ShieldAlert,
   CheckCircle2,
   Heart,
   Phone,
@@ -183,9 +184,9 @@ function SearchContent() {
         query = query.eq('district', selectedDistrict);
       }
 
-      // Apply Lalpurja Filter
+      // Apply Lalpurja Filter (Government Cadastral Admin-Verified Only)
       if (lalpurjaOnly) {
-        query = query.eq('lalpurja_verified', true);
+        query = query.eq('admin_verified', true);
       }
 
       // Apply Facing Filter
@@ -618,12 +619,23 @@ function SearchContent() {
 
                       {/* Top Badges */}
                       <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-                        {prop.lalpurja_verified && (
-                          <span className="px-2.5 py-1 rounded-md bg-emerald-600/95 text-white text-[10px] font-bold tracking-wide uppercase shadow-xs flex items-center gap-1 backdrop-blur-xs">
+                        {prop.admin_verified ? (
+                          <span
+                            title="Government cadastral verified by Sarvabhoomi"
+                            className="px-2.5 py-1 rounded-md bg-emerald-600/95 text-white text-[10px] font-bold tracking-wide uppercase shadow-xs flex items-center gap-1 backdrop-blur-xs"
+                          >
                             <ShieldCheck className="w-3.5 h-3.5" />
                             <span>Lalpurja Verified</span>
                           </span>
-                        )}
+                        ) : prop.owner_declared_lalpurja ? (
+                          <span
+                            title="Lalpurja claimed by owner — pending cadastral verification by Sarvabhoomi"
+                            className="px-2.5 py-1 rounded-md bg-slate-900/80 text-amber-300 border border-amber-400/40 text-[10px] font-semibold tracking-wide shadow-xs flex items-center gap-1 backdrop-blur-xs"
+                          >
+                            <ShieldAlert className="w-3.5 h-3.5 text-amber-300" />
+                            <span>Claimed (Pending Verification)</span>
+                          </span>
+                        ) : null}
                         <span className="px-2 py-1 rounded-md bg-white/95 text-emerald-800 border border-emerald-200 text-[10px] font-bold uppercase tracking-wide shadow-2xs">
                           0% Brokerage
                         </span>

@@ -127,6 +127,8 @@ export type Database = {
           bedrooms: number | null;
           bathrooms: number | null;
           lalpurja_verified: boolean;
+          owner_declared_lalpurja: boolean;
+          admin_verified: boolean;
           kitta_no: string | null;
           photos: string[];
           status: 'ACTIVE' | 'DRAFT' | 'SOLD' | 'PAUSED';
@@ -153,6 +155,8 @@ export type Database = {
           bedrooms?: number | null;
           bathrooms?: number | null;
           lalpurja_verified?: boolean;
+          owner_declared_lalpurja?: boolean;
+          admin_verified?: boolean;
           kitta_no?: string | null;
           photos?: string[];
           status?: 'ACTIVE' | 'DRAFT' | 'SOLD' | 'PAUSED';
@@ -179,6 +183,8 @@ export type Database = {
           bedrooms?: number | null;
           bathrooms?: number | null;
           lalpurja_verified?: boolean;
+          owner_declared_lalpurja?: boolean;
+          admin_verified?: boolean;
           kitta_no?: string | null;
           photos?: string[];
           status?: 'ACTIVE' | 'DRAFT' | 'SOLD' | 'PAUSED';
@@ -328,14 +334,36 @@ export interface CheckUserStatusResult {
   user_intent: 'BUYER' | 'OWNER' | 'INVESTOR_NRN' | 'AGENT_BROKER' | null;
 }
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-project.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key';
+/**
+ * Validates and retrieves Supabase credentials at runtime.
+ * Throws a descriptive error immediately if environment variables are missing or set to placeholder values.
+ */
+function getValidatedSupabaseCredentials(): { url: string; anonKey: string } {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || url.includes('placeholder-project') || !url.startsWith('https://')) {
+    throw new Error(
+      '[Sarvabhoomi] Missing or invalid NEXT_PUBLIC_SUPABASE_URL. Please set a valid Supabase project URL in your .env.local file.'
+    );
+  }
+
+  if (!anonKey || anonKey.includes('placeholder-anon-key') || anonKey.trim().length < 20) {
+    throw new Error(
+      '[Sarvabhoomi] Missing or invalid NEXT_PUBLIC_SUPABASE_ANON_KEY. Please set a valid Supabase anon key in your .env.local file.'
+    );
+  }
+
+  return { url, anonKey };
+}
 
 /**
  * Creates an isomorphic Supabase client with safe session persistence on browser.
  */
 export function createClient(): SupabaseClient<Database> {
-  return createSupabaseClient<Database>(supabaseUrl, supabaseAnonKey, {
+  const { url, anonKey } = getValidatedSupabaseCredentials();
+
+  return createSupabaseClient<Database>(url, anonKey, {
     auth: {
       persistSession: typeof window !== 'undefined',
       autoRefreshToken: typeof window !== 'undefined',
@@ -350,8 +378,8 @@ export const supabase = createClient();
 
 /**
  * Server/Client helper to verify user status in Supabase.
- * Calls public.check_user_status RPC.
- * Provides resilient fallback in case remote migrations are pending.
+ * Calls the secure public.check_user_status RPC.
+ * Does NOT fallback to unthrottled direct table queries on public.profiles to prevent enumeration bypass.
  */
 export async function checkUserStatus(
   phone: string,
@@ -367,22 +395,7 @@ export async function checkUserStatus(
     });
 
     if (error) {
-      console.warn('RPC check_user_status returned warning or pending migration:', error.message);
-      // Fallback query directly on public.profiles
-      const { data: profile } = await sbClient
-        .from('profiles')
-        .select('is_onboarded, user_intent')
-        .or(`phone_np.eq.${fullPhone},phone_np.eq.${cleaned}`)
-        .maybeSingle();
-
-      if (profile) {
-        return {
-          exists: true,
-          is_onboarded: Boolean(profile.is_onboarded),
-          user_intent: profile.user_intent,
-        };
-      }
-
+      console.warn('RPC check_user_status returned error:', error.message);
       return {
         exists: false,
         is_onboarded: false,

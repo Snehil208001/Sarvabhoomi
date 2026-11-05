@@ -1,7 +1,7 @@
 -- ==============================================================================
 -- SARVABHOOMI CAPITAL & INVESTMENT — ONE-CLICK SUPABASE SCHEMA INITIALIZATION
 -- Run this script in your Supabase SQL Editor:
--- https://supabase.com/dashboard/project/qmwrkhjtbbleskjmeauo/sql/new
+-- https://supabase.com/dashboard/project/<your-project-ref>/sql/new
 -- ==============================================================================
 
 -- 1. Enable Required Extensions
