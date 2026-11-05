@@ -40,6 +40,7 @@ export function ContactUnlockModal({
 }: ContactUnlockModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [topUpNotice, setTopUpNotice] = useState<string | null>(null);
   const [unlockedData, setUnlockedData] = useState<{
     phone: string;
     name: string;
@@ -345,10 +346,23 @@ export function ContactUnlockModal({
                 </div>
               </div>
 
+              {topUpNotice && (
+                <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-start gap-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <p className="leading-relaxed">{topUpNotice}</p>
+                </div>
+              )}
+
               <div className="pt-1">
                 <button
                   type="button"
-                  onClick={() => alert('Credit top-up package selected. Payment gateway integration coming in Stage 2!')}
+                  onClick={() =>
+                    setTopUpNotice(
+                      lang === 'en'
+                        ? 'Credit top-up packages will be available soon. Please contact Sarvabhoomi support to purchase more credits.'
+                        : 'क्रेडिट थप सुविधा छिट्टै उपलब्ध हुनेछ। थप क्रेडिट खरिद गर्न सर्वभूमि सहयोग कक्षमा सम्पर्क गर्नुहोस्।'
+                    )
+                  }
                   className="w-full py-3 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm tracking-wide shadow-xs flex items-center justify-center gap-2 transition-all"
                 >
                   <Coins className="w-4 h-4" />

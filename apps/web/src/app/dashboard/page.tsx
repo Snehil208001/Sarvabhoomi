@@ -58,6 +58,10 @@ import {
 import { supabase, Profile, UserSubscription } from '@/lib/supabase';
 import { ContactUnlockModal } from '@/components/ContactUnlockModal';
 import { PropertyImage } from '@/components/PropertyImage';
+import { Navbar } from '@/components/Navbar';
+import { Footer } from '@/components/Footer';
+import { PropertyCard } from '@/components/PropertyCard';
+import { LandCalculator } from '@/components/LandCalculator';
 
 type DashboardTab = 'my-listings' | 'shortlist' | 'wallet' | 'profile';
 
@@ -422,107 +426,23 @@ function DashboardContent() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-emerald-600 selection:text-white">
-      {/* ============================================================ */}
-      {/* TOP NAVIGATION BAR */}
-      {/* ============================================================ */}
-      <nav className="border-b border-slate-200 bg-white/95 backdrop-blur-xl sticky top-0 z-40 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between gap-4">
-          {/* Left: Brand Emblem + Title */}
-          <Link href="/" className="flex items-center gap-3 shrink-0 group">
-            <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center font-bold text-white text-2xl shadow-sm ring-2 ring-emerald-100 select-none group-hover:scale-105 transition-transform">
-              स
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-bold tracking-tight text-slate-900 text-base sm:text-lg">
-                  {dict.brand.name}
-                </span>
-                <span className="hidden xl:inline-flex px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200">
-                  Dashboard
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 hidden sm:block">
-                {lang === 'en' ? 'Direct P2P Real Estate Console' : 'शून्य-दलाली घरजग्गा ड्यासबोर्ड'}
-              </p>
-            </div>
-          </Link>
+      {/* 1. TOP NAVBAR */}
+      <Navbar
+        lang={lang}
+        onToggleLang={toggleLang}
+        currentUser={
+          profile
+            ? {
+                id: profile.id,
+                fullName: profile.full_name || 'Verified Member',
+                credits: creditsRemaining,
+              }
+            : null
+        }
+      />
 
-          {/* Center Links */}
-          <div className="hidden lg:flex items-center gap-6 text-sm font-medium text-slate-600">
-            <Link href="/search" className="hover:text-emerald-700 flex items-center gap-1.5 transition-colors">
-              <Search className="w-4 h-4" />
-              <span>{lang === 'en' ? 'Browse Marketplace' : 'सम्पत्ति खोज्नुहोस्'}</span>
-            </Link>
-            <Link href="/post-property" className="hover:text-emerald-700 flex items-center gap-1.5 transition-colors">
-              <PlusCircle className="w-4 h-4 text-emerald-600" />
-              <span>{lang === 'en' ? 'Post Free Property' : 'निःशुल्क विज्ञापन दिनुहोस्'}</span>
-            </Link>
-          </div>
-
-          {/* Right: Wallet pill & User controls */}
-          <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap justify-end">
-            {/* User Pill */}
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs">
-              <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-[10px]">
-                {profile?.full_name ? profile.full_name.charAt(0).toUpperCase() : 'U'}
-              </div>
-              <span className="font-semibold text-slate-800 truncate max-w-[120px]">
-                {profile?.full_name || 'Verified User'}
-              </span>
-            </div>
-
-            {/* Glowing Wallet Pill (Click to open Wallet tab) */}
-            <button
-              type="button"
-              onClick={() => setActiveTab('wallet')}
-              className="relative flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-semibold shadow-sm transition-all"
-              title="View credits wallet"
-            >
-              <span className="relative flex h-2 w-2 shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600" />
-              </span>
-              <Coins className="w-3.5 h-3.5 text-emerald-600" />
-              <span className="font-bold text-slate-900">{creditsRemaining}</span>
-              <span className="text-[11px] text-emerald-700 hidden sm:inline">
-                {lang === 'en' ? 'Credits' : 'क्रेडिट'}
-              </span>
-            </button>
-
-            {/* Bilingual Toggle */}
-            <button
-              type="button"
-              onClick={toggleLang}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-colors shadow-sm"
-            >
-              <Globe2 className="w-3.5 h-3.5 text-emerald-600" />
-              <span>{lang === 'en' ? 'नेपाली' : 'EN'}</span>
-            </button>
-
-            {/* Post CTA */}
-            <Link
-              href="/post-property"
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-all"
-            >
-              <PlusCircle className="w-3.5 h-3.5" />
-              <span>{lang === 'en' ? 'Post Property' : 'जग्गा राख्नुहोस्'}</span>
-            </Link>
-
-            {/* Sign Out */}
-            <button
-              type="button"
-              onClick={handleSignOut}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-xs font-semibold text-rose-700 transition-colors shadow-sm"
-              title="Sign Out"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">{lang === 'en' ? 'Exit' : 'बाहिरिनुहोस्'}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Tab Bar Header */}
-        <div className="border-t border-slate-200 bg-slate-50/70">
+      {/* Tab Bar Header */}
+      <div className="border-b border-slate-200 bg-white sticky top-18 sm:top-20 z-30 shadow-2xs">
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
             <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto py-2 scrollbar-none text-xs sm:text-sm font-semibold flex-nowrap">
               <button
@@ -588,7 +508,6 @@ function DashboardContent() {
             </div>
           </div>
         </div>
-      </nav>
 
       {/* Database Setup Notice if tables are pending */}
       {tableMissingNotice && (
@@ -636,6 +555,56 @@ function DashboardContent() {
                 <span>{lang === 'en' ? 'Post New Free Property' : 'नयाँ सम्पत्ति पोस्ट गर्नुहोस्'}</span>
               </Link>
             </div>
+
+            {/* Portfolio Valuation & Brokerage Saved Overview */}
+            {myProperties.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-gradient-to-br from-emerald-900 to-slate-900 text-white p-5 rounded-2xl shadow-sm border border-emerald-800/40">
+                <div className="space-y-1">
+                  <span className="text-xs text-emerald-300 font-medium flex items-center gap-1.5">
+                    <Building className="w-3.5 h-3.5" />
+                    <span>{lang === 'en' ? 'Active Listings' : 'सक्रिय सम्पत्ति संख्या'}</span>
+                  </span>
+                  <div className="text-2xl font-black">{myProperties.length}</div>
+                  <p className="text-[11px] text-slate-300">
+                    {lang === 'en' ? 'Direct peer-to-peer listings' : 'प्रत्यक्ष क्रेता-विक्रेता सूची'}
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-xs text-emerald-300 font-medium flex items-center gap-1.5">
+                    <Coins className="w-3.5 h-3.5" />
+                    <span>{lang === 'en' ? 'Total Portfolio Asking Value' : 'कुल सम्पत्ति मूल्य'}</span>
+                  </span>
+                  <div className="text-2xl font-black text-emerald-400">
+                    {formatPriceNPR(myProperties.reduce((sum, p) => sum + (Number(p.price_npr) || 0), 0))}
+                  </div>
+                  <p className="text-[11px] text-slate-300">
+                    {lang === 'en' ? 'Combined asking valuation' : 'माग गरिएको कुल रकम'}
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-xs text-amber-300 font-medium flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>{lang === 'en' ? '0% Brokerage Saved (3% est.)' : 'बचेको दलाल कमिसन (३%)'}</span>
+                  </span>
+                  <div className="text-2xl font-black text-amber-400">
+                    {formatPriceNPR(
+                      Math.round(myProperties.reduce((sum, p) => sum + (Number(p.price_npr) || 0), 0) * 0.03)
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 pt-0.5">
+                    <Link
+                      href="/valuation"
+                      className="text-[11px] text-emerald-300 hover:text-white underline font-semibold inline-flex items-center gap-1"
+                    >
+                      <span>{lang === 'en' ? 'Open Valuation Engine' : 'मूल्याङ्कन क्यालकुलेटर'}</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {loadingListings ? (
               <div className="p-12 text-center text-slate-400">
@@ -1427,6 +1396,8 @@ function DashboardContent() {
         }}
         lang={lang}
       />
+
+      <Footer lang={lang} />
     </div>
   );
 }

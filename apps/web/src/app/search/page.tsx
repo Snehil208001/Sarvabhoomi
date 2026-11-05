@@ -46,6 +46,9 @@ import {
 import { supabase } from '@/lib/supabase';
 import { ContactUnlockModal } from '@/components/ContactUnlockModal';
 import { PropertyImage } from '@/components/PropertyImage';
+import { Navbar } from '@/components/Navbar';
+import { Footer } from '@/components/Footer';
+import { PropertyCard } from '@/components/PropertyCard';
 
 type SortOption = 'newest' | 'price_asc' | 'price_desc' | 'area_desc';
 
@@ -350,68 +353,12 @@ function SearchContent() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-emerald-600 selection:text-white flex flex-col justify-between">
-      {/* ============================================================ */}
       {/* 1. TOP NAVBAR */}
-      {/* ============================================================ */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 sm:h-20 flex items-center justify-between gap-3">
-          {/* Brand Logo */}
-          <Link href="/" className="flex items-center gap-2.5 shrink-0 group">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-emerald-600 flex items-center justify-center font-bold text-white text-xl sm:text-2xl shadow-xs ring-4 ring-emerald-50 select-none group-hover:bg-emerald-700 transition-colors">
-              स
-            </div>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold tracking-tight text-slate-900 text-base sm:text-lg">
-                  Sarvabhoomi
-                </span>
-                <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200">
-                  0% Brokerage
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-500 hidden sm:block">
-                {lang === 'en' ? 'Direct P2P Marketplace' : 'शून्य-दलाली घरजग्गा बजार'}
-              </p>
-            </div>
-          </Link>
-
-          {/* Quick Actions & Navigation */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Link
-              href={user ? '/post-property' : '/auth'}
-              className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-full border border-emerald-600 bg-emerald-50/90 hover:bg-emerald-600 text-emerald-800 hover:text-white text-xs sm:text-sm font-bold transition-all shadow-xs whitespace-nowrap"
-            >
-              <span>{lang === 'en' ? 'Post Free Property' : 'जग्गा राख्नुहोस्'}</span>
-            </Link>
-
-            {user ? (
-              <Link
-                href="/dashboard"
-                className="flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100 text-xs sm:text-sm font-bold transition-all shadow-xs whitespace-nowrap"
-              >
-                <Coins className="w-3.5 h-3.5 text-emerald-700" />
-                <span>{user.credits} Credits</span>
-              </Link>
-            ) : (
-              <Link
-                href="/auth"
-                className="flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs sm:text-sm font-bold transition-all shadow-xs whitespace-nowrap"
-              >
-                <span>{lang === 'en' ? 'Sign In' : 'साइन इन'}</span>
-              </Link>
-            )}
-
-            <button
-              type="button"
-              onClick={() => setLang((prev) => (prev === 'en' ? 'ne' : 'en'))}
-              className="flex items-center gap-1 px-2.5 py-1.5 sm:py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700"
-            >
-              <Globe2 className="w-3.5 h-3.5 text-emerald-600" />
-              <span>{lang === 'en' ? 'नेपाली' : 'EN'}</span>
-            </button>
-          </div>
-        </div>
-      </header>
+      <Navbar
+        lang={lang}
+        onToggleLang={() => setLang((prev) => (prev === 'en' ? 'ne' : 'en'))}
+        currentUser={user ? { id: user.id, credits: user.credits } : null}
+      />
 
       {/* ============================================================ */}
       {/* 2. SEARCH & FILTER HEADER BAR */}
@@ -619,177 +566,20 @@ function SearchContent() {
           <>
             {/* Cards Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {properties.map((prop) => {
-              const isFav = favouriteIds.has(prop.id);
-              const isUnlocked = unlockedIds.has(prop.id);
-              const photoUrl =
-                prop.photos && prop.photos.length > 0
-                  ? prop.photos[0]
-                  : 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80';
-
-              return (
-                <div
+              {properties.map((prop) => (
+                <PropertyCard
                   key={prop.id}
-                  className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-md hover:border-emerald-300 transition-all group flex flex-col justify-between"
-                >
-                  <div>
-                    {/* Card Image Banner */}
-                    <div className="relative h-52 w-full overflow-hidden bg-slate-100">
-                      <Link href={`/properties/${prop.id}`} className="block relative w-full h-full">
-                        <PropertyImage
-                          src={photoUrl}
-                          alt={prop.title}
-                          fill
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                          className="object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      </Link>
+                  property={prop}
+                  isFavourite={favouriteIds.has(prop.id)}
+                  isUnlocked={unlockedIds.has(prop.id)}
+                  onToggleFavourite={handleToggleFavorite}
+                  onUnlock={handleOpenContactModal}
+                  lang={lang}
+                />
+              ))}
+            </div>
 
-                      {/* Top Badges */}
-                      <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-                        {prop.admin_verified ? (
-                          <span
-                            title="Government cadastral verified by Sarvabhoomi"
-                            className="px-2.5 py-1 rounded-md bg-emerald-600/95 text-white text-[10px] font-bold tracking-wide uppercase shadow-xs flex items-center gap-1 backdrop-blur-xs"
-                          >
-                            <ShieldCheck className="w-3.5 h-3.5" />
-                            <span>Lalpurja Verified</span>
-                          </span>
-                        ) : prop.owner_declared_lalpurja ? (
-                          <span
-                            title="Lalpurja claimed by owner — pending cadastral verification by Sarvabhoomi"
-                            className="px-2.5 py-1 rounded-md bg-slate-900/80 text-amber-300 border border-amber-400/40 text-[10px] font-semibold tracking-wide shadow-xs flex items-center gap-1 backdrop-blur-xs"
-                          >
-                            <ShieldAlert className="w-3.5 h-3.5 text-amber-300" />
-                            <span>Claimed (Pending Verification)</span>
-                          </span>
-                        ) : null}
-                        <span className="px-2 py-1 rounded-md bg-white/95 text-emerald-800 border border-emerald-200 text-[10px] font-bold uppercase tracking-wide shadow-2xs">
-                          0% Brokerage
-                        </span>
-                      </div>
-
-                      {/* Favorite Heart Button */}
-                      <button
-                        type="button"
-                        onClick={(e) => handleToggleFavorite(prop.id, e)}
-                        className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-xs backdrop-blur-xs ${
-                          isFav
-                            ? 'bg-rose-500 text-white'
-                            : 'bg-white/90 text-slate-600 hover:text-rose-500 hover:bg-white'
-                        }`}
-                        title={isFav ? 'Remove from shortlist' : 'Save to shortlist'}
-                      >
-                        <Heart className={`w-4 h-4 ${isFav ? 'fill-current' : ''}`} />
-                      </button>
-
-                      {/* Photos Count & Listing Type Pill */}
-                      <div className="absolute bottom-3 left-3">
-                        <span className="px-2 py-0.5 rounded bg-slate-900/75 text-white text-[10px] font-semibold tracking-wider uppercase">
-                          {prop.listing_type.replace('_', ' ')}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Card Body */}
-                    <div className="p-5 space-y-3">
-                      {/* Price & Unit Rate */}
-                      <div className="flex items-baseline justify-between">
-                        <div>
-                          <div className="text-xl font-extrabold text-slate-900 tracking-tight">
-                            {formatPriceNPR(prop.price_npr, lang)}
-                          </div>
-                          <div className="text-[11px] font-bold text-emerald-700">
-                            {formatPricePerUnit(prop.price_npr, prop.area_value, prop.area_unit, lang)}
-                          </div>
-                        </div>
-
-                        <div className="text-right">
-                          <div className="text-xs font-bold text-slate-900">
-                            {formatArea(prop.area_value, prop.area_unit, lang, { includeSqft: false })}
-                          </div>
-                          <div className="text-[10px] text-slate-500">
-                            {prop.area_sqft.toLocaleString()} sq ft
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Title */}
-                      <Link href={`/properties/${prop.id}`}>
-                        <h3 className="text-sm font-bold text-slate-900 line-clamp-1 group-hover:text-emerald-700 transition-colors">
-                          {prop.title}
-                        </h3>
-                      </Link>
-
-                      {/* Location */}
-                      <div className="flex items-center gap-1.5 text-xs text-slate-600">
-                        <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                        <span className="truncate">
-                          {prop.locality}, {prop.district}
-                        </span>
-                      </div>
-
-                      {/* Specifications Tags */}
-                      <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[11px] text-slate-600">
-                        {prop.road_access && (
-                          <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-medium inline-flex items-center gap-1">
-                            <Milestone className="w-3 h-3 text-slate-500" />
-                            <span>{prop.road_access}</span>
-                          </span>
-                        )}
-                        {prop.facing && (
-                          <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-medium inline-flex items-center gap-1">
-                            <Compass className="w-3 h-3 text-slate-500" />
-                            <span>{prop.facing}</span>
-                          </span>
-                        )}
-                        {prop.bedrooms && (
-                          <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-medium inline-flex items-center gap-1">
-                            <Bed className="w-3 h-3 text-slate-500" />
-                            <span>{prop.bedrooms} BHK</span>
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card Bottom Actions */}
-                  <div className="px-5 pb-5 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                    <Link
-                      href={`/properties/${prop.id}`}
-                      className="text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-1"
-                    >
-                      <span>{lang === 'en' ? 'View Details' : 'विवरण'}</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
-
-                    <button
-                      type="button"
-                      onClick={(e) => handleOpenContactModal(prop, e)}
-                      className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 ${
-                        isUnlocked
-                          ? 'bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100'
-                          : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                      }`}
-                    >
-                      <Phone className="w-3.5 h-3.5" />
-                      <span>
-                        {isUnlocked
-                          ? lang === 'en'
-                            ? 'Contact Info'
-                            : 'सम्पर्क खुल्यो'
-                          : lang === 'en'
-                          ? 'Contact Owner'
-                          : 'जग्गाधनी सम्पर्क'}
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Pagination Controls */}
+            {/* Pagination Controls */}
           {totalPages > 1 && (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-slate-200">
               <div className="text-xs text-slate-500 font-medium">
@@ -848,16 +638,7 @@ function SearchContent() {
       />
 
       {/* Institutional Light Footer */}
-      <footer className="border-t border-slate-200 bg-white py-6 text-center text-xs text-slate-500 mt-12">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div>© 2026 Sarvabhoomi Capital & Investment Pvt. Ltd. Kathmandu, Nepal.</div>
-          <div className="flex items-center gap-4 text-[11px] text-slate-600">
-            <span>Kathmandu Cadastral GIS Certified</span>
-            <span>•</span>
-            <span>100% Zero Brokerage P2P</span>
-          </div>
-        </div>
-      </footer>
+      <Footer lang={lang} />
     </div>
   );
 }

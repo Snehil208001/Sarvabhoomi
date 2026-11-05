@@ -41,6 +41,8 @@ import {
   LAND_MEASUREMENT_SYSTEM_INFO,
 } from '@sarvabhoomi/shared';
 import { supabase } from '@/lib/supabase';
+import { Navbar } from '@/components/Navbar';
+import { Footer } from '@/components/Footer';
 
 type SearchCategory = 'land' | 'house' | 'commercial' | 'valuation';
 
@@ -130,105 +132,8 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-emerald-600 selection:text-white flex flex-col justify-between">
-      {/* ============================================================ */}
-      {/* 1. TOP INSTITUTIONAL NAVBAR (NOBROKER CLEAN & SPACIOUS) */}
-      {/* ============================================================ */}
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 sm:h-20 flex items-center justify-between gap-3 sm:gap-6">
-          {/* Left: Brand Identity */}
-          <Link href="/" className="flex items-center gap-2.5 sm:gap-3 shrink-0 group min-h-touch">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-emerald-600 flex items-center justify-center font-bold text-white text-xl sm:text-2xl shadow-xs ring-4 ring-emerald-50 select-none group-hover:bg-emerald-700 transition-colors">
-              स
-            </div>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold tracking-tight text-slate-900 text-base sm:text-lg whitespace-nowrap">
-                  Sarvabhoomi
-                </span>
-                <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 whitespace-nowrap">
-                  0% Brokerage
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-500 hidden sm:block whitespace-nowrap">
-                {lang === 'en' ? 'Direct P2P Real Estate' : 'शून्य-दलाली घरजग्गा बजार'}
-              </p>
-            </div>
-          </Link>
-
-          {/* Center: Concise Navigation Links (Desktop) */}
-          <nav className="hidden xl:flex items-center gap-7 text-sm font-medium text-slate-600 shrink-0">
-            <a href="#how-it-works" className="hover:text-emerald-700 transition-colors whitespace-nowrap min-h-touch flex items-center">
-              {lang === 'en' ? 'Why 0% Brokerage' : 'शून्य दलाली'}
-            </a>
-            <a href="#featured-listings" className="hover:text-emerald-700 transition-colors whitespace-nowrap min-h-touch flex items-center">
-              {lang === 'en' ? 'Verified Land' : 'प्रमाणित जग्गा'}
-            </a>
-            <a href="#valuation-tracker" className="hover:text-emerald-700 transition-colors whitespace-nowrap min-h-touch flex items-center">
-              {lang === 'en' ? 'Valuation & Kitta' : 'कित्ता नापी नक्सा'}
-            </a>
-            <a href="#faqs" className="hover:text-emerald-700 transition-colors whitespace-nowrap min-h-touch flex items-center">
-              {lang === 'en' ? 'FAQs' : 'प्रश्नोत्तर'}
-            </a>
-          </nav>
-
-          {/* Right: Actions, Auth & Language Switcher */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* Post Free Property CTA */}
-            <Link
-              href={user ? '/post-property' : '/auth?mode=signup'}
-              className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl border border-emerald-600 bg-emerald-50/90 hover:bg-emerald-600 text-emerald-800 hover:text-white text-xs sm:text-sm font-bold transition-all shadow-xs active:scale-95 whitespace-nowrap min-h-touch"
-            >
-              <PlusCircle className="w-4 h-4 text-emerald-600 group-hover:text-white" />
-              <span>{lang === 'en' ? 'Post Free Property' : 'जग्गा राख्नुहोस्'}</span>
-            </Link>
-
-            {/* Authentication Action: User Chip or Single Sign In CTA */}
-            {user ? (
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <Link
-                  href="/dashboard"
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100 text-xs sm:text-sm font-bold transition-all shadow-xs whitespace-nowrap min-h-touch"
-                  title="Go to Dashboard Console"
-                >
-                  <User className="w-4 h-4 text-emerald-700" />
-                  <span className="hidden md:inline font-semibold truncate max-w-[110px]">{user.fullName}</span>
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-bold">
-                    {user.credits} C
-                  </span>
-                </Link>
-                <button
-                  type="button"
-                  onClick={handleSignOut}
-                  className="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors text-xs font-semibold min-h-touch min-w-touch flex items-center justify-center"
-                  title={lang === 'en' ? 'Log Out' : 'लगआउट'}
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
-              </div>
-            ) : (
-              <Link
-                href="/auth"
-                className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs sm:text-sm font-bold transition-all shadow-xs hover:shadow-sm active:scale-95 whitespace-nowrap min-h-touch"
-                title={lang === 'en' ? 'Log in or Create an Account' : 'लगइन वा नयाँ खाता'}
-              >
-                <User className="w-4 h-4" />
-                <span>{lang === 'en' ? 'Sign In' : 'साइन इन'}</span>
-              </Link>
-            )}
-
-            {/* Bilingual Switcher */}
-            <button
-              type="button"
-              onClick={toggleLang}
-              className="flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 transition-all shadow-xs whitespace-nowrap min-h-touch"
-              title="Toggle Language"
-            >
-              <Globe2 className="w-4 h-4 text-emerald-600" />
-              <span>{lang === 'en' ? 'नेपाली' : 'EN'}</span>
-            </button>
-          </div>
-        </div>
-      </header>
+      {/* 1. TOP INSTITUTIONAL NAVBAR */}
+      <Navbar lang={lang} onToggleLang={toggleLang} currentUser={user} />
 
       {/* ============================================================ */}
       {/* 2. HERO SECTION & NOBROKER-STYLE SEARCH ENGINE */}
@@ -317,18 +222,13 @@ export default function HomePage() {
                 <span>{lang === 'en' ? 'Commercial Land' : 'व्यावसायिक जग्गा'}</span>
               </button>
 
-              <button
-                type="button"
-                onClick={() => setActiveTab('valuation')}
-                className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all shrink-0 min-h-touch ${
-                  activeTab === 'valuation'
-                    ? 'bg-emerald-600 text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70 hover:text-slate-900'
-                }`}
+              <Link
+                href="/valuation"
+                className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all shrink-0 min-h-touch bg-slate-100 text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 hover:border-emerald-200"
               >
-                <TrendingUp className="w-4 h-4" />
+                <TrendingUp className="w-4 h-4 text-emerald-600" />
                 <span>{lang === 'en' ? 'Valuation Tracker' : 'मूल्याङ्कन दर'}</span>
-              </button>
+              </Link>
             </div>
 
             {/* Search Input Row */}
@@ -822,41 +722,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ============================================================ */}
       {/* 7. INSTITUTIONAL LIGHT FOOTER */}
-      {/* ============================================================ */}
-      <footer className="border-t border-slate-200 bg-white py-10 text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-lg select-none">
-                स
-              </div>
-              <span className="font-bold text-slate-900 text-sm">{dict.brand.name}</span>
-            </div>
-            <div className="flex flex-wrap items-center gap-6 text-slate-600 font-medium">
-              <Link href="/auth?mode=login" className="hover:text-emerald-700 min-h-touch flex items-center">{lang === 'en' ? 'Log In' : 'लगइन'}</Link>
-              <Link href="/auth?mode=signup" className="hover:text-emerald-700 min-h-touch flex items-center">{lang === 'en' ? 'Sign Up' : 'साइन अप'}</Link>
-              <Link href="/dashboard" className="hover:text-emerald-700 min-h-touch flex items-center">Marketplace Console</Link>
-              <a href="#how-it-works" className="hover:text-emerald-700 min-h-touch flex items-center">Why Zero Brokerage</a>
-              <a href="#faqs" className="hover:text-emerald-700 min-h-touch flex items-center">FAQs</a>
-            </div>
-          </div>
-
-          <div className="border-t border-slate-100 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-slate-400">
-            <div>
-              © 2026 Sarvabhoomi Capital & Investment Pvt. Ltd. Kathmandu, Nepal. All rights reserved.
-            </div>
-            <div className="flex items-center gap-4 text-slate-500">
-              <span>Verified Cadastral GIS Certified</span>
-              <span>•</span>
-              <span>Direct P2P Connections</span>
-              <span>•</span>
-              <span>0% Middleman Fees</span>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer lang={lang} />
     </div>
   );
 }

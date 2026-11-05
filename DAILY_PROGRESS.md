@@ -14,6 +14,56 @@ This log tracks all architectural decisions, feature implementations, verificati
 
 ## 🗓️ Engineering Log
 
+### 📅 Session: November 5, 2026 (Phases 3, 4, 5 & 6 — Structure, Hygiene, Features & Quality Gates)
+
+#### 🎯 Focus: Component Modularization, SEO & Project Hygiene, Real Valuation Engine & Map References, Vitest Unit Testing & ESLint Gates
+
+---
+
+### ✅ Completed Milestones
+
+#### 1. Component Extraction & Structure (Phase 3)
+- **`<Navbar>` (`apps/web/src/components/Navbar.tsx`)**: Reusable institutional header with bilingual EN/नेपाली toggle, active tab indicators, authenticated user state with credits counter pill, and responsive mobile navigation drawer.
+- **`<Footer>` (`apps/web/src/components/Footer.tsx`)**: Clean institutional footer featuring district coverage, legal disclaimer, 0% brokerage badge, and copyright notices.
+- **`<PropertyCard>` (`apps/web/src/components/PropertyCard.tsx`)**: Standardized property listing card featuring `PropertyImage` fallback, Lalpurja verification badge (Admin vs Claimed), price formatting in NPR Lakh/Crore, area formatting in Ropani/Kattha, and instant contact modal trigger.
+- **`<LandCalculator>` (`apps/web/src/components/LandCalculator.tsx`)**: Interactive bidirectional converter between Hilly units (Ropani, Aana, Paisa, Daam) and Terai units (Bigha, Kattha, Dhur) with square feet calculation.
+- **Shared i18n Dictionaries (`packages/shared/src/i18n/`)**: Extracted `searchDict.ts`, `propertyDict.ts`, and `dashboardDict.ts` into shared package to eliminate duplicated strings across client routes.
+
+#### 2. SEO, Next.js & Project Hygiene (Phase 4)
+- **Root `README.md`**: Comprehensive developer guide documenting architecture, directory layout, installation steps, database migrations, and scripts.
+- **Next.js App Router Hygiene**:
+  - `apps/web/src/app/error.tsx`: Global error boundary with retry trigger and home fallback.
+  - `apps/web/src/app/loading.tsx`: Clean Suspense loading skeleton for fast initial paint.
+  - `apps/web/src/app/not-found.tsx`: Institutional 404 page with navigation to Home and Search.
+  - `apps/web/src/app/sitemap.ts` & `apps/web/src/app/robots.ts`: Dynamic XML sitemap and crawler directive generator for search indexing.
+  - `apps/web/src/app/icon.svg`: Custom SVG brand favicon with Nepali "स" glyph in emerald green.
+- **GitHub Actions CI (`.github/workflows/ci.yml`)**: Automated CI pipeline running unit tests, ESLint, TypeScript check, and Next.js production build on push and PRs to `main`.
+- **Inline Alert Notification**: Replaced browser `alert()` in `ContactUnlockModal.tsx` with non-blocking inline warning card.
+
+#### 3. Real Valuation Engine & Honest GIS Mapping (Phase 5)
+- **Interactive Valuation Engine (`apps/web/src/app/valuation/page.tsx` & `packages/shared/src/units/valuationRates.ts`)**:
+  - Replaced dead links with live interactive valuation calculator.
+  - Computes Government Minimum Land Rate vs. Estimated Market Rate across representative Nepal districts (Kathmandu, Lalitpur, Bhaktapur, Kaski, Chitwan, Rupandehi, Morang, etc.).
+  - Calculates estimated Municipal Registration Tax (4.5%) and instant 0% Brokerage Savings (3% saved vs traditional brokers).
+- **Honest Cadastral & Location Card (`apps/web/src/app/properties/[id]/page.tsx`)**:
+  - Replaced fake "GIS Polygon #KITTA-102" simulation copy with an honest "Cadastral Survey & Location Reference" header.
+  - Added interactive Google Maps exploration links for the property locality and nearby amenities (healthcare, banks, schools).
+- **Portfolio Valuation & Brokerage Savings Tracker (`apps/web/src/app/dashboard/page.tsx`)**:
+  - Added real-time portfolio summary card summing asking values across user listings and computing total brokerage commission saved.
+
+#### 4. Quality Gates & Vitest Testing (Phase 6)
+- **Unit Tests (`packages/shared/src/__tests__/`)**:
+  - `conversion.test.ts`: Verified land conversions (`toSqFt`, `fromSqFt`, `formatArea`) and price formatting (`formatPriceNPR`, `formatPricePerUnit`).
+  - `valuation.test.ts`: Verified government vs market valuation rates, 3% savings, and 77 Nepal district region mappings.
+  - 100% test pass rate (16/16 tests passing in Vitest).
+- **ESLint & Turborepo Verification**:
+  - Installed ESLint and `eslint-config-next` in `apps/web`.
+  - Configured `apps/web/.eslintrc.json` with `next/core-web-vitals`.
+  - Added `test` task to `turbo.json` and root `package.json`.
+  - Verified `npm test` (16 passed), `npm run lint` (0 errors), `npm run type-check` (3/3 packages clean), and `npm run build` (all 13 routes compiled).
+
+---
+
 ### 📅 Session: November 5, 2026 (Phase 2 — P0: Correctness & Performance)
 
 #### 🎯 Focus: Search Server-Side Pagination & ILIKE Text Search, Compound Database Indexes Migration, and Next.js Image Optimization with Graceful SVG Fallbacks
