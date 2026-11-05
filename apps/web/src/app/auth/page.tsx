@@ -332,8 +332,12 @@ function AuthContent() {
       }
 
       // 2. Dispatch OTP via live Supabase Auth
+      // When logging in as an existing user, shouldCreateUser: false prevents creating unnecessary phantom rows in auth.users
       const { error } = await supabase.auth.signInWithOtp({
         phone: fullPhone,
+        options: {
+          shouldCreateUser: !resolvedExisting,
+        },
       });
 
       if (error) {
@@ -422,6 +426,9 @@ function AuthContent() {
     try {
       const { error } = await supabase.auth.signInWithOtp({
         phone: `+977${cleaned}`,
+        options: {
+          shouldCreateUser: !isExistingUser,
+        },
       });
 
       if (error) {
