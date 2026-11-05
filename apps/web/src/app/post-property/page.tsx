@@ -186,7 +186,13 @@ export default function PostPropertyPage() {
 
         if (error) {
           console.warn('Storage upload error:', error.message);
-          setPhotoError(`Upload failed for "${file.name}": ${error.message}`);
+          if (error.message.toLowerCase().includes('bucket not found')) {
+            setPhotoError(
+              'Storage bucket "property-photos" not found in your Supabase project. Create a public bucket named "property-photos" in your Supabase Dashboard (Storage -> New Bucket) or run supabase/fix_storage_bucket.sql. You can also skip photos and proceed.'
+            );
+          } else {
+            setPhotoError(`Upload failed for "${file.name}": ${error.message}`);
+          }
         } else if (data) {
           const { data: pubUrl } = supabase.storage
             .from('property-photos')
@@ -712,9 +718,18 @@ export default function PostPropertyPage() {
               </div>
 
               {photoError && (
-                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{photoError}</span>
+                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
+                    <span className="leading-relaxed">{photoError}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPhotoError(null)}
+                    className="text-rose-600 hover:text-rose-900 font-semibold px-2 py-0.5 rounded hover:bg-rose-100 transition shrink-0"
+                  >
+                    Dismiss
+                  </button>
                 </div>
               )}
 
