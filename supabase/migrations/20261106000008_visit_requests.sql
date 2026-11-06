@@ -63,3 +63,4 @@ CREATE INDEX IF NOT EXISTS idx_visit_requests_renter ON public.property_visit_re
 CREATE INDEX IF NOT EXISTS idx_visit_requests_property ON public.property_visit_requests(property_id);
 
 NOTIFY pgrst, 'reload schema';
+

@@ -51,3 +51,4 @@
 - [ ] **Two-Card Auth Step**: Step 3 in `/auth` shows only `RENTER` and `OWNER` cards with Nepali and English descriptions.
 - [ ] **One-Time Role Migration**: Existing users with `user_role IS NULL` are prompted with a non-skippable 2-card role selection screen upon their next dashboard visit.
 - [ ] **All Quality Gates Green**: `npm test` passes, `npm run lint` passes, `npm run type-check` passes, `npm run build` passes.
+

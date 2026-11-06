@@ -48,7 +48,7 @@ function SearchContent() {
   const [lang, setLang] = useState<'en' | 'ne'>('en');
 
   // Authenticated user state & credits
-  const [user, setUser] = useState<{ id: string; phone?: string; credits: number; userRole?: 'RENTER' | 'OWNER' | null } | null>(null);
+  const [user, setUser] = useState<{ id: string; phone?: string; credits: number; userRole?: 'RENTER' | 'OWNER' | null; fullName?: string | null } | null>(null);
 
   // Listings data & state
   const [properties, setProperties] = useState<Property[]>([]);
@@ -128,7 +128,7 @@ function SearchContent() {
         if (authUser && isMounted) {
           const { data: profile } = await supabase
             .from('profiles')
-            .select('user_role')
+            .select('user_role, full_name')
             .eq('id', authUser.id)
             .maybeSingle();
 
@@ -143,6 +143,7 @@ function SearchContent() {
             phone: authUser.phone,
             credits: sub?.credits_remaining ?? 15,
             userRole: profile?.user_role || null,
+            fullName: profile?.full_name || null,
           });
 
           const { data: favs } = await supabase
@@ -527,11 +528,10 @@ function SearchContent() {
                     key={String(item.id)}
                     type="button"
                     onClick={() => setBhkFilter(item.id as BHKFilter)}
-                    className={`py-1.5 px-2 rounded-lg text-center transition-all ${
-                      bhkFilter === item.id
+                    className={`py-1.5 px-2 rounded-lg text-center transition-all ${bhkFilter === item.id
                         ? 'bg-emerald-600 text-white shadow-xs'
                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
+                      }`}
                   >
                     {item.label}
                   </button>
@@ -665,8 +665,8 @@ function SearchContent() {
                   {selectedDistrict !== 'ALL'
                     ? `${selectedDistrict} Rentals`
                     : lang === 'en'
-                    ? 'Rental Properties in Nepal'
-                    : 'नेपालमा घर तथा कोठा भाडा'}
+                      ? 'Rental Properties in Nepal'
+                      : 'नेपालमा घर तथा कोठा भाडा'}
                 </h1>
                 <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
                   {lang === 'en'
@@ -683,15 +683,15 @@ function SearchContent() {
                 tenantFilter !== 'ALL' ||
                 lalpurjaOnly ||
                 searchQuery) && (
-                <button
-                  type="button"
-                  onClick={handleResetFilters}
-                  className="text-xs text-emerald-700 hover:text-emerald-800 font-bold flex items-center gap-1 hover:underline"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>{lang === 'en' ? 'Reset Filters' : 'फिल्टर रिसेट'}</span>
-                </button>
-              )}
+                  <button
+                    type="button"
+                    onClick={handleResetFilters}
+                    className="text-xs text-emerald-700 hover:text-emerald-800 font-bold flex items-center gap-1 hover:underline"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>{lang === 'en' ? 'Reset Filters' : 'फिल्टर रिसेट'}</span>
+                  </button>
+                )}
             </div>
 
             {/* Loading Skeleton */}

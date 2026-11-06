@@ -32,6 +32,7 @@ import {
   Check,
   X,
   Users,
+  Edit3,
 } from 'lucide-react';
 import {
   UserRole,
@@ -40,6 +41,7 @@ import {
   formatDeposit,
   formatArea,
   ALL_NEPAL_DISTRICTS,
+  getRegionForDistrict,
   getAuthDict,
 } from '@sarvabhoomi/shared';
 import { supabase, Profile, UserSubscription } from '@/lib/supabase';
@@ -130,6 +132,60 @@ function DashboardContent() {
   // Contact Unlock Modal State
   const [contactModalOpen, setContactModalOpen] = useState(false);
   const [selectedPropertyForContact, setSelectedPropertyForContact] = useState<Property | null>(null);
+
+  // Profile editing state (Lazy Profile Checklist)
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editDistrict, setEditDistrict] = useState('Kathmandu');
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileSuccessMsg, setProfileSuccessMsg] = useState<string | null>(null);
+
+  const startEditProfile = () => {
+    setEditName(profile?.full_name || '');
+    setEditDistrict(profile?.preferred_district || 'Kathmandu');
+    setProfileSuccessMsg(null);
+    setEditingProfile(true);
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profile) return;
+    setSavingProfile(true);
+    setProfileSuccessMsg(null);
+
+    const trimmedName = editName.trim();
+    const hasName = trimmedName.length >= 2;
+    const hasDistrict = editDistrict.trim().length >= 2;
+    const isCompleted = hasName && hasDistrict;
+    const derivedRegion = getRegionForDistrict(editDistrict);
+
+    try {
+      const { data: updated, error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: trimmedName || null,
+          preferred_district: editDistrict,
+          preferred_region: derivedRegion,
+          profile_completed: isCompleted,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', profile.id)
+        .select('*')
+        .single();
+
+      if (!error && updated) {
+        setProfile(updated as Profile);
+        setEditingProfile(false);
+        setProfileSuccessMsg(
+          lang === 'en' ? 'Profile updated successfully!' : 'प्रोफाइल सफलतापूर्वक अद्यावधिक भयो!'
+        );
+      }
+    } catch (err) {
+      console.error('Error saving profile:', err);
+    } finally {
+      setSavingProfile(false);
+    }
+  };
 
   // Load user and profile
   useEffect(() => {
@@ -1030,6 +1086,172 @@ function DashboardContent() {
                 {lang === 'en' ? 'Account Profile & Role Details' : 'खाता प्रोफाइल र भूमिका विवरण'}
               </h2>
 
+              {/* Profile Completion Checklist (Lazy Profile) */}
+              <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/80 pb-3">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                      <span>{lang === 'en' ? 'Profile Completion Checklist' : 'प्रोफाइल पूर्णता चेकलिस्ट'}</span>
+                    </h3>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      {lang === 'en'
+                        ? 'Profile completion is lazy and never blocks access to the marketplace.'
+                        : 'प्रोफाइल विवरण नभए पनि बजार चलाउन कुनै रोकतोक छैन।'}
+                    </p>
+                  </div>
+                  <span
+                    className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${
+                      profile?.profile_completed
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                        : 'bg-amber-100 text-amber-800 border border-amber-300'
+                    }`}
+                  >
+                    {profile?.profile_completed
+                      ? lang === 'en'
+                        ? 'Completed (100%)'
+                        : 'पूर्ण भएको (१००%)'
+                      : lang === 'en'
+                      ? 'Incomplete (Lazy)'
+                      : 'अपूर्ण (ऐच्छिक)'}
+                  </span>
+                </div>
+
+                {profileSuccessMsg && (
+                  <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>{profileSuccessMsg}</span>
+                  </div>
+                )}
+
+                {/* Checklist Items */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  {/* Name Item */}
+                  <div className="p-3.5 rounded-xl bg-white border border-slate-200 flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">
+                        Full Legal Name
+                      </span>
+                      <div className="flex items-center gap-1.5 font-bold text-slate-900">
+                        {profile?.full_name ? (
+                          <>
+                            <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <span>{profile.full_name}</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-slate-300 text-sm">○</span>
+                            <span className="text-slate-400 font-normal italic">
+                              {lang === 'en' ? 'Not provided yet' : 'विवरण नभरेको'}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    {!editingProfile && (
+                      <button
+                        type="button"
+                        onClick={startEditProfile}
+                        className="px-2.5 py-1 text-xs font-bold text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 rounded-lg transition-colors border border-emerald-200"
+                      >
+                        {profile?.full_name ? (lang === 'en' ? 'Edit' : 'सम्पादन') : (lang === 'en' ? 'Add' : 'थप्नुहोस्')}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* District Item */}
+                  <div className="p-3.5 rounded-xl bg-white border border-slate-200 flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">
+                        Primary District
+                      </span>
+                      <div className="flex items-center gap-1.5 font-bold text-slate-900">
+                        {profile?.preferred_district ? (
+                          <>
+                            <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <span>{profile.preferred_district}</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-slate-300 text-sm">○</span>
+                            <span className="text-slate-400 font-normal italic">
+                              {lang === 'en' ? 'Not set' : 'छनोट नभएको'}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    {!editingProfile && (
+                      <button
+                        type="button"
+                        onClick={startEditProfile}
+                        className="px-2.5 py-1 text-xs font-bold text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 rounded-lg transition-colors border border-emerald-200"
+                      >
+                        {profile?.preferred_district ? (lang === 'en' ? 'Edit' : 'सम्पादन') : (lang === 'en' ? 'Set' : 'सेट गर्नुहोस्')}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Inline Edit Form */}
+                {editingProfile && (
+                  <form onSubmit={handleSaveProfile} className="p-4 rounded-xl bg-white border border-emerald-200 space-y-4 pt-4 mt-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                          {lang === 'en' ? 'Full Legal Name' : 'पूरा कानुनी नाम'} *
+                        </label>
+                        <input
+                          type="text"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          placeholder="e.g. Ram Bahadur Shrestha"
+                          className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-emerald-600"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                          {lang === 'en' ? 'Primary District' : 'मुख्य जिल्ला'} *
+                        </label>
+                        <select
+                          value={editDistrict}
+                          onChange={(e) => setEditDistrict(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-emerald-600"
+                        >
+                          {ALL_NEPAL_DISTRICTS.map((d) => (
+                            <option key={d.nameEn} value={d.nameEn}>
+                              {lang === 'ne' ? d.nameNe : d.nameEn}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="text-[11px] text-emerald-800 font-semibold">
+                      ✓ Unit system derived from district: <strong className="font-bold">{getRegionForDistrict(editDistrict)}</strong> ({getRegionForDistrict(editDistrict) === 'HILLY' ? 'Ropani-Aana' : 'Bigha-Kattha'})
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => setEditingProfile(false)}
+                        className="px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-xs"
+                      >
+                        {lang === 'en' ? 'Cancel' : 'रद्द गर्नुहोस्'}
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={savingProfile}
+                        className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs"
+                      >
+                        {savingProfile ? (lang === 'en' ? 'Saving...' : 'सुरक्षित गरिँदैछ...') : (lang === 'en' ? 'Save Profile' : 'सुरक्षित गर्नुहोस्')}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
                   <span className="text-slate-400 block font-semibold">User Role</span>
@@ -1078,6 +1300,7 @@ function DashboardContent() {
                   id: profile.id,
                   phone: profile.phone_np,
                   credits: creditsRemaining,
+                  fullName: profile.full_name,
                 }
               : null
           }

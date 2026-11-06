@@ -232,3 +232,4 @@ GRANT EXECUTE ON FUNCTION public.unlock_property_contact(UUID) TO authenticated;
 
 -- 8. Notify schema reload
 NOTIFY pgrst, 'reload schema';
+

@@ -47,6 +47,7 @@ export type Database = {
           preferred_lang: 'en' | 'ne';
           role: 'USER' | 'ADMIN';
           is_onboarded: boolean;
+          profile_completed: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -61,6 +62,7 @@ export type Database = {
           preferred_lang?: 'en' | 'ne';
           role?: 'USER' | 'ADMIN';
           is_onboarded?: boolean;
+          profile_completed?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -75,6 +77,7 @@ export type Database = {
           preferred_lang?: 'en' | 'ne';
           role?: 'USER' | 'ADMIN';
           is_onboarded?: boolean;
+          profile_completed?: boolean;
           created_at?: string;
           updated_at?: string;
         };

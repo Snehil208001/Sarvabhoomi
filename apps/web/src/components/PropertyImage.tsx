@@ -40,12 +40,13 @@ export function PropertyImage({
   const isLocalPreview = src.startsWith('blob:') || src.startsWith('data:');
 
   if (isLocalPreview) {
+    const isFill = Boolean((rest as Record<string, unknown>).fill);
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={src}
         alt={alt}
-        className={className}
+        className={`${isFill ? 'absolute inset-0 w-full h-full' : ''} ${className}`}
         onError={() => setHasError(true)}
       />
     );

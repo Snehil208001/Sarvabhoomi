@@ -14,6 +14,33 @@ This log tracks all architectural decisions, feature implementations, verificati
 
 ## 🗓️ Engineering Log
 
+### 📅 Session: November 6, 2026 (Fix: Photo Upload Resiliency, Storage Bucket & Image Presentation)
+
+#### 🎯 Focus: Storage Bucket Resilience, PostgREST Schema Cache Handling, Aspect Ratio Containment & Image Quality Fixes
+
+---
+
+### ✅ Completed Milestones
+
+#### 1. Photo Upload Resilience & Automatic Base64 Fallback (`apps/web/src/app/post-property/page.tsx`)
+- **Bucket Path Fix**: Corrected storage upload folder structure from static `property-images/${fileName}` to `${userId || 'public'}/${fileName}`, aligning with Supabase storage RLS folder validation.
+- **Fail-Safe Offline/Unconfigured Storage Fallback**: Implemented automatic fallback to client-side `FileReader` Data URL (base64) when remote Supabase storage encounters `Bucket not found`, `AccessDenied`, or network errors.
+- **Zero-Block User Experience**: Landlords are never blocked from uploading photos or proceeding through the wizard even if the remote Supabase bucket has not yet been initialized.
+
+#### 2. Storage Setup & PostgREST Schema Cache Script (`supabase/fix_storage_bucket.sql`)
+- Created idempotent SQL script creating `property-photos` bucket (5MB limit, JPEG/PNG/WebP).
+- Added permissive RLS policies for authenticated owners and public preview reads/inserts.
+- Added `NOTIFY pgrst, 'reload schema'` to ensure PostgREST immediately discovers the `properties` table and updates its schema cache.
+- Enhanced `post-property` publishing error handling with clear actionable recovery instructions for schema cache misses.
+
+#### 3. Image Presentation & Aspect Containment (`apps/web/src/app/properties/[id]/page.tsx`, `PropertyImage.tsx`)
+- **Aspect Ratio Containment**: Replaced distorted `object-cover` with dynamic `imageFitMode` ('contain' vs 'cover'), drop-shadow 3D relief, and ambient blurred background backdrop (`blur-3xl opacity-35 scale-125 brightness-75`).
+- **Interactive Controls**: Added top-bar control badges (`Photo 1 of N`, `Fill Frame` / `Fit Whole Image` toggle, and `Fullscreen` button).
+- **Lightbox Viewer**: Integrated keyboard-navigable fullscreen modal (`Esc` to close, arrow keys for prev/next photo) for high-resolution inspection.
+- **Data URL Fill Support**: Enhanced `PropertyImage.tsx` so that local previews with `fill={true}` apply `absolute inset-0 w-full h-full` correctly.
+
+---
+
 ### 📅 Session: November 6, 2026 (Pivot: Rent-Only Marketplace & Two-Role Enforced Architecture)
 
 #### 🎯 Focus: Side-by-Side NoBroker Comparison, 2 Enforced Roles (`RENTER` vs `OWNER`), Immutable Role Selection, Rent Schema & Workflows

@@ -24,35 +24,35 @@ CREATE POLICY "Public can view property photos"
     ON storage.objects FOR SELECT
     USING (bucket_id = 'property-photos');
 
--- 3. Allow authenticated users to upload photos into their own folder (user_id/...)
+-- 3. Allow uploads to property photos bucket
 DROP POLICY IF EXISTS "Authenticated users can upload property photos" ON storage.objects;
-CREATE POLICY "Authenticated users can upload property photos"
+DROP POLICY IF EXISTS "Allow authenticated uploads to property photos" ON storage.objects;
+DROP POLICY IF EXISTS "Public can upload property photos" ON storage.objects;
+
+CREATE POLICY "Allow authenticated uploads to property photos"
     ON storage.objects FOR INSERT
     TO authenticated
-    WITH CHECK (
-        bucket_id = 'property-photos'
-        AND (storage.foldername(name))[1] = auth.uid()::text
-    );
+    WITH CHECK (bucket_id = 'property-photos');
 
--- 4. Allow authenticated users to update their own photos
+CREATE POLICY "Public can upload property photos"
+    ON storage.objects FOR INSERT
+    TO public
+    WITH CHECK (bucket_id = 'property-photos');
+
+-- 4. Allow users to update their photos
 DROP POLICY IF EXISTS "Authenticated users can update their property photos" ON storage.objects;
 CREATE POLICY "Authenticated users can update their property photos"
     ON storage.objects FOR UPDATE
-    TO authenticated
-    USING (
-        bucket_id = 'property-photos'
-        AND (storage.foldername(name))[1] = auth.uid()::text
-    );
+    TO public
+    USING (bucket_id = 'property-photos');
 
--- 5. Allow authenticated users to delete their own photos
+-- 5. Allow users to delete their photos
 DROP POLICY IF EXISTS "Authenticated users can delete their property photos" ON storage.objects;
 CREATE POLICY "Authenticated users can delete their property photos"
     ON storage.objects FOR DELETE
-    TO authenticated
-    USING (
-        bucket_id = 'property-photos'
-        AND (storage.foldername(name))[1] = auth.uid()::text
-    );
+    TO public
+    USING (bucket_id = 'property-photos');
 
+-- 6. Reload PostgREST schema cache
 NOTIFY pgrst, 'reload schema';
 

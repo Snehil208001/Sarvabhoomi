@@ -25,7 +25,7 @@ interface ContactUnlockModalProps {
   isOpen: boolean;
   onClose: () => void;
   property: Property | null;
-  currentUser: { id: string; phone?: string; credits: number } | null;
+  currentUser: { id: string; phone?: string; credits: number; fullName?: string | null } | null;
   onUnlockSuccess: (propertyId: string, ownerDetails: { phone: string; name: string; creditsRemaining: number }) => void;
   lang?: 'en' | 'ne';
 }
@@ -41,6 +41,7 @@ export function ContactUnlockModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [topUpNotice, setTopUpNotice] = useState<string | null>(null);
+  const [renterNameInput, setRenterNameInput] = useState('');
   const [unlockedData, setUnlockedData] = useState<{
     phone: string;
     name: string;
@@ -51,11 +52,38 @@ export function ContactUnlockModal({
 
   const isOwner = currentUser?.id === property.owner_id;
   const isAlreadyUnlocked = property.is_unlocked || unlockedData !== null;
+  const needsName = Boolean(currentUser && (!currentUser.fullName || currentUser.fullName.trim() === ''));
 
   const handleUnlock = async () => {
     if (!currentUser) return;
     setIsSubmitting(true);
     setError(null);
+
+    // Lazy Profile Gate: Require full_name before unlocking
+    if (needsName) {
+      const trimmedName = renterNameInput.trim();
+      if (!trimmedName || trimmedName.length < 2) {
+        setError(
+          lang === 'en'
+            ? 'Please enter your full legal name to continue.'
+            : 'कृपया अगाडि बढ्न आफ्नो पूरा कानुनी नाम प्रविष्ट गर्नुहोस्।'
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
+      const { error: profileErr } = await supabase
+        .from('profiles')
+        .update({
+          full_name: trimmedName,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', currentUser.id);
+
+      if (profileErr) {
+        console.warn('Error saving renter name in unlock modal:', profileErr);
+      }
+    }
 
     try {
       // Call atomic unlock stored procedure
@@ -285,6 +313,29 @@ export function ContactUnlockModal({
                 </p>
               </div>
 
+              {needsName && (
+                <div className="p-3.5 rounded-xl bg-emerald-50/80 border border-emerald-200 space-y-1.5 text-left">
+                  <label className="block text-xs font-bold text-slate-800">
+                    {lang === 'en' ? 'Add your name to continue *' : 'जारी राख्न आफ्नो नाम थप्नुहोस् *'}
+                  </label>
+                  <p className="text-[11px] text-slate-600">
+                    {lang === 'en'
+                      ? 'Enter your full legal name so the property owner knows who unlocked their contact.'
+                      : 'सम्पर्क अनलक गर्न आफ्नो पूरा नाम प्रविष्ट गर्नुहोस्।'}
+                  </p>
+                  <input
+                    type="text"
+                    value={renterNameInput}
+                    onChange={(e) => {
+                      setRenterNameInput(e.target.value);
+                      if (error) setError(null);
+                    }}
+                    placeholder={lang === 'en' ? 'e.g. Ram Bahadur Shrestha' : 'उदा. राम बहादुर श्रेष्ठ'}
+                    className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-emerald-600"
+                  />
+                </div>
+              )}
+
               {error && (
                 <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0" />
@@ -295,7 +346,7 @@ export function ContactUnlockModal({
               <button
                 type="button"
                 onClick={handleUnlock}
-                disabled={isSubmitting}
+                disabled={isSubmitting || (needsName && renterNameInput.trim().length < 2)}
                 className="w-full py-3.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50 text-white font-bold text-sm tracking-wide shadow-xs flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
               >
                 {isSubmitting ? (
@@ -307,7 +358,13 @@ export function ContactUnlockModal({
                   <>
                     <Unlock className="w-4 h-4" />
                     <span>
-                      {lang === 'en' ? 'Use 1 Credit to Reveal Phone' : '१ क्रेडिट प्रयोग गरी नम्बर हेर्नुहोस्'}
+                      {needsName
+                        ? lang === 'en'
+                          ? 'Save & Reveal Phone'
+                          : 'नाम सुरक्षित गरी नम्बर हेर्नुहोस्'
+                        : lang === 'en'
+                        ? 'Use 1 Credit to Reveal Phone'
+                        : '१ क्रेडिट प्रयोग गरी नम्बर हेर्नुहोस्'}
                     </span>
                   </>
                 )}

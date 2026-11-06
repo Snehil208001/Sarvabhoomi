@@ -15,6 +15,7 @@ export interface AuthDictionary {
     phoneHint: string;
     invalidPhoneError: string;
     termsNotice: string;
+    signupSubtitle: string;
   };
   otp: {
     title: string;
@@ -28,6 +29,40 @@ export interface AuthDictionary {
     resendInSeconds: (seconds: number) => string;
     changePhone: string;
     invalidOtpError: string;
+  };
+  roleStep: {
+    title: string;
+    subtitle: string;
+    oneRoleNotice: string;
+    renter: {
+      badge: string;
+      title: string;
+      nepaliTitle: string;
+      description: string;
+      perk: string;
+      cta: string;
+    };
+    owner: {
+      badge: string;
+      title: string;
+      nepaliTitle: string;
+      description: string;
+      perk: string;
+      cta: string;
+    };
+  };
+  lazyGate: {
+    renterTitle: string;
+    renterSubtitle: string;
+    fullNameLabel: string;
+    fullNamePlaceholder: string;
+    fullNameError: string;
+    saveAndContinue: string;
+    ownerTitle: string;
+    ownerSubtitle: string;
+    districtLabel: string;
+    districtPlaceholder: string;
+    regionNotice: (region: string) => string;
   };
   onboarding: {
     title: string;
@@ -112,6 +147,7 @@ export const authDictEn: AuthDictionary = {
     phoneHint: 'Supported networks: Nepal Telecom (NTC) & Ncell',
     invalidPhoneError: 'Please enter a valid 10-digit NTC or Ncell mobile number.',
     termsNotice: 'By continuing, you agree to Sarvabhoomi Terms of Service and Privacy Policy.',
+    signupSubtitle: 'Register in under a minute to rent a home in Nepal with 0% brokerage.',
   },
   otp: {
     title: 'Verify Your Mobile Number',
@@ -125,6 +161,40 @@ export const authDictEn: AuthDictionary = {
     resendInSeconds: (seconds: number) => `Resend code in ${seconds}s`,
     changePhone: 'Change phone number',
     invalidOtpError: 'The 6-digit code you entered is invalid or has expired.',
+  },
+  roleStep: {
+    title: 'Select Your Platform Role',
+    subtitle: 'Choose how you want to use Sarvabhoomi. Each account is dedicated to one role.',
+    oneRoleNotice: 'Important: One role per mobile account. Role cannot be changed later.',
+    renter: {
+      badge: 'Rent a Home',
+      title: 'I want to rent a home',
+      nepaliTitle: 'भाडामा लिने',
+      description: 'Search verified houses, flats, rooms, and commercial shops across Nepal with 0% brokerage.',
+      perk: '15 free owner contacts included',
+      cta: 'Continue as Renter',
+    },
+    owner: {
+      badge: 'List for Rent',
+      title: 'I want to list my property for rent',
+      nepaliTitle: 'घरधनी / घरबेटी',
+      description: 'List your rooms, flats, or houses directly to genuine tenants. Zero middleman fees.',
+      perk: 'Free listing • No commission',
+      cta: 'Continue as Owner',
+    },
+  },
+  lazyGate: {
+    renterTitle: 'Add your name to continue',
+    renterSubtitle: 'Enter your full legal name so the property owner knows who is contacting them or requesting a visit.',
+    fullNameLabel: 'Full Legal Name',
+    fullNamePlaceholder: 'e.g., Ram Bahadur Shrestha',
+    fullNameError: 'Please enter your full legal name (minimum 2 characters).',
+    saveAndContinue: 'Save & Continue',
+    ownerTitle: 'Complete Owner Identity',
+    ownerSubtitle: 'Enter your legal name and primary district before publishing your rental listing.',
+    districtLabel: 'Primary District',
+    districtPlaceholder: 'Select district',
+    regionNotice: (region: string) => `Cadastral unit system automatically set to: ${region}`,
   },
   onboarding: {
     title: 'Complete Your Investor Profile',
@@ -209,6 +279,7 @@ export const authDictNe: AuthDictionary = {
     phoneHint: 'समर्थित नेटवर्क: नेपाल टेलिकम (NTC) र एनसेल (Ncell)',
     invalidPhoneError: 'कृपया मान्य १०-अङ्कको एनटिसी वा एनसेल मोबाइल नम्बर प्रविष्ट गर्नुहोस्।',
     termsNotice: 'अगाडि बढेर, तपाईं सर्वभूमिको सेवाका सर्तहरू र गोपनीयता नीतिमा सहमत हुनुहुन्छ।',
+    signupSubtitle: 'शून्य दलालीमा नेपालमा कोठा वा घर भाडामा लिन १ मिनेट भित्र दर्ता गर्नुहोस्।',
   },
   otp: {
     title: 'मोबाइल नम्बर प्रमाणीकरण',
@@ -222,6 +293,40 @@ export const authDictNe: AuthDictionary = {
     resendInSeconds: (seconds: number) => `${seconds} सेकेन्डमा पुनः पठाउन सकिनेछ`,
     changePhone: 'मोबाइल नम्बर परिवर्तन गर्नुहोस्',
     invalidOtpError: 'प्रविष्ट गरिएको ६-अङ्कको कोड अमान्य छ वा म्याद समाप्त भएको छ।',
+  },
+  roleStep: {
+    title: 'आफ्नो भूमिका छनोट गर्नुहोस्',
+    subtitle: 'सर्वभूमि प्रयोग गर्ने आफ्नो प्राथमिक उद्देश्य रोज्नुहोस्। एउटा खातामा एउटा मात्र भूमिका रहनेछ।',
+    oneRoleNotice: 'जानकारी: एक मोबाइल नम्बरमा एक मात्र भूमिका। पछि परिवर्तन गर्न मिल्दैन।',
+    renter: {
+      badge: 'भाडामा लिने',
+      title: 'म घर/कोठा भाडामा खोज्दैछु',
+      nepaliTitle: 'भाडामा लिने',
+      description: 'नेपालभरका प्रमाणित घर, फ्ल्याट, कोठा र पसलहरू शून्य दलालीमा खोज्नुहोस्।',
+      perk: '१५ निःशुल्क घरधनी सम्पर्क उपलब्ध',
+      cta: 'भाडावालको रूपमा अघि बढ्नुहोस्',
+    },
+    owner: {
+      badge: 'भाडामा दिने',
+      title: 'म आफ्नो सम्पत्ति भाडामा चढाउन चाहन्छु',
+      nepaliTitle: 'घरधनी / घरबेटी',
+      description: 'आफ्नो कोठा, फ्ल्याट वा घर सिधै वास्तविक भाडावालहरूलाई निःशुल्क विज्ञापन गर्नुहोस्।',
+      perk: 'निःशुल्क विज्ञापन • शून्य कमिसन',
+      cta: 'घरधनीको रूपमा अघि बढ्नुहोस्',
+    },
+  },
+  lazyGate: {
+    renterTitle: 'जारी राख्न आफ्नो नाम थप्नुहोस्',
+    renterSubtitle: 'सम्पर्क अनलक गर्न वा घर हेर्ने समय तय गर्न आफ्नो पूरा नाम प्रविष्ट गर्नुहोस्।',
+    fullNameLabel: 'पूरा कानुनी नाम',
+    fullNamePlaceholder: 'उदा. राम बहादुर श्रेष्ठ',
+    fullNameError: 'कृपया आफ्नो पूरा कानुनी नाम प्रविष्ट गर्नुहोस् (कम्तीमा २ अक्षर)।',
+    saveAndContinue: 'सुरक्षित गरी अघि बढ्नुहोस्',
+    ownerTitle: 'घरधनीको विवरण भर्नुहोस्',
+    ownerSubtitle: 'विज्ञापन प्रकाशित गर्नु अगाडि आफ्नो पूरा नाम र जिल्ला पुष्टि गर्नुहोस्।',
+    districtLabel: 'मुख्य जिल्ला',
+    districtPlaceholder: 'जिल्ला छनोट गर्नुहोस्',
+    regionNotice: (region: string) => `नापी एकाइ प्रणाली स्वतः निर्धारित: ${region}`,
   },
   onboarding: {
     title: 'आफ्नो प्रोफाइल पूर्ण गर्नुहोस्',

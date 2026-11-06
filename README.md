@@ -61,7 +61,9 @@ Sarvabhoomi/
 │   │   ├── 20261105000005_search_performance_indexes.sql
 │   │   ├── 20261106000006_two_roles_rent_only.sql
 │   │   ├── 20261106000007_rent_fields.sql
-│   │   └── 20261106000008_visit_requests.sql
+│   │   ├── 20261106000008_visit_requests.sql
+│   │   └── 20261106000009_lazy_profile_completion.sql
+│   ├── fix_storage_bucket.sql             # Storage bucket & RLS policies setup
 │   ├── init_sarvabhoomi.sql               # Single-script bootstrap for fresh DB
 │   └── seed_properties.sql                # 12 active realistic seed listings
 └── .github/

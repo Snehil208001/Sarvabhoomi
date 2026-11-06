@@ -43,6 +43,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { ContactUnlockModal } from '@/components/ContactUnlockModal';
 import { PropertyImage } from '@/components/PropertyImage';
+import { RenterNameModal } from '@/components/auth/RenterNameModal';
 import { PropertyCard } from '@/components/PropertyCard';
 import { Footer } from '@/components/Footer';
 
@@ -59,7 +60,7 @@ export default function PropertyDetailPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Authenticated user state
-  const [user, setUser] = useState<{ id: string; phone?: string; credits: number; userRole?: 'RENTER' | 'OWNER' | null } | null>(null);
+  const [user, setUser] = useState<{ id: string; phone?: string; credits: number; userRole?: 'RENTER' | 'OWNER' | null; fullName?: string | null } | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [ownerContact, setOwnerContact] = useState<{
@@ -79,6 +80,7 @@ export default function PropertyDetailPage() {
   const [visitNote, setVisitNote] = useState('');
   const [submittingVisit, setSubmittingVisit] = useState(false);
   const [visitSuccessMsg, setVisitSuccessMsg] = useState<string | null>(null);
+  const [showNameModalForVisit, setShowNameModalForVisit] = useState(false);
 
   // Photo viewer state
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
@@ -111,7 +113,7 @@ export default function PropertyDetailPage() {
 
           const { data: profile } = await supabase
             .from('profiles')
-            .select('user_role')
+            .select('user_role, full_name')
             .eq('id', authUser.id)
             .maybeSingle();
 
@@ -126,6 +128,7 @@ export default function PropertyDetailPage() {
             phone: authUser.phone,
             credits: sub?.credits_remaining ?? 15,
             userRole: profile?.user_role || null,
+            fullName: profile?.full_name || null,
           });
         }
 
@@ -293,14 +296,8 @@ export default function PropertyDetailPage() {
   };
 
   // Schedule a Visit Request
-  const handleScheduleVisit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) {
-      router.push('/auth');
-      return;
-    }
-    if (!visitDate) return;
-
+  const executeVisitRequest = async () => {
+    if (!user || !property || !visitDate) return;
     setSubmittingVisit(true);
     setVisitSuccessMsg(null);
 
@@ -310,7 +307,7 @@ export default function PropertyDetailPage() {
         .insert({
           property_id: propertyId,
           renter_id: user.id,
-          owner_id: property!.owner_id,
+          owner_id: property.owner_id,
           visit_date: visitDate,
           time_slot: visitTimeSlot,
           note: visitNote.trim() || null,
@@ -334,6 +331,29 @@ export default function PropertyDetailPage() {
     } finally {
       setSubmittingVisit(false);
     }
+  };
+
+  const handleScheduleVisit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) {
+      router.push('/auth');
+      return;
+    }
+    if (!visitDate) return;
+
+    // Lazy Profile Gate: Prompt for name if missing, then continue automatically
+    if (!user.fullName || user.fullName.trim() === '') {
+      setShowNameModalForVisit(true);
+      return;
+    }
+
+    await executeVisitRequest();
+  };
+
+  const handleNameSavedForVisit = async (savedName: string) => {
+    setUser((prev) => (prev ? { ...prev, fullName: savedName } : null));
+    setShowNameModalForVisit(false);
+    await executeVisitRequest();
   };
 
   if (loading) {
@@ -497,29 +517,34 @@ export default function PropertyDetailPage() {
                 alt=""
                 fill
                 sizes="100vw"
-                className="object-cover blur-3xl opacity-40 scale-110"
+                className="object-cover blur-3xl opacity-35 scale-125 brightness-75 transition-all duration-500"
                 priority
               />
+              <div className="absolute inset-0 bg-slate-950/50 backdrop-blur-xs" />
             </div>
 
             {/* Foreground Display Image */}
             <div
               onClick={() => setIsLightboxOpen(true)}
-              className="relative w-full h-full cursor-zoom-in flex items-center justify-center p-2 sm:p-4 z-1"
+              className={`relative w-full h-full cursor-zoom-in flex items-center justify-center z-1 transition-all ${
+                imageFitMode === 'contain' ? 'p-3 sm:p-6' : ''
+              }`}
             >
               <PropertyImage
                 src={photos[activePhotoIdx]}
                 alt={`${property.title} - Photo ${activePhotoIdx + 1}`}
                 fill
                 sizes="(max-width: 1200px) 100vw, 1200px"
-                className={imageFitMode === 'contain' ? 'object-contain drop-shadow-2xl' : 'object-cover'}
+                className={`${
+                  imageFitMode === 'contain' ? 'object-contain drop-shadow-2xl' : 'object-cover'
+                } transition-all duration-300`}
                 priority
               />
             </div>
 
             {/* Gallery Control Badges */}
-            <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between pointer-events-none z-10">
-              <span className="px-3 py-1.5 rounded-lg bg-black/60 backdrop-blur-md text-white text-xs font-mono">
+            <div className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none z-10">
+              <span className="pointer-events-auto px-3 py-1.5 rounded-lg bg-black/60 backdrop-blur-md text-white text-xs font-mono font-medium shadow-xs">
                 Photo {activePhotoIdx + 1} of {photos.length}
               </span>
 
@@ -527,7 +552,7 @@ export default function PropertyDetailPage() {
                 <button
                   type="button"
                   onClick={() => setImageFitMode((prev) => (prev === 'contain' ? 'cover' : 'contain'))}
-                  className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg bg-black/60 hover:bg-black/80 backdrop-blur-md text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
+                  className="px-2.5 py-1.5 rounded-lg bg-black/60 hover:bg-black/80 backdrop-blur-md text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
                 >
                   {imageFitMode === 'contain' ? (
                     <>
@@ -545,7 +570,7 @@ export default function PropertyDetailPage() {
                 <button
                   type="button"
                   onClick={() => setIsLightboxOpen(true)}
-                  className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg bg-black/60 hover:bg-black/80 backdrop-blur-md text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
+                  className="px-2.5 py-1.5 rounded-lg bg-black/60 hover:bg-black/80 backdrop-blur-md text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
                 >
                   <Eye className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Fullscreen</span>
@@ -1111,6 +1136,17 @@ export default function PropertyDetailPage() {
           currentUser={user}
           onUnlockSuccess={handleUnlockSuccess}
           lang={lang}
+        />
+      )}
+
+      {/* Lazy Name Modal for Visit Request */}
+      {user && (
+        <RenterNameModal
+          isOpen={showNameModalForVisit}
+          userId={user.id}
+          lang={lang}
+          onClose={() => setShowNameModalForVisit(false)}
+          onSuccess={handleNameSavedForVisit}
         />
       )}
 

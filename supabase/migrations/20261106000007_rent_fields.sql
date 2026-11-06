@@ -44,3 +44,4 @@ CREATE INDEX IF NOT EXISTS idx_properties_furnishing
 
 -- 5. Force PostgREST schema cache reload
 NOTIFY pgrst, 'reload schema';
+

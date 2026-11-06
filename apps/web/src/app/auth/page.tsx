@@ -2,43 +2,18 @@
 
 import React, { useState, useEffect, useId, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import {
-  ShieldCheck,
-  Phone,
-  ArrowRight,
-  ArrowLeft,
-  CheckCircle2,
-  AlertCircle,
-  Globe2,
-  RefreshCw,
-  Home,
-  Tag,
-  TrendingUp,
-  MapPin,
-  Sparkles,
-  Lock,
-  Check,
-  RotateCcw,
-  Coins,
-  Briefcase,
-  UserCheck,
-  UserPlus,
-  LogIn,
-} from 'lucide-react';
+import { Globe2, Sparkles, Check, AlertCircle, CheckCircle2 } from 'lucide-react';
 import {
   nepalPhoneRegex,
-  onboardingSchema,
-  HILLY_DISTRICTS,
-  TERAI_DISTRICTS,
-  getRegionForDistrict,
   getAuthDict,
   UserRole,
-  UserIntent,
-  PreferredRegion,
 } from '@sarvabhoomi/shared';
 import { supabase } from '@/lib/supabase';
+import { PhoneStep } from '@/components/auth/PhoneStep';
+import { OtpStep } from '@/components/auth/OtpStep';
+import { RoleStep } from '@/components/auth/RoleStep';
 
-export type AuthStep = 'PHONE' | 'OTP' | 'ROLE_SELECT' | 'PROFILE_FORM';
+export type AuthStep = 'PHONE' | 'OTP' | 'ROLE_SELECT';
 export type AuthMode = 'login' | 'signup';
 
 interface StepItem {
@@ -52,7 +27,6 @@ const SIGNUP_STEPS: StepItem[] = [
   { id: 'PHONE', num: 1, labelEn: 'Mobile', labelNe: 'मोबाइल' },
   { id: 'OTP', num: 2, labelEn: 'OTP', labelNe: 'ओटीपी' },
   { id: 'ROLE_SELECT', num: 3, labelEn: 'Select Role', labelNe: 'भूमिका' },
-  { id: 'PROFILE_FORM', num: 4, labelEn: 'Profile Details', labelNe: 'विवरण' },
 ];
 
 const LOGIN_STEPS: StepItem[] = [
@@ -67,7 +41,6 @@ function AuthContent() {
   // Mode: 'login' or 'signup' (initialized from URL ?mode=login / ?mode=signup)
   const [authMode, setAuthMode] = useState<AuthMode>('signup');
 
-  // Sync mode with URL query parameter on mount and when query changes
   useEffect(() => {
     const modeParam = searchParams.get('mode');
     if (modeParam === 'login' || modeParam === 'signup') {
@@ -82,7 +55,7 @@ function AuthContent() {
   // Active step machine: strictly initialized to 'PHONE'
   const [step, setStep] = useState<AuthStep>('PHONE');
 
-  // Step 1: Phone State (clean, empty by default, no hardcoded values)
+  // Step 1: Phone State
   const [phoneLocal, setPhoneLocal] = useState('');
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [detectedCarrier, setDetectedCarrier] = useState<string | null>(null);
@@ -93,31 +66,23 @@ function AuthContent() {
     userIntent: string | null;
   } | null>(null);
 
-  // Step 2: OTP State (clean, empty by default)
+  // Step 2: OTP State
   const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [otpError, setOtpError] = useState<string | null>(null);
   const [resendTimer, setResendTimer] = useState<number>(30);
   const [canResend, setCanResend] = useState<boolean>(false);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Step 3 & 4: Role Selection & Profile Form State
+  // Step 3: Role Selection State
   const [userId, setUserId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<UserRole>('RENTER');
-  const [userIntent, setUserIntent] = useState<UserIntent>('BUYER');
   const [isRoleMigration, setIsRoleMigration] = useState<boolean>(false);
-  const [fullName, setFullName] = useState('');
-  const [district, setDistrict] = useState('Kathmandu');
-  const [regionSystem, setRegionSystem] = useState<PreferredRegion>('HILLY');
-  const [regionAutoDetected, setRegionAutoDetected] = useState(true);
-  const [onboardingErrors, setOnboardingErrors] = useState<Record<string, string>>({});
 
   // Global loading and feedback
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notice, setNotice] = useState<{ type: 'info' | 'success' | 'error'; message: string } | null>(null);
 
   const phoneInputId = useId();
-  const nameInputId = useId();
-  const districtSelectId = useId();
 
   // Clean raw phone input (strip +977, 977, spaces, hyphens)
   const cleanPhone = (val: string) => {
@@ -125,7 +90,6 @@ function AuthContent() {
   };
 
   // Check initial Supabase authentication status on mount
-  // RULE: Only redirect if is_onboarded === true. Otherwise strictly remain at step 'PHONE'.
   useEffect(() => {
     let isMounted = true;
     async function checkAuthSession() {
@@ -143,7 +107,7 @@ function AuthContent() {
           // Check if already onboarded in public.profiles
           const { data: profile } = await supabase
             .from('profiles')
-            .select('is_onboarded, full_name, user_role, user_intent, preferred_district, preferred_region')
+            .select('is_onboarded, user_role')
             .eq('id', user.id)
             .maybeSingle();
 
@@ -154,19 +118,12 @@ function AuthContent() {
               setStep('ROLE_SELECT');
               return;
             }
-            router.push('/dashboard');
-            return;
-          }
-
-          // Pre-populate fields in case they progress forward, but keep strictly on Step 1 ('PHONE')
-          if (profile) {
-            if (profile.full_name) setFullName(profile.full_name);
-            if (profile.user_intent) setUserIntent(profile.user_intent);
-            if (profile.preferred_district) {
-              setDistrict(profile.preferred_district);
-              setRegionSystem(getRegionForDistrict(profile.preferred_district));
+            if (profile.user_role === 'RENTER') {
+              router.push('/search');
+            } else {
+              router.push('/dashboard');
             }
-            if (profile.preferred_region) setRegionSystem(profile.preferred_region);
+            return;
           }
         }
       } catch {
@@ -217,7 +174,6 @@ function AuthContent() {
               isOnboarded: json.data.isOnboarded,
               userIntent: json.data.userIntent,
             });
-            // Update isExistingUser state automatically
             const userExists = Boolean(json.data.exists && json.data.isOnboarded);
             setIsExistingUser(userExists);
           }
@@ -233,12 +189,10 @@ function AuthContent() {
     };
   }, [phoneLocal]);
 
-  // Toggle Language between English and Nepali
   const handleToggleLang = () => {
     setLang((prev) => (prev === 'en' ? 'ne' : 'en'));
   };
 
-  // Switch between Log In and Sign Up modes
   const handleSwitchMode = (mode: AuthMode) => {
     setAuthMode(mode);
     setNotice(null);
@@ -246,7 +200,6 @@ function AuthContent() {
     setOtpError(null);
   };
 
-  // Evaluate phone input with real-time carrier detection
   const handlePhoneInputChange = (raw: string) => {
     const cleaned = cleanPhone(raw);
     setPhoneLocal(cleaned);
@@ -289,9 +242,7 @@ function AuthContent() {
     }
   };
 
-  // =========================================================================
-  // STEP 1: Phone & Dynamic Check User Handler
-  // =========================================================================
+  // STEP 1: Send OTP
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleaned = cleanPhone(phoneLocal);
@@ -308,7 +259,6 @@ function AuthContent() {
     const fullPhone = `+977${cleaned}`;
 
     try {
-      // 1. Dynamic Check-User Pre-flight Verification via POST /api/auth/check-user
       let resolvedExisting = false;
       try {
         const checkRes = await fetch('/api/auth/check-user', {
@@ -320,15 +270,9 @@ function AuthContent() {
         if (checkRes.ok) {
           const checkJson = await checkRes.json();
           if (checkJson.success && checkJson.data) {
-            const { exists, isOnboarded, userIntent: dbIntent } = checkJson.data;
+            const { exists, isOnboarded } = checkJson.data;
             resolvedExisting = Boolean(exists && isOnboarded);
             setIsExistingUser(resolvedExisting);
-
-            if (dbIntent) {
-              setUserIntent(dbIntent);
-            }
-
-            // Adapt authMode if needed
             if (resolvedExisting) {
               setAuthMode('login');
             } else {
@@ -340,8 +284,6 @@ function AuthContent() {
         console.warn('Pre-flight check warning:', checkErr);
       }
 
-      // 2. Dispatch OTP via live Supabase Auth
-      // When logging in as an existing user, shouldCreateUser: false prevents creating unnecessary phantom rows in auth.users
       const { error } = await supabase.auth.signInWithOtp({
         phone: fullPhone,
         options: {
@@ -357,7 +299,6 @@ function AuthContent() {
         return;
       }
 
-      // 3. Set context-aware message based on dynamic branching
       let successMsg: string;
       if (resolvedExisting) {
         successMsg =
@@ -367,8 +308,8 @@ function AuthContent() {
       } else {
         successMsg =
           lang === 'en'
-            ? `New account verification: 6-digit OTP code sent to ${fullPhone}. Claim 15 Free Credits upon sign in.`
-            : `नयाँ खाता प्रमाणीकरण: ६-अङ्कको ओटीपी ${fullPhone} मा पठाइयो। १५ निःशुल्क क्रेडिट प्राप्त गर्नुहोस्।`;
+            ? `New account verification: 6-digit OTP code sent to ${fullPhone}.`
+            : `नयाँ खाता प्रमाणीकरण: ६-अङ्कको ओटीपी ${fullPhone} मा पठाइयो।`;
       }
 
       setNotice({
@@ -389,7 +330,7 @@ function AuthContent() {
     }
   };
 
-  // Handle individual OTP digit change
+  // STEP 2: OTP digit handlers
   const handleOtpDigitChange = (index: number, val: string) => {
     const char = val.replace(/\D/g, '').slice(-1);
     const updated = [...otpDigits];
@@ -402,14 +343,12 @@ function AuthContent() {
     }
   };
 
-  // Handle backspace navigation in OTP boxes
   const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
       otpInputRefs.current[index - 1]?.focus();
     }
   };
 
-  // Handle OTP paste
   const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault();
     const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
@@ -425,7 +364,6 @@ function AuthContent() {
     otpInputRefs.current[nextIndex]?.focus();
   };
 
-  // Resend OTP
   const handleResendOtp = async () => {
     if (!canResend) return;
     const cleaned = cleanPhone(phoneLocal);
@@ -468,9 +406,7 @@ function AuthContent() {
     }
   };
 
-  // =========================================================================
-  // STEP 2: Verify OTP Handler with Dynamic Branching
-  // =========================================================================
+  // STEP 2: Verify OTP
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     const token = otpDigits.join('');
@@ -503,16 +439,10 @@ function AuthContent() {
       if (verifiedUser) {
         setUserId(verifiedUser.id);
 
-        // CASE A: User ALREADY EXISTS & isOnboarded === true -> route directly to /dashboard
-        if (isExistingUser) {
-          router.push('/dashboard');
-          return;
-        }
-
-        // Double-check public.profiles in case status updated
+        // Fetch profile to verify role and onboarding status
         const { data: profile } = await supabase
           .from('profiles')
-          .select('is_onboarded, full_name, user_role, user_intent, preferred_district, preferred_region')
+          .select('is_onboarded, user_role')
           .eq('id', verifiedUser.id)
           .maybeSingle();
 
@@ -522,28 +452,20 @@ function AuthContent() {
             setStep('ROLE_SELECT');
             return;
           }
-          router.push('/dashboard');
+          if (profile.user_role === 'RENTER') {
+            router.push('/search');
+          } else {
+            router.push('/dashboard');
+          }
           return;
         }
 
-        // CASE B: User DOES NOT EXIST or isOnboarded === false
-        // Pre-fill any existing profile fields
-        if (profile) {
-          if (profile.full_name) setFullName(profile.full_name);
-          if (profile.user_role) setUserRole(profile.user_role);
-          if (profile.preferred_district) {
-            setDistrict(profile.preferred_district);
-            setRegionSystem(getRegionForDistrict(profile.preferred_district));
-          }
-          if (profile.preferred_region) setRegionSystem(profile.preferred_region);
-        }
-
-        // Route to Step 3: Role Selection
+        // New user or pending role selection: go directly to Step 3 (Role)
         setNotice({
           type: 'success',
           message:
             lang === 'en'
-              ? 'Phone verified! Select your role to unlock zero-brokerage tools.'
+              ? 'Phone verified! Select your role to get started.'
               : 'फोन प्रमाणीकरण सम्पन्न! अगाडि बढ्न आफ्नो भूमिका छनोट गर्नुहोस्।',
         });
         setStep('ROLE_SELECT');
@@ -556,26 +478,8 @@ function AuthContent() {
     }
   };
 
-  // =========================================================================
-  // STEP 4: Handle District Selection & Auto-Detection of Measurement System
-  // =========================================================================
-  const handleDistrictChange = (newDistrict: string) => {
-    setDistrict(newDistrict);
-    const autoRegion = getRegionForDistrict(newDistrict);
-    setRegionSystem(autoRegion);
-    setRegionAutoDetected(true);
-  };
-
-  // Manual override for Land Measurement System
-  const handleManualRegionOverride = (region: PreferredRegion) => {
-    setRegionSystem(region);
-    setRegionAutoDetected(false);
-  };
-
-  // =========================================================================
-  // Role Migration Confirmation for Existing Users
-  // =========================================================================
-  const handleConfirmRoleMigration = async () => {
+  // STEP 3: Confirm Role & Complete Signup
+  const handleConfirmRole = async () => {
     let targetUserId = userId;
     if (!targetUserId) {
       const {
@@ -596,25 +500,63 @@ function AuthContent() {
     setIsSubmitting(true);
     setNotice(null);
 
+    const cleaned = cleanPhone(phoneLocal);
+    const fullPhone = `+977${cleaned}`;
+
     try {
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
+      if (isRoleMigration) {
+        // Role migration for existing user
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            user_role: userRole,
+            user_intent: (userRole === 'OWNER' ? 'OWNER' : 'BUYER') as 'OWNER' | 'BUYER',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', targetUserId);
+
+        if (updateError) {
+          setNotice({
+            type: 'error',
+            message: updateError.message || 'Failed to update user role.',
+          });
+          return;
+        }
+      } else {
+        // New user signup: Upsert profile immediately without blocking profile form
+        const profileData = {
+          id: targetUserId,
+          phone_np: fullPhone,
+          full_name: null,
           user_role: userRole,
           user_intent: (userRole === 'OWNER' ? 'OWNER' : 'BUYER') as 'OWNER' | 'BUYER',
+          preferred_region: 'HILLY' as const,
+          preferred_district: 'Kathmandu',
+          preferred_lang: lang,
+          is_onboarded: true,
+          profile_completed: false,
           updated_at: new Date().toISOString(),
-        })
-        .eq('id', targetUserId);
+        };
 
-      if (updateError) {
-        setNotice({
-          type: 'error',
-          message: updateError.message || 'Failed to update user role.',
-        });
-        return;
+        const { error: upsertError } = await supabase
+          .from('profiles')
+          .upsert(profileData, { onConflict: 'id' });
+
+        if (upsertError) {
+          setNotice({
+            type: 'error',
+            message: upsertError.message || 'Failed to setup account. Please try again.',
+          });
+          return;
+        }
       }
 
-      router.push('/dashboard');
+      // Instant destination redirect based on role
+      if (userRole === 'RENTER') {
+        router.push('/search');
+      } else {
+        router.push('/dashboard');
+      }
     } catch (err: unknown) {
       setNotice({
         type: 'error',
@@ -625,97 +567,6 @@ function AuthContent() {
     }
   };
 
-  // =========================================================================
-  // STEP 4: Complete Onboarding & Save Profile
-  // =========================================================================
-  const handleCompleteOnboarding = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const parseResult = onboardingSchema.safeParse({
-      fullName,
-      userRole,
-      userIntent: userRole,
-      preferredRegion: regionSystem,
-      preferredDistrict: district,
-    });
-
-    if (!parseResult.success) {
-      const errors: Record<string, string> = {};
-      parseResult.error.errors.forEach((err) => {
-        if (err.path[0]) {
-          errors[err.path[0].toString()] = err.message;
-        }
-      });
-      setOnboardingErrors(errors);
-      return;
-    }
-
-    setOnboardingErrors({});
-    setIsSubmitting(true);
-    setNotice(null);
-
-    const cleaned = cleanPhone(phoneLocal);
-    const fullPhone = `+977${cleaned}`;
-
-    try {
-      let targetUserId = userId;
-      if (!targetUserId) {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        targetUserId = user?.id || null;
-      }
-
-      if (!targetUserId) {
-        setNotice({
-          type: 'error',
-          message: 'Unable to identify authenticated user session. Please sign in again.',
-        });
-        setStep('PHONE');
-        return;
-      }
-
-      const profileData = {
-        id: targetUserId,
-        phone_np: fullPhone,
-        full_name: fullName.trim(),
-        user_role: userRole,
-        user_intent: (userRole === 'OWNER' ? 'OWNER' : 'BUYER') as 'OWNER' | 'BUYER',
-        preferred_region: regionSystem,
-        preferred_district: district,
-        preferred_lang: lang,
-        is_onboarded: true,
-        updated_at: new Date().toISOString(),
-      };
-
-      const { error: upsertError } = await supabase
-        .from('profiles')
-        .upsert(profileData, { onConflict: 'id' });
-
-      if (upsertError) {
-        const isSchemaCache = upsertError.message?.includes('schema cache') || (upsertError as { code?: string }).code === 'PGRST205';
-        setNotice({
-          type: 'error',
-          message: isSchemaCache
-            ? 'The database tables are not yet created in your Supabase project. Please run the SQL initialization script in Supabase SQL Editor.'
-            : upsertError.message || 'Failed to update profile. Please try again.',
-        });
-        return;
-      }
-
-      router.push('/dashboard');
-    } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : 'Error completing onboarding.';
-      setNotice({
-        type: 'error',
-        message: errorMsg,
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Active steps dynamically reflect whether user is logging in vs registering
   const isLoginFlow = authMode === 'login' || isExistingUser;
   const activeSteps = isLoginFlow ? LOGIN_STEPS : SIGNUP_STEPS;
 
@@ -727,8 +578,6 @@ function AuthContent() {
         return 1;
       case 'ROLE_SELECT':
         return 2;
-      case 'PROFILE_FORM':
-        return 3;
       default:
         return 0;
     }
@@ -736,54 +585,15 @@ function AuthContent() {
 
   const currentStepIdx = getStepIndex(step);
 
-  // Role Metadata Definition (Strictly 2 Roles: Renter vs Owner)
-  const ROLES: {
-    id: UserRole;
-    titleEn: string;
-    titleNe: string;
-    descEn: string;
-    descNe: string;
-    badgeEn: string;
-    badgeNe: string;
-    icon: React.ComponentType<{ className?: string }>;
-  }[] = [
-    {
-      id: 'RENTER',
-      titleEn: 'Direct Home Renter',
-      titleNe: 'भाडामा लिने (Direct Renter)',
-      descEn: 'Search & rent rooms, flats, or houses with 0% brokerage. Get 15 free landowner contact unlocks.',
-      descNe: 'कुनै पनि दलाली शुल्क बिना कोठा, फ्ल्याट वा घर भाडामा लिनुहोस्। १५ निःशुल्क घरधनी सम्पर्क पाउनुहोस्।',
-      badgeEn: '15 Free Contact Unlocks',
-      badgeNe: '१५ निःशुल्क सम्पर्क',
-      icon: Home,
-    },
-    {
-      id: 'OWNER',
-      titleEn: 'Property Owner / Landlord',
-      titleNe: 'घरधनी तथा घरबेटी (Property Owner)',
-      descEn: 'List rooms, flats, or houses for rent 100% free of charge. Connect directly with verified tenants.',
-      descNe: 'आफ्नो कोठा, फ्ल्याट वा घर १००% निःशुल्क सूचीकृत गरी सिधै भाडामा दिनुहोस्।',
-      badgeEn: '100% Free Rent Listing',
-      badgeNe: '१००% निःशुल्क सूची',
-      icon: Tag,
-    },
-  ];
-
-  const selectedRoleMeta = ROLES.find((r) => r.id === userRole) || ROLES[0];
-
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between font-sans selection:bg-emerald-600 selection:text-white">
-      {/* Institutional Top Header */}
+      {/* Top Header */}
       <header className="border-b border-slate-200 bg-white/95 backdrop-blur-md sticky top-0 z-40 shadow-xs">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-18 sm:h-20 flex items-center justify-between">
-          {/* Sarvabhoomi Emblem & Brand Title */}
           <div className="flex items-center gap-3 sm:gap-4">
-            <div className="relative group">
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-emerald-600 flex items-center justify-center font-bold text-white text-xl sm:text-2xl shadow-xs ring-4 ring-emerald-50 select-none">
-                स
-              </div>
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-emerald-600 flex items-center justify-center font-bold text-white text-xl sm:text-2xl shadow-xs ring-4 ring-emerald-50 select-none">
+              स
             </div>
-
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-extrabold tracking-tight text-slate-900 text-base sm:text-lg">
@@ -799,31 +609,27 @@ function AuthContent() {
             </div>
           </div>
 
-          {/* Instant 1-Click Bilingual Toggle */}
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handleToggleLang}
-              className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 hover:text-slate-900 transition-all shadow-xs active:scale-95"
-              aria-label="Toggle Interface Language"
-            >
-              <Globe2 className="w-4 h-4 text-emerald-600" />
-              <span className="tracking-wide">
-                {lang === 'en' ? 'नेपाली (NE)' : 'English (EN)'}
-              </span>
-            </button>
-          </div>
+          {/* Bilingual Toggle */}
+          <button
+            type="button"
+            onClick={handleToggleLang}
+            className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 hover:text-slate-900 transition-all shadow-xs active:scale-95"
+            aria-label="Toggle Interface Language"
+          >
+            <Globe2 className="w-4 h-4 text-emerald-600" />
+            <span className="tracking-wide">
+              {lang === 'en' ? 'नेपाली (NE)' : 'English (EN)'}
+            </span>
+          </button>
         </div>
       </header>
 
-      {/* Main Content Card Container */}
+      {/* Main Container */}
       <main className="flex-1 max-w-2xl w-full mx-auto px-4 py-6 sm:py-10 flex flex-col justify-center">
-        {/* Unified Auth Card */}
         <div className="bg-white border border-slate-200 rounded-2xl shadow-lg shadow-slate-200/50 overflow-hidden">
           {/* Top Progress Bar */}
           <div className="border-b border-slate-100 bg-slate-50/80 p-4 sm:px-6">
             <div className="flex items-center justify-between relative">
-              {/* Connecting Progress Track */}
               <div className="absolute top-1/2 left-6 right-6 -translate-y-1/2 h-0.5 bg-slate-200 -z-0" />
               <div
                 className="absolute top-1/2 left-6 -translate-y-1/2 h-0.5 bg-emerald-600 transition-all duration-500 -z-0"
@@ -888,751 +694,81 @@ function AuthContent() {
             </div>
           )}
 
-          {/* ============================================================ */}
-          {/* STEP 1: MOBILE NUMBER INPUT & DYNAMIC USER DETECTION */}
-          {/* ============================================================ */}
+          {/* Step 1: Phone */}
           {step === 'PHONE' && (
             <div className="p-6 sm:p-8">
-              {/* Segmented Mode Switcher Tab (Log In vs Sign Up) */}
-              <div className="grid grid-cols-2 p-1 bg-slate-100 rounded-xl mb-6 text-xs font-bold select-none">
-                <button
-                  type="button"
-                  onClick={() => handleSwitchMode('login')}
-                  className={`py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                    authMode === 'login'
-                      ? 'bg-white text-emerald-800 shadow-xs'
-                      : 'text-slate-500 hover:text-slate-800'
-                  }`}
-                >
-                  <LogIn className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>{lang === 'en' ? 'Log In' : 'लगइन'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleSwitchMode('signup')}
-                  className={`py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                    authMode === 'signup'
-                      ? 'bg-white text-emerald-800 shadow-xs'
-                      : 'text-slate-500 hover:text-slate-800'
-                  }`}
-                >
-                  <UserPlus className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>{lang === 'en' ? 'Sign Up (15 Free Credits)' : 'साइन अप (१५ निःशुल्क क्रेडिट)'}</span>
-                </button>
-              </div>
-
-              {/* Mode-Specific Clear Header */}
-              <div className="mb-6">
-                {authMode === 'login' ? (
-                  <>
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold mb-3">
-                      <Lock className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>{lang === 'en' ? 'Registered User Log-In' : 'प्रत्यक्ष मोबाइल लगइन'}</span>
-                    </div>
-                    <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-                      {lang === 'en' ? 'Welcome Back to Sarvabhoomi' : 'सर्वभूमिमा लगइन गर्नुहोस्'}
-                    </h2>
-                    <p className="text-xs sm:text-sm text-slate-500 mt-1.5 leading-relaxed">
-                      {lang === 'en'
-                        ? 'Enter your registered 10-digit Nepali mobile number to access your verified dashboard.'
-                        : 'आफ्नो दर्ता भएको १०-अङ्कको नेपाली मोबाइल नम्बर प्रविष्ट गरी सुरक्षित ६-अङ्कको ओटीपी प्राप्त गर्नुहोस्।'}
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold mb-3">
-                      <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>{dict.promo.claimBadge}</span>
-                    </div>
-                    <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-                      {lang === 'en' ? 'Create Your Free Account' : 'नयाँ निःशुल्क खाता खोल्नुहोस्'}
-                    </h2>
-                    <p className="text-xs sm:text-sm text-slate-500 mt-1.5 leading-relaxed">
-                      {lang === 'en'
-                        ? 'Register in 2 minutes to buy & sell property in Nepal with 0% middleman brokerage.'
-                        : '२ मिनेटमै दर्ता हुनुहोस् र बिना दलाल सिधै घरजग्गा कारोबार सुरु गर्नुहोस्।'}
-                    </p>
-                  </>
-                )}
-              </div>
-
-              <form onSubmit={handleSendOtp} className="space-y-5">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label
-                      htmlFor={phoneInputId}
-                      className="block text-xs font-semibold uppercase tracking-wider text-slate-700"
-                    >
-                      {dict.phoneAuth.phoneLabel}
-                    </label>
-                    {detectedCarrier && (
-                      <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
-                        {detectedCarrier}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="relative flex rounded-xl overflow-hidden border border-slate-300 bg-white focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-100 transition-all shadow-xs">
-                    {/* Fixed Nepal Flag & Prefix */}
-                    <div className="bg-slate-50 px-3.5 flex items-center border-r border-slate-200 text-sm font-mono text-slate-700 select-none gap-1.5 shrink-0">
-                      <span className="text-base">🇳🇵</span>
-                      <span className="font-semibold tracking-wider text-slate-800">+977</span>
-                    </div>
-
-                    {/* 10-Digit Mobile Input */}
-                    <input
-                      id={phoneInputId}
-                      type="tel"
-                      value={phoneLocal}
-                      onChange={(e) => handlePhoneInputChange(e.target.value)}
-                      placeholder={dict.phoneAuth.phonePlaceholder}
-                      maxLength={10}
-                      autoFocus
-                      className="w-full bg-transparent px-4 py-3.5 text-base sm:text-lg font-mono text-slate-900 placeholder:text-slate-400 focus:outline-none tracking-widest"
-                    />
-
-                    <div className="flex items-center pr-3.5 text-slate-400">
-                      <Phone className="w-4 h-4" />
-                    </div>
-                  </div>
-
-                  {phoneError ? (
-                    <p className="mt-2 text-xs text-rose-600 flex items-center gap-1.5 font-medium">
-                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                      {phoneError}
-                    </p>
-                  ) : (
-                    <p className="mt-2 text-[11px] text-slate-500">
-                      {dict.phoneAuth.phoneHint}
-                    </p>
-                  )}
-
-                  {/* Real-time Dynamic Detection Status Indicator */}
-                  {userCheckPreview && !phoneError && (
-                    <div className="mt-2.5 animate-in fade-in slide-in-from-top-1 duration-200">
-                      {userCheckPreview.exists && userCheckPreview.isOnboarded ? (
-                        <div className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 shadow-2xs">
-                          <span className="flex items-center gap-1.5 font-semibold">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                            {lang === 'en'
-                              ? 'Registered Account Found'
-                              : 'दर्ता भएको खाता फेला पर्यो'}
-                          </span>
-                          <span className="text-[10px] font-bold text-emerald-700 bg-white/90 border border-emerald-200 px-2 py-0.5 rounded-full">
-                            {lang === 'en' ? 'Direct Log In' : 'प्रत्यक्ष लगइन'}
-                          </span>
-                        </div>
-                      ) : !userCheckPreview.exists ? (
-                        <div className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80 text-xs text-emerald-900 shadow-2xs">
-                          <span className="flex items-center gap-1.5 font-semibold">
-                            <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                            {lang === 'en'
-                              ? 'New Number Detected'
-                              : 'नयाँ मोबाइल नम्बर फेला पर्यो'}
-                          </span>
-                          <span className="text-[10px] font-bold text-emerald-700 bg-white/90 border border-emerald-200 px-2 py-0.5 rounded-full">
-                            {lang === 'en' ? '15 Free Credits Offer' : '१५ निःशुल्क क्रेडिट'}
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-between p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 shadow-2xs">
-                          <span className="flex items-center gap-1.5 font-semibold">
-                            <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                            {lang === 'en'
-                              ? 'Profile Setup Pending'
-                              : 'प्रोफाइल विवरण बाँकी'}
-                          </span>
-                          <span className="text-[10px] font-bold text-amber-700 bg-white/90 border border-amber-200 px-2 py-0.5 rounded-full">
-                            {lang === 'en' ? 'Complete Onboarding' : 'अनबोर्डिङ पूरा गर्नुहोस्'}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Submit Send OTP Button */}
-                <button
-                  type="submit"
-                  disabled={isSubmitting || phoneLocal.length !== 10}
-                  className="w-full py-3.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50 disabled:hover:bg-emerald-600 text-white font-semibold text-sm tracking-wide shadow-xs hover:shadow-sm flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin text-white" />
-                      <span>{dict.phoneAuth.sendingOtp}</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>
-                        {authMode === 'login'
-                          ? lang === 'en'
-                            ? 'Send Log In OTP'
-                            : 'लगइन ओटीपी पठाउनुहोस्'
-                          : dict.phoneAuth.sendOtpButton}
-                      </span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
-
-                {/* Bottom Switcher Link */}
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
-                  {authMode === 'login' ? (
-                    <>
-                      <span>{lang === 'en' ? "Don't have an account?" : 'नयाँ प्रयोगकर्ता हुनुहुन्छ?'}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleSwitchMode('signup')}
-                        className="text-emerald-700 hover:text-emerald-800 font-bold hover:underline"
-                      >
-                        {lang === 'en' ? 'Create an Account' : 'साइन अप गर्नुहोस्'}
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <span>{lang === 'en' ? 'Already registered?' : 'पहिले नै खाता छ?'}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleSwitchMode('login')}
-                        className="text-emerald-700 hover:text-emerald-800 font-bold hover:underline"
-                      >
-                        {lang === 'en' ? 'Log In here' : 'यहाँ लगइन गर्नुहोस्'}
-                      </button>
-                    </>
-                  )}
-                </div>
-              </form>
+              <PhoneStep
+                phoneLocal={phoneLocal}
+                detectedCarrier={detectedCarrier}
+                phoneError={phoneError}
+                isSubmitting={isSubmitting}
+                authMode={authMode}
+                isExistingUser={isExistingUser}
+                userCheckPreview={userCheckPreview}
+                lang={lang}
+                dict={dict}
+                phoneInputId={phoneInputId}
+                onPhoneChange={handlePhoneInputChange}
+                onSendOtp={handleSendOtp}
+                onSwitchMode={handleSwitchMode}
+              />
             </div>
           )}
 
-          {/* ============================================================ */}
-          {/* STEP 2: 6-DIGIT SUPABASE OTP VERIFICATION */}
-          {/* ============================================================ */}
+          {/* Step 2: OTP */}
           {step === 'OTP' && (
             <div className="p-6 sm:p-8">
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-3">
-                  {/* Dynamic Badge for Existing vs New User */}
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">
-                    {isExistingUser ? (
-                      <>
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>
-                          {lang === 'en'
-                            ? 'Welcome Back! Enter your 6-digit code to sign in.'
-                            : 'स्वागत छ! लगइन गर्न ६-अङ्कको कोड प्रविष्ट गर्नुहोस्।'}
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>
-                          {lang === 'en'
-                            ? 'New Account Verification: Enter code to verify your phone.'
-                            : 'नयाँ खाता प्रमाणीकरण: फोन प्रमाणित गर्न कोड प्रविष्ट गर्नुहोस्।'}
-                        </span>
-                      </>
-                    )}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setStep('PHONE');
-                      setNotice(null);
-                      setOtpDigits(['', '', '', '', '', '']);
-                    }}
-                    className="text-xs text-emerald-700 hover:text-emerald-800 font-semibold flex items-center gap-1 hover:underline shrink-0 ml-2"
-                  >
-                    <RotateCcw className="w-3 h-3" />
-                    <span>{dict.otp.changePhone}</span>
-                  </button>
-                </div>
-
-                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-                  {dict.otp.title}
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-500 mt-1.5 leading-relaxed">
-                  {dict.otp.subtitle(phoneLocal)}
-                </p>
-              </div>
-
-              <form onSubmit={handleVerifyOtp} className="space-y-6">
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-3 text-center">
-                    {dict.otp.otpLabel}
-                  </label>
-
-                  {/* 6 Individual Segmented Boxes (Optimized for 360px mobile viewports) */}
-                  <div className="flex justify-center gap-1.5 sm:gap-3 max-w-xs sm:max-w-sm mx-auto" onPaste={handleOtpPaste}>
-                    {otpDigits.map((digit, idx) => (
-                      <input
-                        key={idx}
-                        ref={(el) => {
-                          otpInputRefs.current[idx] = el;
-                        }}
-                        type="text"
-                        inputMode="numeric"
-                        maxLength={1}
-                        value={digit}
-                        onChange={(e) => handleOtpDigitChange(idx, e.target.value)}
-                        onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                        autoFocus={idx === 0}
-                        className="w-10 sm:w-12 h-12 sm:h-14 text-center text-lg sm:text-2xl font-mono font-bold text-slate-900 bg-white border border-slate-300 rounded-xl focus:border-emerald-600 focus:ring-2 focus:ring-emerald-200 focus:outline-none transition-all shadow-xs"
-                      />
-                    ))}
-                  </div>
-
-                  {otpError && (
-                    <p className="mt-3 text-xs text-rose-600 flex items-center justify-center gap-1.5 font-medium">
-                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                      {otpError}
-                    </p>
-                  )}
-                </div>
-
-                {/* Resend OTP Bar */}
-                <div className="flex items-center justify-between text-xs text-slate-600 px-1">
-                  <span>{dict.otp.resendPrompt}</span>
-                  {canResend ? (
-                    <button
-                      type="button"
-                      onClick={handleResendOtp}
-                      disabled={isSubmitting}
-                      className="text-emerald-700 hover:text-emerald-800 font-semibold underline underline-offset-4"
-                    >
-                      {dict.otp.resendButton}
-                    </button>
-                  ) : (
-                    <span className="text-slate-400 font-mono">
-                      {dict.otp.resendInSeconds(resendTimer)}
-                    </span>
-                  )}
-                </div>
-
-                {/* Submit Verify OTP Button */}
-                <button
-                  type="submit"
-                  disabled={isSubmitting || otpDigits.join('').length !== 6}
-                  className="w-full py-3.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50 disabled:hover:bg-emerald-600 text-white font-semibold text-sm tracking-wide shadow-xs hover:shadow-sm flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin text-white" />
-                      <span>{dict.otp.verifying}</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>
-                        {isExistingUser
-                          ? lang === 'en'
-                            ? 'Verify & Enter Dashboard'
-                            : 'प्रमाणित गरी ड्यासबोर्ड जानुहोस्'
-                          : dict.otp.verifyButton}
-                      </span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
-              </form>
+              <OtpStep
+                phoneLocal={phoneLocal}
+                otpDigits={otpDigits}
+                otpError={otpError}
+                isSubmitting={isSubmitting}
+                resendTimer={resendTimer}
+                canResend={canResend}
+                lang={lang}
+                dict={dict}
+                otpInputRefs={otpInputRefs}
+                onOtpDigitChange={handleOtpDigitChange}
+                onOtpKeyDown={handleOtpKeyDown}
+                onOtpPaste={handleOtpPaste}
+                onVerifyOtp={handleVerifyOtp}
+                onResendOtp={handleResendOtp}
+                onChangePhone={() => {
+                  setStep('PHONE');
+                  setOtpDigits(['', '', '', '', '', '']);
+                  setOtpError(null);
+                }}
+              />
             </div>
           )}
 
-          {/* ============================================================ */}
-          {/* STEP 3: ROLE SELECTION (STRICT 2 ROLES: RENTER VS OWNER)    */}
-          {/* ============================================================ */}
+          {/* Step 3: Role Selection */}
           {step === 'ROLE_SELECT' && (
             <div className="p-6 sm:p-8">
-              <div className="mb-6">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold mb-3">
-                  <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>
-                    {isRoleMigration
-                      ? lang === 'en'
-                        ? 'Account Migration: Choose Your Role'
-                        : 'खाता अद्यावधिक: आफ्नो भूमिका रोज्नुहोस्'
-                      : lang === 'en'
-                      ? 'Step 3 of 4: User Role'
-                      : 'चरण ३: प्रयोगकर्ता भूमिका'}
-                  </span>
-                </div>
-                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-                  {lang === 'en' ? 'Select Your Role in Sarvabhoomi' : 'सर्वभूमिमा आफ्नो भूमिका रोज्नुहोस्'}
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-500 mt-1.5 leading-relaxed">
-                  {lang === 'en'
-                    ? 'Sarvabhoomi strictly separates Renters and Property Owners. Choose once — your choice is permanent for this phone number.'
-                    : 'सर्वभूमिमा भाडामा लिने (Renter) र घरधनी (Owner) को छुट्टाछुट्टै भूमिका हुन्छ। यो रोजाइ स्थायी हुनेछ।'}
-                </p>
-              </div>
-
-              {/* Notice for permanent choice */}
-              <div className="mb-5 p-3 rounded-xl bg-amber-50/80 border border-amber-200 text-amber-900 text-xs flex items-start gap-2.5 leading-relaxed">
-                <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                <span>
-                  {lang === 'en'
-                    ? 'One role per account: Renters can only search & rent. Owners can only list & manage their rental properties. Switching later requires a different phone number.'
-                    : 'प्रति खाता एक भूमिका: भाडामा लिनेले घर खोज्न र भाडामा लिन मात्र सक्नुहुनेछ। घरधनीले आफ्नो घर भाडामा राख्न मात्र सक्नुहुनेछ।'}
-                </span>
-              </div>
-
-              {/* 2 Enforced Role Cards Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mb-6">
-                {ROLES.map((role) => {
-                  const isSelected = userRole === role.id;
-                  const IconComponent = role.icon;
-
-                  return (
-                    <button
-                      key={role.id}
-                      type="button"
-                      onClick={() => {
-                        setUserRole(role.id);
-                        setUserIntent(role.id as any);
-                      }}
-                      className={`p-4 rounded-xl border text-left transition-all relative flex flex-col justify-between cursor-pointer group min-h-[175px] ${
-                        isSelected
-                          ? 'border-2 border-emerald-600 bg-emerald-50/70 shadow-sm ring-2 ring-emerald-100'
-                          : 'border border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/80 shadow-xs'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <div
-                          className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
-                            isSelected
-                              ? 'bg-emerald-600 text-white'
-                              : 'bg-slate-100 text-slate-600 group-hover:bg-emerald-100 group-hover:text-emerald-700'
-                          }`}
-                        >
-                          <IconComponent className="w-5 h-5" />
-                        </div>
-                        {isSelected ? (
-                          <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center">
-                            <Check className="w-3 h-3 stroke-[3]" />
-                          </div>
-                        ) : (
-                          <div className="w-5 h-5 rounded-full border border-slate-300" />
-                        )}
-                      </div>
-
-                      <div>
-                        <div className="text-sm font-bold text-slate-900 mb-1">
-                          {lang === 'en' ? role.titleEn : role.titleNe}
-                        </div>
-                        <div className="inline-block text-[10px] font-bold text-emerald-800 bg-emerald-100/70 border border-emerald-200 px-2 py-0.5 rounded-md uppercase tracking-wider mb-2">
-                          {lang === 'en' ? role.badgeEn : role.badgeNe}
-                        </div>
-                        <p className="text-xs text-slate-600 leading-relaxed">
-                          {lang === 'en' ? role.descEn : role.descNe}
-                        </p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Navigation Action Buttons */}
-              <div className="flex items-center gap-3 pt-2">
-                {!isRoleMigration && (
-                  <button
-                    type="button"
-                    onClick={() => setStep('OTP')}
-                    className="px-4 py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm flex items-center gap-1.5 transition-colors"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                    <span>{lang === 'en' ? 'Back' : 'पछाडि'}</span>
-                  </button>
-                )}
-
-                {isRoleMigration ? (
-                  <button
-                    type="button"
-                    onClick={handleConfirmRoleMigration}
-                    disabled={isSubmitting}
-                    className="flex-1 py-3.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs sm:text-sm tracking-wide shadow-xs hover:shadow-sm flex items-center justify-center gap-2 transition-all active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    <span>
-                      {isSubmitting
-                        ? lang === 'en'
-                          ? 'Saving Role...'
-                          : 'सुरक्षित गर्दै...'
-                        : lang === 'en'
-                        ? 'Confirm Role & Enter Dashboard'
-                        : 'भूमिका पुष्टि गरी ड्यासबोर्ड जानुहोस्'}
-                    </span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setStep('PROFILE_FORM')}
-                    className="flex-1 py-3.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs sm:text-sm tracking-wide shadow-xs hover:shadow-sm flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
-                  >
-                    <span>{lang === 'en' ? 'Continue to Profile Setup' : 'प्रोफाइल विवरण भर्न अगाडि बढ्नुहोस्'}</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* ============================================================ */}
-          {/* STEP 4: PROFILE & REGISTRATION FORM */}
-          {/* ============================================================ */}
-          {step === 'PROFILE_FORM' && (
-            <div className="p-6 sm:p-8">
-              {/* Role Summary Pill */}
-              <div className="mb-6 p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs">
-                    {React.createElement(selectedRoleMeta.icon, { className: 'w-4 h-4' })}
-                  </div>
-                  <div>
-                    <span className="text-[11px] text-slate-500 block leading-tight">
-                      {lang === 'en' ? 'Selected Role' : 'छनोट गरिएको भूमिका'}
-                    </span>
-                    <span className="text-xs font-bold text-slate-900">
-                      {lang === 'en' ? selectedRoleMeta.titleEn : selectedRoleMeta.titleNe}
-                    </span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setStep('ROLE_SELECT')}
-                  className="text-xs text-emerald-700 hover:text-emerald-800 font-semibold underline underline-offset-2"
-                >
-                  {lang === 'en' ? 'Change Role' : 'परिवर्तन'}
-                </button>
-              </div>
-
-              <div className="mb-6">
-                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-                  {dict.onboarding.title}
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-500 mt-1 leading-relaxed">
-                  {dict.onboarding.subtitle}
-                </p>
-              </div>
-
-              <form onSubmit={handleCompleteOnboarding} className="space-y-6">
-                {/* 1. Full Legal Name (as per Citizenship / Lalpurja) */}
-                <div>
-                  <label
-                    htmlFor={nameInputId}
-                    className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-2"
-                  >
-                    {dict.onboarding.fullNameLabel}
-                    <span className="text-slate-400 text-[11px] normal-case ml-1">
-                      ({lang === 'en' ? 'as per Citizenship / Lalpurja' : 'नागरिकता वा लालपुर्जा अनुसार'})
-                    </span>
-                  </label>
-                  <input
-                    id={nameInputId}
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => {
-                      setFullName(e.target.value);
-                      if (onboardingErrors.fullName) {
-                        setOnboardingErrors((prev) => ({ ...prev, fullName: '' }));
-                      }
-                    }}
-                    placeholder={dict.onboarding.fullNamePlaceholder}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition-all text-sm shadow-xs"
-                  />
-                  {onboardingErrors.fullName && (
-                    <p className="mt-1.5 text-xs text-rose-600 flex items-center gap-1 font-medium">
-                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                      {onboardingErrors.fullName}
-                    </p>
-                  )}
-                </div>
-
-                {/* 2. Primary District Selector */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label
-                      htmlFor={districtSelectId}
-                      className="block text-xs font-semibold uppercase tracking-wider text-slate-700"
-                    >
-                      {dict.onboarding.districtLabel}
-                    </label>
-                    <span className="text-[11px] text-slate-500">
-                      {lang === 'en' ? 'Auto-configures measurement units' : 'नापी प्रणाली स्वतः निर्धारण हुन्छ'}
-                    </span>
-                  </div>
-
-                  <div className="relative">
-                    <select
-                      id={districtSelectId}
-                      value={district}
-                      onChange={(e) => handleDistrictChange(e.target.value)}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-900 appearance-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 focus:outline-none transition-all text-sm shadow-xs"
-                    >
-                      <optgroup label="🏔️ Hilly & Valley Districts (पहाड तथा उपत्यका - Ropani System)">
-                        {HILLY_DISTRICTS.map((d) => (
-                          <option key={d} value={d} className="bg-white text-slate-900">
-                            {d}
-                          </option>
-                        ))}
-                      </optgroup>
-                      <optgroup label="🌾 Terai & Inner Terai Districts (तराई तथा भित्री मधेस - Bigha System)">
-                        {TERAI_DISTRICTS.map((d) => (
-                          <option key={d} value={d} className="bg-white text-slate-900">
-                            {d}
-                          </option>
-                        ))}
-                      </optgroup>
-                    </select>
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
-                      <MapPin className="w-4 h-4 text-emerald-600" />
-                    </div>
-                  </div>
-                </div>
-
-                {/* 3. Default Land Measurement System & 1-Click Override */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700">
-                      {dict.onboarding.regionLabel}
-                    </label>
-                    {regionAutoDetected ? (
-                      <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                        <Sparkles className="w-3 h-3 text-emerald-600" />
-                        {lang === 'en' ? 'Auto-Detected' : 'स्वतः छनोट'}
-                      </span>
-                    ) : (
-                      <span className="text-[10px] font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                        {lang === 'en' ? 'Manual Override' : 'म्यानुअल परिवर्तन'}
-                      </span>
-                    )}
-                  </div>
-
-                  <p className="text-[11px] text-slate-500 mb-3">
-                    {dict.onboarding.regionSubtitle}
-                  </p>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* Hilly Option */}
-                    <button
-                      type="button"
-                      onClick={() => handleManualRegionOverride('HILLY')}
-                      className={`p-3.5 rounded-xl border text-left transition-all ${
-                        regionSystem === 'HILLY'
-                          ? 'border-2 border-emerald-600 bg-emerald-50/60 shadow-xs ring-1 ring-emerald-600/20'
-                          : 'border border-slate-200 bg-white hover:border-slate-300'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                          <span>🏔️</span>
-                          <span>{lang === 'en' ? 'Hilly / Valley' : 'पहाड / उपत्यका'}</span>
-                        </span>
-                        {regionSystem === 'HILLY' && (
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                        )}
-                      </div>
-                      <div className="text-[11px] font-mono font-bold text-emerald-700 mb-1">
-                        {lang === 'en' ? 'Ropani - Aana - Paisa - Daam' : 'रोपनी - आना - पैसा - दाम'}
-                      </div>
-                      <div className="text-[10px] text-slate-500 leading-tight">
-                        {dict.onboarding.regions.HILLY.description}
-                      </div>
-                    </button>
-
-                    {/* Terai Option */}
-                    <button
-                      type="button"
-                      onClick={() => handleManualRegionOverride('TERAI')}
-                      className={`p-3.5 rounded-xl border text-left transition-all ${
-                        regionSystem === 'TERAI'
-                          ? 'border-2 border-emerald-600 bg-emerald-50/60 shadow-xs ring-1 ring-emerald-600/20'
-                          : 'border border-slate-200 bg-white hover:border-slate-300'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                          <span>🌾</span>
-                          <span>{lang === 'en' ? 'Terai Plains' : 'तराई / भित्री मधेस'}</span>
-                        </span>
-                        {regionSystem === 'TERAI' && (
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                        )}
-                      </div>
-                      <div className="text-[11px] font-mono font-bold text-emerald-700 mb-1">
-                        {lang === 'en' ? 'Bigha - Kattha - Dhur' : 'बिघा - कट्ठा - धुर'}
-                      </div>
-                      <div className="text-[10px] text-slate-500 leading-tight">
-                        {dict.onboarding.regions.TERAI.description}
-                      </div>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Promotional Credit Trigger Callout Card */}
-                <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-start gap-3 shadow-xs">
-                  <div className="w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
-                    <Coins className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-emerald-900 flex items-center gap-2">
-                      <span>{dict.promo.claimTitle}</span>
-                      <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-200 px-1.5 py-0.5 rounded">
-                        15 CREDITS
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-emerald-700/90 mt-0.5 leading-relaxed">
-                      {dict.promo.claimDescription}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex items-center gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setStep('ROLE_SELECT')}
-                    className="px-4 py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm flex items-center gap-1.5 transition-colors"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                    <span>{lang === 'en' ? 'Back' : 'पछाडि'}</span>
-                  </button>
-
-                  <button
-                    type="submit"
-                    disabled={isSubmitting || !fullName.trim()}
-                    className="flex-1 py-3.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50 disabled:hover:bg-emerald-600 text-white font-semibold text-xs sm:text-sm tracking-wide shadow-xs hover:shadow-sm flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 animate-spin text-white" />
-                        <span>{dict.onboarding.submitting}</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>{dict.onboarding.submitButton}</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
+              <RoleStep
+                selectedRole={userRole}
+                isRoleMigration={isRoleMigration}
+                isSubmitting={isSubmitting}
+                lang={lang}
+                dict={dict}
+                onSelectRole={(r) => setUserRole(r)}
+                onConfirmRole={handleConfirmRole}
+              />
             </div>
           )}
         </div>
       </main>
 
-      {/* Institutional Light Footer */}
-      <footer className="border-t border-slate-200 bg-white py-6 text-center text-xs text-slate-500">
-        <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div>
-            © 2026 Sarvabhoomi Capital & Investment Pvt. Ltd. Kathmandu, Nepal.
-          </div>
-          <div className="flex items-center gap-4 text-[11px] text-slate-600">
-            <span>Kathmandu Cadastral GIS Certified</span>
+      {/* Footer */}
+      <footer className="border-t border-slate-200 bg-white py-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+          <p>© 2026 Sarvabhoomi Capital & Investment Pvt. Ltd. All rights reserved.</p>
+          <div className="flex items-center gap-4 text-emerald-800 font-semibold">
+            <span>0% Broker Commission</span>
             <span>•</span>
-            <span>100% Zero Brokerage P2P</span>
+            <span>Direct P2P Rentals</span>
+            <span>•</span>
+            <span>All 77 Districts</span>
           </div>
         </div>
       </footer>
@@ -1645,9 +781,7 @@ export default function AuthPage() {
     <Suspense
       fallback={
         <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-          <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center font-bold text-white text-xl animate-pulse">
-            स
-          </div>
+          <div className="w-8 h-8 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin" />
         </div>
       }
     >

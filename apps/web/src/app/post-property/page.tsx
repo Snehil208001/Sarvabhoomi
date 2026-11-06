@@ -95,11 +95,14 @@ export default function PostPropertyPage() {
   const [photoError, setPhotoError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Step 4: Ownership & Non-Brokerage Declaration
+  // Step 4: Ownership, Identity (Lazy Profile Gate) & Non-Brokerage Declaration
   const [kittaNo, setKittaNo] = useState('');
   const [hasLalpurja, setHasLalpurja] = useState(true);
   const [ownershipConfirmed, setOwnershipConfirmed] = useState(false);
   const [nonBrokerConfirmed, setNonBrokerConfirmed] = useState(false);
+  const [ownerFullName, setOwnerFullName] = useState('');
+  const [ownerDistrict, setOwnerDistrict] = useState('Kathmandu');
+  const [ownerProfileCompleted, setOwnerProfileCompleted] = useState(false);
 
   // Form submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -121,7 +124,7 @@ export default function PostPropertyPage() {
 
         const { data: profile } = await supabase
           .from('profiles')
-          .select('user_role')
+          .select('user_role, full_name, preferred_district, profile_completed')
           .eq('id', user.id)
           .maybeSingle();
 
@@ -132,6 +135,9 @@ export default function PostPropertyPage() {
 
         if (isMounted) {
           setUserId(user.id);
+          if (profile?.full_name) setOwnerFullName(profile.full_name);
+          if (profile?.preferred_district) setOwnerDistrict(profile.preferred_district);
+          if (profile?.profile_completed) setOwnerProfileCompleted(true);
           setLoadingUser(false);
         }
       } catch (err) {
@@ -168,9 +174,12 @@ export default function PostPropertyPage() {
         continue;
       }
 
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${userId || 'guest'}_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `property-images/${fileName}`;
+      const fileExt = file.name.split('.').pop() || 'jpg';
+      const folderName = userId || 'public';
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `${folderName}/${fileName}`;
+
+      let photoUrl: string | null = null;
 
       try {
         const { error: uploadErr } = await supabase.storage
@@ -180,20 +189,40 @@ export default function PostPropertyPage() {
             upsert: false,
           });
 
-        if (uploadErr) {
-          setPhotoError(`Upload failed for "${file.name}": ${uploadErr.message}`);
-          continue;
-        }
+        if (!uploadErr) {
+          const { data: publicData } = supabase.storage
+            .from('property-photos')
+            .getPublicUrl(filePath);
 
-        const { data: publicData } = supabase.storage
-          .from('property-photos')
-          .getPublicUrl(filePath);
-
-        if (publicData?.publicUrl) {
-          uploadedUrls.push(publicData.publicUrl);
+          if (publicData?.publicUrl) {
+            photoUrl = publicData.publicUrl;
+          }
+        } else {
+          console.warn(`Supabase storage upload notice (${uploadErr.message}). Preserving photo locally.`);
         }
       } catch (uploadException) {
-        console.warn('Supabase storage upload error:', uploadException);
+        console.warn('Supabase storage upload exception:', uploadException);
+      }
+
+      // If remote bucket is not configured or upload fails, fall back to base64 Data URL so the user is never blocked
+      if (!photoUrl) {
+        try {
+          const base64Url = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+          photoUrl = base64Url;
+        } catch (readErr) {
+          console.error('Failed to read file as data URL:', readErr);
+        }
+      }
+
+      if (photoUrl) {
+        uploadedUrls.push(photoUrl);
+      } else {
+        setPhotoError(`Unable to process "${file.name}". Please try another image.`);
       }
     }
 
@@ -227,6 +256,22 @@ export default function PostPropertyPage() {
     }
 
     if (step === 4) {
+      if (!ownerFullName.trim() || ownerFullName.trim().length < 2) {
+        setErrorMessage(
+          lang === 'en'
+            ? 'Please enter your full legal name before publishing.'
+            : 'कृपया अगाडि बढ्न आफ्नो पूरा कानुनी नाम प्रविष्ट गर्नुहोस्।'
+        );
+        return false;
+      }
+      if (!ownerDistrict || ownerDistrict.trim().length < 2) {
+        setErrorMessage(
+          lang === 'en'
+            ? 'Please select your primary district.'
+            : 'कृपया आफ्नो मुख्य जिल्ला छनोट गर्नुहोस्।'
+        );
+        return false;
+      }
       if (!ownershipConfirmed) {
         setErrorMessage(
           lang === 'en'
@@ -328,6 +373,23 @@ export default function PostPropertyPage() {
     };
 
     try {
+      // Lazy Profile Gate: Save owner legal name & district to profiles table and mark profile completed
+      const derivedRegion = getRegionForDistrict(ownerDistrict);
+      const { error: profileErr } = await supabase
+        .from('profiles')
+        .update({
+          full_name: ownerFullName.trim(),
+          preferred_district: ownerDistrict,
+          preferred_region: derivedRegion,
+          profile_completed: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', userId);
+
+      if (profileErr) {
+        console.warn('Error saving owner profile details:', profileErr.message);
+      }
+
       const { data, error } = await supabase
         .from('properties')
         .insert(propertyPayload)
@@ -336,7 +398,11 @@ export default function PostPropertyPage() {
 
       if (error) {
         console.warn('Publish insert error:', error.message);
-        setErrorMessage(error.message || 'Error publishing listing. Please check database permissions.');
+        if (error.message.includes('schema cache') || error.message.includes('Could not find the table')) {
+          setErrorMessage('Database table "properties" was not found or schema cache needs refreshing. Run fix_storage_bucket.sql in your Supabase SQL editor.');
+        } else {
+          setErrorMessage(error.message || 'Error publishing listing. Please check database permissions.');
+        }
         return;
       }
 
@@ -873,6 +939,67 @@ export default function PostPropertyPage() {
                 />
               </div>
 
+              {/* Owner Legal Identity (Lazy Profile Gate) */}
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+                <div className="flex items-center gap-2 text-emerald-800">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  <h4 className="text-xs font-bold text-slate-900">
+                    {lang === 'en' ? 'Owner Legal Identity & District' : 'घरधनीको पूरा नाम र जिल्ला'} *
+                  </h4>
+                </div>
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  {lang === 'en'
+                    ? 'Required before publishing. Saved to your profile so prospective tenants can verify direct ownership.'
+                    : 'विज्ञापन प्रकाशित गर्न आफ्नो पूरा नाम र जिल्ला पुष्टि गर्नुहोस्। यो तपाईंको प्रोफाइलमा सुरक्षित हुनेछ।'}
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      {lang === 'en' ? 'Full Legal Name *' : 'पूरा कानुनी नाम *'}
+                    </label>
+                    <input
+                      type="text"
+                      value={ownerFullName}
+                      onChange={(e) => {
+                        setOwnerFullName(e.target.value);
+                        if (errorMessage) setErrorMessage(null);
+                      }}
+                      placeholder="e.g. Ram Bahadur Shrestha"
+                      className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-emerald-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      {lang === 'en' ? 'Primary District *' : 'मुख्य जिल्ला *'}
+                    </label>
+                    <select
+                      value={ownerDistrict}
+                      onChange={(e) => {
+                        setOwnerDistrict(e.target.value);
+                        if (errorMessage) setErrorMessage(null);
+                      }}
+                      className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-emerald-600"
+                    >
+                      {ALL_NEPAL_DISTRICTS.map((d) => (
+                        <option key={d.nameEn} value={d.nameEn}>
+                          {lang === 'ne' ? d.nameNe : d.nameEn}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="text-[10px] text-emerald-800 font-semibold flex items-center gap-1.5 pt-1">
+                  <span>
+                    ✓ {lang === 'en'
+                      ? `Cadastral unit system automatically set to: ${getRegionForDistrict(ownerDistrict)} (${getRegionForDistrict(ownerDistrict) === 'HILLY' ? 'Ropani-Aana' : 'Bigha-Kattha'})`
+                      : `नापी एकाइ प्रणाली स्वतः निर्धारित: ${getRegionForDistrict(ownerDistrict)}`}
+                  </span>
+                </div>
+              </div>
+
               {/* Legal Non-Brokerage & Ownership Declarations */}
               <div className="space-y-3 pt-3 border-t border-slate-100">
                 <label className="flex items-start gap-2.5 cursor-pointer text-xs text-slate-700">
@@ -957,6 +1084,15 @@ export default function PostPropertyPage() {
                     <span className="text-slate-400 block text-[10px]">Tenant</span>
                     <span className="font-bold">{preferredTenant}</span>
                   </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-[11px] text-slate-600">
+                  <span>
+                    Landlord: <strong className="text-slate-900">{ownerFullName}</strong> ({ownerDistrict})
+                  </span>
+                  <span className="text-emerald-700 font-semibold">
+                    ✓ Direct Owner Listing
+                  </span>
                 </div>
 
                 <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2">

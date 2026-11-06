@@ -72,14 +72,50 @@ export const onboardingSchema = z.object({
     .string()
     .trim()
     .min(FULL_NAME_MIN_LENGTH, `Full name must be at least ${FULL_NAME_MIN_LENGTH} characters.`)
-    .max(FULL_NAME_MAX_LENGTH, `Full name must not exceed ${FULL_NAME_MAX_LENGTH} characters.`),
+    .max(FULL_NAME_MAX_LENGTH, `Full name must not exceed ${FULL_NAME_MAX_LENGTH} characters.`)
+    .optional(),
   userRole: userRoleEnum.optional(),
   userIntent: userIntentEnum.optional(),
-  preferredRegion: regionEnum,
+  preferredRegion: regionEnum.optional(),
   preferredDistrict: z
     .string()
     .trim()
     .min(DISTRICT_MIN_LENGTH, 'Please select or enter your primary district of interest.')
-    .max(DISTRICT_MAX_LENGTH, `District name must not exceed ${DISTRICT_MAX_LENGTH} characters.`),
+    .max(DISTRICT_MAX_LENGTH, `District name must not exceed ${DISTRICT_MAX_LENGTH} characters.`)
+    .optional(),
 });
 export type OnboardingInput = z.infer<typeof onboardingSchema>;
+
+/**
+ * Lazy Profile Schema for prompt-on-demand requirements
+ */
+export const lazyProfileSchema = z.object({
+  fullName: z
+    .string()
+    .trim()
+    .min(FULL_NAME_MIN_LENGTH, `Full name must be at least ${FULL_NAME_MIN_LENGTH} characters.`)
+    .max(FULL_NAME_MAX_LENGTH, `Full name must not exceed ${FULL_NAME_MAX_LENGTH} characters.`),
+  preferredDistrict: z
+    .string()
+    .trim()
+    .min(DISTRICT_MIN_LENGTH, 'Please select your district.')
+    .max(DISTRICT_MAX_LENGTH, `District name must not exceed ${DISTRICT_MAX_LENGTH} characters.`)
+    .optional(),
+});
+export type LazyProfileInput = z.infer<typeof lazyProfileSchema>;
+
+/**
+ * Determines whether a user's profile is fully completed (both full_name and preferred_district present).
+ */
+export function isProfileComplete(profile: {
+  full_name?: string | null;
+  preferred_district?: string | null;
+} | null | undefined): boolean {
+  if (!profile) return false;
+  const hasName = Boolean(profile.full_name && profile.full_name.trim().length >= FULL_NAME_MIN_LENGTH);
+  const hasDistrict = Boolean(
+    profile.preferred_district && profile.preferred_district.trim().length >= DISTRICT_MIN_LENGTH
+  );
+  return hasName && hasDistrict;
+}
+
