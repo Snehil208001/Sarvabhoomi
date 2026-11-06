@@ -12,6 +12,7 @@ import {
   X,
   ShieldCheck,
   TrendingUp,
+  Search,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -22,6 +23,7 @@ interface NavbarProps {
     id: string;
     fullName?: string;
     credits?: number;
+    userRole?: 'RENTER' | 'OWNER' | null;
   } | null;
 }
 
@@ -31,10 +33,12 @@ export function Navbar({ lang = 'en', onToggleLang, currentUser }: NavbarProps) 
     id: string;
     fullName: string;
     credits: number;
+    userRole: 'RENTER' | 'OWNER' | null;
   } | null>(currentUser ? {
     id: currentUser.id,
     fullName: currentUser.fullName || 'Verified Member',
     credits: currentUser.credits ?? 15,
+    userRole: currentUser.userRole || null,
   } : null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -45,6 +49,7 @@ export function Navbar({ lang = 'en', onToggleLang, currentUser }: NavbarProps) 
           id: currentUser.id,
           fullName: currentUser.fullName || 'Verified Member',
           credits: currentUser.credits ?? 15,
+          userRole: currentUser.userRole || null,
         });
       } else {
         setUser(null);
@@ -62,7 +67,7 @@ export function Navbar({ lang = 'en', onToggleLang, currentUser }: NavbarProps) 
         if (authUser && isMounted) {
           const { data: profile } = await supabase
             .from('profiles')
-            .select('full_name')
+            .select('full_name, user_role')
             .eq('id', authUser.id)
             .maybeSingle();
 
@@ -76,6 +81,7 @@ export function Navbar({ lang = 'en', onToggleLang, currentUser }: NavbarProps) 
             id: authUser.id,
             fullName: profile?.full_name || 'Verified Member',
             credits: sub?.credits_remaining ?? 15,
+            userRole: profile?.user_role || null,
           });
         }
       } catch {
@@ -125,13 +131,10 @@ export function Navbar({ lang = 'en', onToggleLang, currentUser }: NavbarProps) 
         {/* Center: Concise Navigation Links (Desktop) */}
         <nav className="hidden xl:flex items-center gap-7 text-sm font-medium text-slate-600 shrink-0">
           <Link href="/search" className="hover:text-emerald-700 transition-colors whitespace-nowrap min-h-touch flex items-center">
-            {lang === 'en' ? 'Explore Properties' : 'सम्पत्तिहरू खोज्नुहोस्'}
+            {lang === 'en' ? 'Search Rentals' : 'कोठा र घर भाडामा खोज्नुहोस्'}
           </Link>
           <Link href="/#how-it-works" className="hover:text-emerald-700 transition-colors whitespace-nowrap min-h-touch flex items-center">
             {lang === 'en' ? 'Why 0% Brokerage' : 'शून्य दलाली'}
-          </Link>
-          <Link href="/#valuation-tracker" className="hover:text-emerald-700 transition-colors whitespace-nowrap min-h-touch flex items-center">
-            {lang === 'en' ? 'Valuation & Kitta' : 'कित्ता नापी नक्सा'}
           </Link>
           <Link href="/#faqs" className="hover:text-emerald-700 transition-colors whitespace-nowrap min-h-touch flex items-center">
             {lang === 'en' ? 'FAQs' : 'प्रश्नोत्तर'}
@@ -140,14 +143,24 @@ export function Navbar({ lang = 'en', onToggleLang, currentUser }: NavbarProps) 
 
         {/* Right: Actions, Auth & Language Switcher */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {/* Post Free Property CTA */}
-          <Link
-            href={user ? '/post-property' : '/auth?mode=signup'}
-            className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl border border-emerald-600 bg-emerald-50/90 hover:bg-emerald-600 text-emerald-800 hover:text-white text-xs sm:text-sm font-bold transition-all shadow-xs active:scale-95 whitespace-nowrap min-h-touch"
-          >
-            <PlusCircle className="w-4 h-4 text-emerald-600 group-hover:text-white" />
-            <span>{lang === 'en' ? 'Post Free Property' : 'जग्गा राख्नुहोस्'}</span>
-          </Link>
+          {/* Post Free Rental CTA: Owners or Guests Only (Never shown to Renters) */}
+          {user?.userRole !== 'RENTER' ? (
+            <Link
+              href={user ? '/post-property' : '/auth?mode=signup'}
+              className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl border border-emerald-600 bg-emerald-50/90 hover:bg-emerald-600 text-emerald-800 hover:text-white text-xs sm:text-sm font-bold transition-all shadow-xs active:scale-95 whitespace-nowrap min-h-touch"
+            >
+              <PlusCircle className="w-4 h-4 text-emerald-600 group-hover:text-white" />
+              <span>{lang === 'en' ? 'Post Free Rental' : 'घर/कोठा भाडामा राख्नुहोस्'}</span>
+            </Link>
+          ) : (
+            <Link
+              href="/search"
+              className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl border border-emerald-600 bg-emerald-50/90 hover:bg-emerald-600 text-emerald-800 hover:text-white text-xs sm:text-sm font-bold transition-all shadow-xs active:scale-95 whitespace-nowrap min-h-touch"
+            >
+              <Search className="w-4 h-4 text-emerald-600 group-hover:text-white" />
+              <span>{lang === 'en' ? 'Find Rentals' : 'भाडामा खोज्नुहोस्'}</span>
+            </Link>
+          )}
 
           {/* Authentication Action: User Chip or Single Sign In CTA */}
           {user ? (
@@ -216,7 +229,7 @@ export function Navbar({ lang = 'en', onToggleLang, currentUser }: NavbarProps) 
             onClick={() => setMobileMenuOpen(false)}
             className="block py-2 text-sm font-semibold text-slate-700 hover:text-emerald-700"
           >
-            {lang === 'en' ? 'Explore Properties' : 'सम्पत्तिहरू खोज्नुहोस्'}
+            {lang === 'en' ? 'Search Rentals' : 'कोठा र घर भाडामा खोज्नुहोस्'}
           </Link>
           <Link
             href="/#how-it-works"
@@ -226,19 +239,21 @@ export function Navbar({ lang = 'en', onToggleLang, currentUser }: NavbarProps) 
             {lang === 'en' ? 'Why 0% Brokerage' : 'शून्य दलाली'}
           </Link>
           <Link
-            href="/#valuation-tracker"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block py-2 text-sm font-semibold text-slate-700 hover:text-emerald-700"
-          >
-            {lang === 'en' ? 'Valuation & Kitta' : 'कित्ता नापी नक्सा'}
-          </Link>
-          <Link
             href="/#faqs"
             onClick={() => setMobileMenuOpen(false)}
             className="block py-2 text-sm font-semibold text-slate-700 hover:text-emerald-700"
           >
             {lang === 'en' ? 'FAQs' : 'प्रश्नोत्तर'}
           </Link>
+          {user?.userRole !== 'RENTER' && (
+            <Link
+              href={user ? '/post-property' : '/auth?mode=signup'}
+              onClick={() => setMobileMenuOpen(false)}
+              className="block py-2 text-sm font-bold text-emerald-700"
+            >
+              {lang === 'en' ? 'Post Free Rental' : 'घर/कोठा भाडामा राख्नुहोस्'}
+            </Link>
+          )}
           {user && (
             <Link
               href="/dashboard"

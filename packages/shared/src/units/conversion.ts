@@ -128,3 +128,31 @@ export function formatPricePerUnit(
   return `${formattedRate} / ${unitName}`;
 }
 
+/**
+ * Formats Monthly Rent in NPR with prominent "/month" or "/महिना" label
+ * e.g., "Rs. 25,000/month" or "रु २५,०००/महिना"
+ */
+export function formatMonthlyRentNPR(rent: number | null | undefined, lang: 'en' | 'ne' = 'en'): string {
+  if (rent === undefined || rent === null || isNaN(rent) || rent <= 0) {
+    return lang === 'en' ? 'Rent on request' : 'भाडा सोधपुछमा';
+  }
+  const prefix = lang === 'en' ? 'Rs. ' : 'रु ';
+  const suffix = lang === 'en' ? '/month' : '/महिना';
+  return `${prefix}${rent.toLocaleString('en-IN')}${suffix}`;
+}
+
+/**
+ * Formats Deposit amount in NPR, or "Not specified" if null
+ */
+export function formatDeposit(deposit: number | null | undefined, lang: 'en' | 'ne' = 'en'): string {
+  if (deposit === undefined || deposit === null || isNaN(deposit)) {
+    return lang === 'en' ? 'Not specified' : 'उल्लेख नभएको';
+  }
+  if (deposit === 0) {
+    return lang === 'en' ? 'No Deposit' : 'धरौटी नपर्ने';
+  }
+  const prefix = lang === 'en' ? 'Rs. ' : 'रु ';
+  return `${prefix}${deposit.toLocaleString('en-IN')}`;
+}
+
+

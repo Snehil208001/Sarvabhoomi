@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useTransition, Suspense } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -12,48 +12,35 @@ import {
   PhoneCall,
   MessageCircle,
   Layers,
-  Globe2,
   CheckCircle2,
-  LogOut,
-  TrendingUp,
-  ArrowRight,
-  Landmark,
   Coins,
   Building,
   Home,
   Tag,
   Compass,
-  FileCheck2,
   Calendar,
   ExternalLink,
   Search,
   PlusCircle,
-  Calculator,
   RefreshCw,
-  Info,
   Heart,
   Eye,
   KeyRound,
   Trash2,
   AlertCircle,
   Clock,
-  ArrowUpDown,
-  Lock,
-  Unlock,
   Check,
+  X,
+  Users,
 } from 'lucide-react';
 import {
-  LAND_MEASUREMENT_SYSTEM_INFO,
-  getAuthDict,
-  UserIntent,
-  PreferredRegion,
+  UserRole,
   Property,
-  formatPriceNPR,
+  formatMonthlyRentNPR,
+  formatDeposit,
   formatArea,
-  toSqFt,
-  fromSqFt,
   ALL_NEPAL_DISTRICTS,
-  getRegionForDistrict,
+  getAuthDict,
 } from '@sarvabhoomi/shared';
 import { supabase, Profile, UserSubscription } from '@/lib/supabase';
 import { ContactUnlockModal } from '@/components/ContactUnlockModal';
@@ -63,7 +50,9 @@ import { Footer } from '@/components/Footer';
 import { PropertyCard } from '@/components/PropertyCard';
 import { LandCalculator } from '@/components/LandCalculator';
 
-type DashboardTab = 'my-listings' | 'shortlist' | 'wallet' | 'profile';
+type OwnerTab = 'my-listings' | 'enquiries' | 'profile';
+type RenterTab = 'shortlist' | 'wallet' | 'visits' | 'profile';
+type DashboardTab = OwnerTab | RenterTab;
 
 interface UnlockedContactRecord {
   id: string;
@@ -79,6 +68,33 @@ interface UnlockedContactRecord {
     locality: string;
     listing_type: string;
     price_npr: number;
+    monthly_rent_npr?: number | null;
+  };
+  owner?: {
+    full_name: string;
+    phone_np: string;
+  };
+}
+
+interface VisitRequestRecord {
+  id: string;
+  property_id: string;
+  renter_id: string;
+  owner_id: string;
+  visit_date: string;
+  time_slot: string;
+  note?: string | null;
+  status: 'PENDING' | 'CONFIRMED' | 'DECLINED';
+  created_at: string;
+  property?: {
+    id: string;
+    title: string;
+    locality: string;
+    district: string;
+  };
+  renter?: {
+    full_name: string;
+    phone_np: string;
   };
   owner?: {
     full_name: string;
@@ -89,51 +105,33 @@ interface UnlockedContactRecord {
 function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialTab = (searchParams.get('tab') as DashboardTab) || 'my-listings';
 
-  const [activeTab, setActiveTab] = useState<DashboardTab>(initialTab);
+  const [activeTab, setActiveTab] = useState<DashboardTab>('shortlist');
   const [loading, setLoading] = useState(true);
   const [lang, setLang] = useState<'en' | 'ne'>('en');
-  const dict = getAuthDict(lang);
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [subscription, setSubscription] = useState<UserSubscription | null>(null);
 
-  // Live data states
+  // Owner state
   const [myProperties, setMyProperties] = useState<Property[]>([]);
-  const [shortlistedProperties, setShortlistedProperties] = useState<Property[]>([]);
-  const [unlockedContacts, setUnlockedContacts] = useState<UnlockedContactRecord[]>([]);
   const [loadingListings, setLoadingListings] = useState(false);
-  const [loadingShortlist, setLoadingShortlist] = useState(false);
-  const [loadingWallet, setLoadingWallet] = useState(false);
-  const [tableMissingNotice, setTableMissingNotice] = useState<string | null>(null);
-
-  // Status mutation state
+  const [ownerVisitRequests, setOwnerVisitRequests] = useState<VisitRequestRecord[]>([]);
+  const [ownerEnquiries, setOwnerEnquiries] = useState<any[]>([]);
   const [updatingPropertyId, setUpdatingPropertyId] = useState<string | null>(null);
+
+  // Renter state
+  const [shortlistedProperties, setShortlistedProperties] = useState<Property[]>([]);
+  const [loadingShortlist, setLoadingShortlist] = useState(false);
+  const [unlockedContacts, setUnlockedContacts] = useState<UnlockedContactRecord[]>([]);
+  const [loadingWallet, setLoadingWallet] = useState(false);
+  const [renterVisitRequests, setRenterVisitRequests] = useState<VisitRequestRecord[]>([]);
 
   // Contact Unlock Modal State
   const [contactModalOpen, setContactModalOpen] = useState(false);
   const [selectedPropertyForContact, setSelectedPropertyForContact] = useState<Property | null>(null);
 
-  // Profile preferences form state
-  const [profileDistrict, setProfileDistrict] = useState('Kathmandu');
-  const [profileRegion, setProfileRegion] = useState<PreferredRegion>('HILLY');
-  const [savingProfile, setSavingProfile] = useState(false);
-  const [profileSuccessMsg, setProfileSuccessMsg] = useState<string | null>(null);
-
-  // Interactive Land Calculator State
-  const [calcInput, setCalcInput] = useState<number>(1);
-  const [calcUnit, setCalcUnit] = useState<'ROPANI' | 'AANA' | 'BIGHA' | 'KATTHA' | 'SQFT'>('ROPANI');
-
-  // Handle tab from URL
-  useEffect(() => {
-    const tabParam = searchParams.get('tab') as DashboardTab;
-    if (tabParam && ['my-listings', 'shortlist', 'wallet', 'profile'].includes(tabParam)) {
-      setActiveTab(tabParam);
-    }
-  }, [searchParams]);
-
-  // Load authenticated user and their profile
+  // Load user and profile
   useEffect(() => {
     let isMounted = true;
 
@@ -150,31 +148,45 @@ function DashboardContent() {
           return;
         }
 
-        // Fetch live row from public.profiles
-        const { data: profileRow, error: profileErr } = await supabase
+        const { data: profileRow } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
           .maybeSingle();
 
-        if (profileErr) {
-          if (profileErr.message?.includes('schema cache') || profileErr.code === 'PGRST205') {
-            setTableMissingNotice(
-              'Database tables need to be created in your Supabase project. Run supabase/init_sarvabhoomi.sql in the Supabase SQL Editor.'
-            );
-          }
-        }
-
         if (isMounted && profileRow) {
+          if (!profileRow.user_role) {
+            router.replace('/auth');
+            return;
+          }
+
           setProfile(profileRow);
-          setProfileDistrict(profileRow.preferred_district || 'Kathmandu');
-          setProfileRegion(profileRow.preferred_region || 'HILLY');
           if (profileRow.preferred_lang) {
             setLang(profileRow.preferred_lang);
           }
+
+          // Set default active tab based on role
+          const role = profileRow.user_role as UserRole;
+          const paramTab = searchParams.get('tab') as DashboardTab | null;
+
+          if (role === 'OWNER') {
+            if (paramTab && ['my-listings', 'enquiries', 'profile'].includes(paramTab)) {
+              setActiveTab(paramTab);
+            } else {
+              setActiveTab('my-listings');
+            }
+            loadOwnerData(user.id);
+          } else {
+            if (paramTab && ['shortlist', 'wallet', 'visits', 'profile'].includes(paramTab)) {
+              setActiveTab(paramTab);
+            } else {
+              setActiveTab('shortlist');
+            }
+            loadRenterData(user.id);
+          }
         }
 
-        // Fetch live row from public.user_subscriptions
+        // Fetch subscriptions
         const { data: subRow } = await supabase
           .from('user_subscriptions')
           .select('*')
@@ -196,19 +208,10 @@ function DashboardContent() {
             });
           }
         }
-
-        // Load data for all tabs
-        if (isMounted && user) {
-          loadUserListings(user.id);
-          loadUserShortlist(user.id);
-          loadUserWalletHistory(user.id);
-        }
       } catch (err) {
-        console.error('Error loading dashboard session:', err);
+        console.error('Dashboard load error:', err);
       } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+        if (isMounted) setLoading(false);
       }
     }
 
@@ -216,62 +219,93 @@ function DashboardContent() {
     return () => {
       isMounted = false;
     };
-  }, [router]);
+  }, [router, searchParams]);
 
-  // 1. Fetch User's Listings
-  const loadUserListings = async (userId: string) => {
+  // Load Owner Data: My Listings & Received Enquiries / Visits
+  const loadOwnerData = async (userId: string) => {
     setLoadingListings(true);
     try {
-      const { data, error } = await supabase
+      // 1. My Listings
+      const { data: props } = await supabase
         .from('properties')
         .select('*')
         .eq('owner_id', userId)
         .order('created_at', { ascending: false });
 
-      if (!error && data) {
-        setMyProperties(data as Property[]);
+      if (props) setMyProperties(props as Property[]);
+
+      // 2. Received Visit Requests
+      const { data: vReqs } = await supabase
+        .from('property_visit_requests')
+        .select(`
+          id,
+          property_id,
+          renter_id,
+          owner_id,
+          visit_date,
+          time_slot,
+          note,
+          status,
+          created_at,
+          property:properties(id, title, locality, district),
+          renter:profiles!property_visit_requests_renter_id_fkey(full_name, phone_np)
+        `)
+        .eq('owner_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (vReqs) setOwnerVisitRequests(vReqs as unknown as VisitRequestRecord[]);
+
+      // 3. Received Contact Unlocks (Enquiries)
+      const myPropertyIds = (props || []).map((p) => p.id);
+      if (myPropertyIds.length > 0) {
+        const { data: enqs } = await supabase
+          .from('contact_unlocks')
+          .select(`
+            id,
+            property_id,
+            created_at,
+            property:properties(title, locality),
+            renter:profiles!contact_unlocks_user_id_fkey(full_name, phone_np)
+          `)
+          .in('property_id', myPropertyIds)
+          .order('created_at', { ascending: false });
+
+        if (enqs) setOwnerEnquiries(enqs);
+      } else {
+        setOwnerEnquiries([]);
       }
     } catch (e) {
-      console.warn('Error loading user properties:', e);
+      console.warn('Error loading owner data:', e);
     } finally {
       setLoadingListings(false);
     }
   };
 
-  // 2. Fetch User's Shortlist
-  const loadUserShortlist = async (userId: string) => {
+  // Load Renter Data: Shortlist, Unlocks & Sent Visits
+  const loadRenterData = async (userId: string) => {
     setLoadingShortlist(true);
+    setLoadingWallet(true);
     try {
-      const { data: favs, error: favError } = await supabase
+      // 1. Shortlist
+      const { data: favs } = await supabase
         .from('property_favourites')
         .select('property_id')
         .eq('user_id', userId);
 
-      if (!favError && favs && favs.length > 0) {
+      if (favs && favs.length > 0) {
         const propIds = favs.map((f) => f.property_id);
-        const { data: props, error: propsError } = await supabase
+        const { data: props } = await supabase
           .from('properties')
           .select('*')
           .in('id', propIds);
 
-        if (!propsError && props) {
-          setShortlistedProperties(props as Property[]);
-        }
+        if (props) setShortlistedProperties(props as Property[]);
       } else {
         setShortlistedProperties([]);
       }
-    } catch (e) {
-      console.warn('Error loading shortlist:', e);
-    } finally {
-      setLoadingShortlist(false);
-    }
-  };
 
-  // 3. Fetch User's Contact Unlock History
-  const loadUserWalletHistory = async (userId: string) => {
-    setLoadingWallet(true);
-    try {
-      const { data, error } = await supabase
+      // 2. Unlocked Contacts
+      const { data: unlocks } = await supabase
         .from('contact_unlocks')
         .select(`
           id,
@@ -279,24 +313,47 @@ function DashboardContent() {
           owner_id,
           unlocked_at,
           credits_spent,
-          property:properties(id, title, kitta_no, district, locality, listing_type, price_npr),
+          property:properties(id, title, kitta_no, district, locality, listing_type, price_npr, monthly_rent_npr),
           owner:profiles!contact_unlocks_owner_id_fkey(full_name, phone_np)
         `)
         .eq('user_id', userId)
         .order('unlocked_at', { ascending: false });
 
-      if (!error && data) {
-        setUnlockedContacts(data as unknown as UnlockedContactRecord[]);
-      }
+      if (unlocks) setUnlockedContacts(unlocks as unknown as UnlockedContactRecord[]);
+
+      // 3. Sent Visit Requests
+      const { data: sentVisits } = await supabase
+        .from('property_visit_requests')
+        .select(`
+          id,
+          property_id,
+          renter_id,
+          owner_id,
+          visit_date,
+          time_slot,
+          note,
+          status,
+          created_at,
+          property:properties(id, title, locality, district),
+          owner:profiles!property_visit_requests_owner_id_fkey(full_name, phone_np)
+        `)
+        .eq('renter_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (sentVisits) setRenterVisitRequests(sentVisits as unknown as VisitRequestRecord[]);
     } catch (e) {
-      console.warn('Error loading contact unlocks:', e);
+      console.warn('Error loading renter data:', e);
     } finally {
+      setLoadingShortlist(false);
       setLoadingWallet(false);
     }
   };
 
-  // Quick Action: Update Property Status (ACTIVE, PAUSED, SOLD)
-  const handleUpdateStatus = async (propertyId: string, newStatus: 'ACTIVE' | 'PAUSED' | 'SOLD') => {
+  // Owner Action: Toggle Listing Status (PAUSED <-> ACTIVE)
+  const handleToggleListingStatus = async (propertyId: string, currentStatus: string) => {
+    if (currentStatus === 'PENDING_REVIEW') return; // Cannot activate pending listing
+
+    const newStatus = currentStatus === 'ACTIVE' ? 'PAUSED' : 'ACTIVE';
     setUpdatingPropertyId(propertyId);
     try {
       const { error } = await supabase
@@ -306,120 +363,49 @@ function DashboardContent() {
 
       if (!error) {
         setMyProperties((prev) =>
-          prev.map((p) => (p.id === propertyId ? { ...p, status: newStatus } : p))
+          prev.map((p) => (p.id === propertyId ? { ...p, status: newStatus as any } : p))
         );
       }
-    } catch (err) {
-      console.error('Error updating status:', err);
+    } catch (e) {
+      console.error('Error toggling listing status:', e);
     } finally {
       setUpdatingPropertyId(null);
     }
   };
 
-  // Quick Action: Remove from Shortlist
-  const handleRemoveFromShortlist = async (propertyId: string) => {
-    if (!profile) return;
-    try {
-      await supabase
-        .from('property_favourites')
-        .delete()
-        .eq('user_id', profile.id)
-        .eq('property_id', propertyId);
-
-      setShortlistedProperties((prev) => prev.filter((p) => p.id !== propertyId));
-    } catch (err) {
-      console.error('Error removing from shortlist:', err);
-    }
-  };
-
-  // Quick Action: Save Profile & Region Settings
-  const handleSaveProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!profile) return;
-    setSavingProfile(true);
-    setProfileSuccessMsg(null);
-
+  // Owner Action: Confirm or Decline Visit Request
+  const handleUpdateVisitStatus = async (requestId: string, newStatus: 'CONFIRMED' | 'DECLINED') => {
     try {
       const { error } = await supabase
-        .from('profiles')
-        .update({
-          preferred_district: profileDistrict,
-          preferred_region: profileRegion,
-          preferred_lang: lang,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', profile.id);
+        .from('property_visit_requests')
+        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .eq('id', requestId);
 
       if (!error) {
-        setProfile((prev) =>
-          prev
-            ? {
-                ...prev,
-                preferred_district: profileDistrict,
-                preferred_region: profileRegion,
-                preferred_lang: lang,
-              }
-            : null
+        setOwnerVisitRequests((prev) =>
+          prev.map((v) => (v.id === requestId ? { ...v, status: newStatus } : v))
         );
-        setProfileSuccessMsg(
-          lang === 'en'
-            ? 'Preferences updated successfully!'
-            : 'प्राथमिकता सफलतापूर्वक अद्यावधिक गरियो!'
-        );
-        setTimeout(() => setProfileSuccessMsg(null), 4000);
       }
-    } catch (err) {
-      console.error('Error saving profile:', err);
-    } finally {
-      setSavingProfile(false);
+    } catch (e) {
+      console.error('Error updating visit status:', e);
     }
   };
 
-  // Sign out
-  const handleSignOut = async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch (err) {
-      console.error('Sign out error:', err);
-    } finally {
-      router.replace('/auth');
-    }
-  };
-
-  const toggleLang = () => {
-    setLang((prev) => (prev === 'en' ? 'ne' : 'en'));
-  };
-
+  const userRole = (profile?.user_role || 'RENTER') as UserRole;
   const creditsRemaining = subscription?.credits_remaining ?? 15;
-  const activeRegion = profile?.preferred_region || profileRegion || 'HILLY';
-  const measurementSystem = LAND_MEASUREMENT_SYSTEM_INFO[activeRegion];
 
-  const expirationFormatted = subscription?.expires_at
-    ? new Date(subscription.expires_at).toLocaleDateString(lang === 'ne' ? 'ne-NP' : 'en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      })
-    : '90 days from launch';
-
-  // Calculator computations
-  const sqftVal = toSqFt(calcInput || 0, calcUnit);
-  const ropaniVal = fromSqFt(sqftVal, 'ROPANI');
-  const aanaVal = fromSqFt(sqftVal, 'AANA');
-  const bighaVal = fromSqFt(sqftVal, 'BIGHA');
-  const katthaVal = fromSqFt(sqftVal, 'KATTHA');
-  const sqMeters = (sqftVal * 0.092903).toFixed(2);
+  const errorParam = searchParams.get('error');
+  const postedParam = searchParams.get('posted');
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col items-center justify-center font-sans">
-        <div className="w-14 h-14 rounded-2xl bg-emerald-600 flex items-center justify-center font-bold text-white text-2xl shadow-sm ring-4 ring-emerald-100 select-none animate-pulse">
-          स
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-11 h-11 rounded-xl bg-emerald-600 flex items-center justify-center font-bold text-white text-2xl shadow-xs ring-4 ring-emerald-100 animate-pulse">
+            स
+          </div>
+          <span className="text-xs text-slate-500 font-medium">Loading Dashboard...</span>
         </div>
-        <p className="mt-4 text-xs font-semibold uppercase tracking-widest text-emerald-700 flex items-center gap-2">
-          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-          <span>{lang === 'en' ? 'Loading Sarvabhoomi...' : 'सर्वभूमि खुल्दैछ...'}</span>
-        </p>
       </div>
     );
   }
@@ -429,121 +415,163 @@ function DashboardContent() {
       {/* 1. TOP NAVBAR */}
       <Navbar
         lang={lang}
-        onToggleLang={toggleLang}
+        onToggleLang={() => setLang((prev) => (prev === 'en' ? 'ne' : 'en'))}
         currentUser={
           profile
             ? {
                 id: profile.id,
                 fullName: profile.full_name || 'Verified Member',
                 credits: creditsRemaining,
+                userRole: userRole,
               }
             : null
         }
       />
 
-      {/* Tab Bar Header */}
-      <div className="border-b border-slate-200 bg-white sticky top-18 sm:top-20 z-30 shadow-2xs">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6">
-            <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto py-2 scrollbar-none text-xs sm:text-sm font-semibold flex-nowrap">
-              <button
-                type="button"
-                onClick={() => setActiveTab('my-listings')}
-                className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl border transition-all whitespace-nowrap min-h-touch ${
-                  activeTab === 'my-listings'
-                    ? 'bg-white border-emerald-300 text-emerald-800 shadow-sm'
-                    : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/50'
-                }`}
-              >
-                <Layers className="w-4 h-4 text-emerald-600" />
-                <span>{lang === 'en' ? 'My Listings' : 'मेरा सम्पत्तिहरू'}</span>
-                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-700 font-mono">
-                  {myProperties.length}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('shortlist')}
-                className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl border transition-all whitespace-nowrap min-h-touch ${
-                  activeTab === 'shortlist'
-                    ? 'bg-white border-emerald-300 text-emerald-800 shadow-sm'
-                    : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/50'
-                }`}
-              >
-                <Heart className="w-4 h-4 text-rose-500 fill-rose-500" />
-                <span>{lang === 'en' ? 'My Shortlist' : 'सुरक्षित गरिएका सूची'}</span>
-                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-700 font-mono">
-                  {shortlistedProperties.length}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('wallet')}
-                className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl border transition-all whitespace-nowrap min-h-touch ${
-                  activeTab === 'wallet'
-                    ? 'bg-white border-emerald-300 text-emerald-800 shadow-sm'
-                    : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/50'
-                }`}
-              >
-                <Coins className="w-4 h-4 text-emerald-600" />
-                <span>{lang === 'en' ? 'Credits Wallet' : 'क्रेडिट वालेट'}</span>
-                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-800 font-mono font-bold">
-                  {creditsRemaining}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('profile')}
-                className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl border transition-all whitespace-nowrap min-h-touch ${
-                  activeTab === 'profile'
-                    ? 'bg-white border-emerald-300 text-emerald-800 shadow-sm'
-                    : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/50'
-                }`}
-              >
-                <Compass className="w-4 h-4 text-emerald-600" />
-                <span>{lang === 'en' ? 'Profile & Land Units' : 'प्रोफाइल तथा नापी'}</span>
-              </button>
-            </div>
-          </div>
+      {/* Cross-Role Notice Banner */}
+      {errorParam === 'renter_cannot_post' && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 text-center text-xs font-semibold text-amber-900">
+          Your Renter account cannot list properties. Use an Owner account with a different phone number to list rental units.
         </div>
-
-      {/* Database Setup Notice if tables are pending */}
-      {tableMissingNotice && (
-        <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 text-xs text-amber-800">
-          <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-              <span>{tableMissingNotice}</span>
-            </div>
-            <span className="font-mono text-[11px] bg-amber-100 px-2 py-0.5 rounded text-amber-900">
-              Run: supabase/init_sarvabhoomi.sql
-            </span>
-          </div>
+      )}
+      {errorParam === 'owner_cannot_search' && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 text-center text-xs font-semibold text-amber-900">
+          Owner accounts manage listings and enquiries. Use a Renter account with a different phone number to browse rentals.
+        </div>
+      )}
+      {postedParam === 'success' && (
+        <div className="bg-emerald-50 border-b border-emerald-200 px-4 py-3 text-center text-xs font-semibold text-emerald-900 flex items-center justify-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+          <span>Rental listing submitted successfully! It is now <strong>Pending Review</strong> and will go live once verified.</span>
         </div>
       )}
 
-      {/* ============================================================ */}
-      {/* MAIN CONTENT AREA */}
-      {/* ============================================================ */}
+      {/* Tab Navigation Bar */}
+      <div className="border-b border-slate-200 bg-white sticky top-18 sm:top-20 z-30 shadow-2xs">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto py-2 scrollbar-none text-xs sm:text-sm font-semibold flex-nowrap">
+            {/* OWNER TABS */}
+            {userRole === 'OWNER' && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('my-listings')}
+                  className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl border transition-all whitespace-nowrap min-h-touch ${
+                    activeTab === 'my-listings'
+                      ? 'bg-white border-emerald-300 text-emerald-800 shadow-sm'
+                      : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                  }`}
+                >
+                  <Layers className="w-4 h-4 text-emerald-600" />
+                  <span>{lang === 'en' ? 'My Listings' : 'मेरा भाडाका घरहरू'}</span>
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-700 font-mono">
+                    {myProperties.length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('enquiries')}
+                  className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl border transition-all whitespace-nowrap min-h-touch ${
+                    activeTab === 'enquiries'
+                      ? 'bg-white border-emerald-300 text-emerald-800 shadow-sm'
+                      : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                  }`}
+                >
+                  <Users className="w-4 h-4 text-emerald-600" />
+                  <span>{lang === 'en' ? 'Enquiries & Visits' : 'सम्पर्क र भ्रमण अनुरोध'}</span>
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-800 font-mono font-bold">
+                    {ownerVisitRequests.length + ownerEnquiries.length}
+                  </span>
+                </button>
+              </>
+            )}
+
+            {/* RENTER TABS */}
+            {userRole === 'RENTER' && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('shortlist')}
+                  className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl border transition-all whitespace-nowrap min-h-touch ${
+                    activeTab === 'shortlist'
+                      ? 'bg-white border-emerald-300 text-emerald-800 shadow-sm'
+                      : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                  }`}
+                >
+                  <Heart className="w-4 h-4 text-rose-500 fill-rose-500" />
+                  <span>{lang === 'en' ? 'My Shortlist' : 'सुरक्षित सूची'}</span>
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-700 font-mono">
+                    {shortlistedProperties.length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('wallet')}
+                  className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl border transition-all whitespace-nowrap min-h-touch ${
+                    activeTab === 'wallet'
+                      ? 'bg-white border-emerald-300 text-emerald-800 shadow-sm'
+                      : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                  }`}
+                >
+                  <Phone className="w-4 h-4 text-emerald-600" />
+                  <span>{lang === 'en' ? 'Unlocked Landlords' : 'सम्पर्क गरिएका घरधनी'}</span>
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-800 font-mono font-bold">
+                    {unlockedContacts.length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('visits')}
+                  className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl border transition-all whitespace-nowrap min-h-touch ${
+                    activeTab === 'visits'
+                      ? 'bg-white border-emerald-300 text-emerald-800 shadow-sm'
+                      : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                  }`}
+                >
+                  <Calendar className="w-4 h-4 text-emerald-600" />
+                  <span>{lang === 'en' ? 'Scheduled Visits' : 'घर हेर्ने तालिका'}</span>
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-700 font-mono">
+                    {renterVisitRequests.length}
+                  </span>
+                </button>
+              </>
+            )}
+
+            {/* Profile Tab (Both Roles) */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('profile')}
+              className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl border transition-all whitespace-nowrap min-h-touch ${
+                activeTab === 'profile'
+                  ? 'bg-white border-emerald-300 text-emerald-800 shadow-sm'
+                  : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/50'
+              }`}
+            >
+              <Compass className="w-4 h-4 text-emerald-600" />
+              <span>{lang === 'en' ? 'Profile & Preferences' : 'प्रोफाइल तथा सेटिङ'}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-8">
-        {/* ========================================================== */}
-        {/* TAB 1: MY LISTINGS */}
-        {/* ========================================================== */}
-        {activeTab === 'my-listings' && (
+        {/* ============================================================ */}
+        {/* OWNER VIEW: MY LISTINGS TAB                                  */}
+        {/* ============================================================ */}
+        {userRole === 'OWNER' && activeTab === 'my-listings' && (
           <div className="space-y-6">
-            {/* Header banner */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
               <div>
                 <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
                   <Layers className="w-6 h-6 text-emerald-600" />
-                  <span>{lang === 'en' ? 'My Posted Properties' : 'मेरा प्रकाशित सम्पत्तिहरू'}</span>
+                  <span>{lang === 'en' ? 'My Rental Listings' : 'मेरा भाडाका सम्पत्तिहरू'}</span>
                 </h1>
                 <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                  {lang === 'en'
-                    ? 'Manage your direct listings with zero brokerage. Update availability or mark as sold.'
-                    : 'कुनै बिचौलिया बिना आफ्नो जग्गा तथा घरको विवरण व्यवस्थापन गर्नुहोस्।'}
+                  Manage your rental spaces with 0% brokerage. Pause or resume visibility anytime.
                 </p>
               </div>
 
@@ -552,264 +580,255 @@ function DashboardContent() {
                 className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-sm transition-all shrink-0"
               >
                 <PlusCircle className="w-4 h-4" />
-                <span>{lang === 'en' ? 'Post New Free Property' : 'नयाँ सम्पत्ति पोस्ट गर्नुहोस्'}</span>
+                <span>{lang === 'en' ? 'Post Free Rental Listing' : 'नयाँ भाडाको घर राख्नुहोस्'}</span>
               </Link>
             </div>
-
-            {/* Portfolio Valuation & Brokerage Saved Overview */}
-            {myProperties.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-gradient-to-br from-emerald-900 to-slate-900 text-white p-5 rounded-2xl shadow-sm border border-emerald-800/40">
-                <div className="space-y-1">
-                  <span className="text-xs text-emerald-300 font-medium flex items-center gap-1.5">
-                    <Building className="w-3.5 h-3.5" />
-                    <span>{lang === 'en' ? 'Active Listings' : 'सक्रिय सम्पत्ति संख्या'}</span>
-                  </span>
-                  <div className="text-2xl font-black">{myProperties.length}</div>
-                  <p className="text-[11px] text-slate-300">
-                    {lang === 'en' ? 'Direct peer-to-peer listings' : 'प्रत्यक्ष क्रेता-विक्रेता सूची'}
-                  </p>
-                </div>
-
-                <div className="space-y-1">
-                  <span className="text-xs text-emerald-300 font-medium flex items-center gap-1.5">
-                    <Coins className="w-3.5 h-3.5" />
-                    <span>{lang === 'en' ? 'Total Portfolio Asking Value' : 'कुल सम्पत्ति मूल्य'}</span>
-                  </span>
-                  <div className="text-2xl font-black text-emerald-400">
-                    {formatPriceNPR(myProperties.reduce((sum, p) => sum + (Number(p.price_npr) || 0), 0))}
-                  </div>
-                  <p className="text-[11px] text-slate-300">
-                    {lang === 'en' ? 'Combined asking valuation' : 'माग गरिएको कुल रकम'}
-                  </p>
-                </div>
-
-                <div className="space-y-1">
-                  <span className="text-xs text-amber-300 font-medium flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>{lang === 'en' ? '0% Brokerage Saved (3% est.)' : 'बचेको दलाल कमिसन (३%)'}</span>
-                  </span>
-                  <div className="text-2xl font-black text-amber-400">
-                    {formatPriceNPR(
-                      Math.round(myProperties.reduce((sum, p) => sum + (Number(p.price_npr) || 0), 0) * 0.03)
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 pt-0.5">
-                    <Link
-                      href="/valuation"
-                      className="text-[11px] text-emerald-300 hover:text-white underline font-semibold inline-flex items-center gap-1"
-                    >
-                      <span>{lang === 'en' ? 'Open Valuation Engine' : 'मूल्याङ्कन क्यालकुलेटर'}</span>
-                      <ArrowRight className="w-3 h-3" />
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {loadingListings ? (
               <div className="p-12 text-center text-slate-400">
                 <RefreshCw className="w-6 h-6 animate-spin mx-auto text-emerald-600 mb-2" />
-                <p className="text-xs">{lang === 'en' ? 'Loading listings...' : 'लोड हुँदैछ...'}</p>
+                <p className="text-xs">Loading listings...</p>
               </div>
             ) : myProperties.length === 0 ? (
               <div className="p-12 rounded-2xl border-2 border-dashed border-slate-200 bg-white text-center">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3">
-                  <Building className="w-6 h-6" />
-                </div>
+                <Home className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                 <h3 className="text-base font-bold text-slate-800">
-                  {lang === 'en' ? 'No properties listed yet' : 'तपाईंले कुनै सम्पत्ति पोस्ट गर्नुभएको छैन'}
+                  {lang === 'en' ? 'You have not listed any rental property yet' : 'तपाईंले कुनै सम्पत्ति राख्नुभएको छैन'}
                 </h3>
                 <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-5">
-                  {lang === 'en'
-                    ? 'List your land or house 100% free with cadastral plot boundary and Lalpurja verification badge.'
-                    : 'आफ्नो जग्गा वा घर १००% निःशुल्क पोस्ट गर्नुहोस् र सिधै ग्राहकहरूसँग जोडिनुहोस्।'}
+                  List your room, flat, or house 100% free of charge and connect directly with tenants.
                 </p>
                 <Link
                   href="/post-property"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-sm"
+                  className="inline-flex items-center gap-2 py-2.5 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs"
                 >
                   <PlusCircle className="w-4 h-4" />
-                  <span>{lang === 'en' ? 'Post Your First Property' : 'पहिलो सम्पत्ति पोस्ट गर्नुहोस्'}</span>
+                  <span>Post Your First Rental Free</span>
                 </Link>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {myProperties.map((property) => (
-                  <div
-                    key={property.id}
-                    className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm flex flex-col justify-between hover:border-emerald-300 transition-all"
-                  >
-                    <div>
-                      {/* Photo Header */}
-                      <div className="relative h-44 bg-slate-100 overflow-hidden">
-                        <PropertyImage
-                          src={property.photos && property.photos.length > 0 ? property.photos[0] : null}
-                          alt={property.title}
-                          fill
-                          sizes="(max-width: 768px) 100vw, 33vw"
-                          className="object-cover"
-                        />
-
-                        {/* Status Badge */}
-                        <div className="absolute top-3 left-3 flex items-center gap-1.5">
-                          <span
-                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider shadow-sm ${
-                              property.status === 'ACTIVE'
-                                ? 'bg-emerald-600 text-white'
-                                : property.status === 'SOLD'
-                                ? 'bg-slate-800 text-white'
-                                : 'bg-amber-500 text-white'
-                            }`}
-                          >
-                            {property.status}
-                          </span>
-                          {property.admin_verified ? (
-                            <span 
-                              title="Government cadastral verified by Sarvabhoomi"
-                              className="px-2 py-1 rounded-lg text-[10px] font-bold bg-white/95 text-emerald-800 border border-emerald-200 shadow-sm flex items-center gap-1"
+                {myProperties.map((prop) => {
+                  const monthly = prop.monthly_rent_npr || prop.price_npr;
+                  return (
+                    <div
+                      key={prop.id}
+                      className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col justify-between"
+                    >
+                      <div>
+                        <div className="relative h-48 w-full bg-slate-100">
+                          <PropertyImage
+                            src={prop.photos?.[0] || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=600&q=80'}
+                            alt={prop.title}
+                            fill
+                            sizes="400px"
+                            className="object-cover"
+                          />
+                          <div className="absolute top-3 left-3">
+                            <span
+                              className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-xs ${
+                                prop.status === 'ACTIVE'
+                                  ? 'bg-emerald-600 text-white'
+                                  : prop.status === 'PENDING_REVIEW'
+                                  ? 'bg-amber-500 text-white'
+                                  : 'bg-slate-700 text-white'
+                              }`}
                             >
-                              <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                              <span>Lalpurja</span>
+                              {prop.status === 'PENDING_REVIEW' ? 'Pending Review' : prop.status}
                             </span>
-                          ) : property.owner_declared_lalpurja ? (
-                            <span 
-                              title="Claimed by owner — pending verification"
-                              className="px-2 py-1 rounded-lg text-[10px] font-semibold bg-white/95 text-amber-800 border border-amber-200 shadow-sm flex items-center gap-1"
-                            >
-                              <ShieldAlert className="w-3 h-3 text-amber-600" />
-                              <span>Pending</span>
-                            </span>
-                          ) : null}
+                          </div>
                         </div>
 
-                        {/* Views & Unlocks counter */}
-                        <div className="absolute bottom-3 right-3 flex items-center gap-2">
-                          <span className="px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-md text-white text-[10px] flex items-center gap-1 font-mono">
-                            <Eye className="w-3 h-3" />
-                            <span>{property.views_count || 0}</span>
-                          </span>
-                          <span className="px-2 py-0.5 rounded-md bg-emerald-600/90 backdrop-blur-md text-white text-[10px] flex items-center gap-1 font-mono font-bold">
-                            <KeyRound className="w-3 h-3" />
-                            <span>{property.unlocks_count || 0}</span>
-                          </span>
+                        <div className="p-5 space-y-2">
+                          <div className="text-xl font-black text-emerald-700">
+                            {formatMonthlyRentNPR(monthly, lang)}
+                          </div>
+                          <h4 className="text-sm font-bold text-slate-900 line-clamp-1">{prop.title}</h4>
+                          <p className="text-xs text-slate-500 flex items-center gap-1">
+                            <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            <span>{prop.locality}, {prop.district}</span>
+                          </p>
                         </div>
                       </div>
 
-                      {/* Content */}
-                      <div className="p-4 space-y-3">
-                        <div>
-                          <div className="text-base font-bold text-slate-900 line-clamp-1">
-                            {property.title}
-                          </div>
-                          <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
-                            <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                            <span>
-                              {property.locality}, {property.district}
-                            </span>
-                          </div>
-                        </div>
+                      <div className="p-4 pt-0 border-t border-slate-100 flex items-center justify-between gap-2 mt-2">
+                        <Link
+                          href={`/properties/${prop.id}`}
+                          className="text-xs font-bold text-slate-600 hover:text-emerald-700 flex items-center gap-1"
+                        >
+                          <span>View Public Page</span>
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </Link>
 
-                        {/* Price & Area Specs */}
-                        <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs">
-                          <div>
-                            <span className="text-[10px] text-slate-500 block">Total Price</span>
-                            <span className="font-black text-emerald-700 font-mono text-sm">
-                              {formatPriceNPR(property.price_npr)}
-                            </span>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-[10px] text-slate-500 block">Plot Area</span>
-                            <span className="font-bold text-slate-900 font-mono">
-                              {formatArea(property.area_value, property.area_unit)}
-                            </span>
-                          </div>
-                        </div>
-
-                        {property.kitta_no && (
-                          <div className="text-[11px] text-slate-500 flex items-center justify-between">
-                            <span>Cadastral Plot (कित्ता नं):</span>
-                            <span className="font-mono font-bold text-slate-800">
-                              #{property.kitta_no}
-                            </span>
-                          </div>
+                        {prop.status === 'PENDING_REVIEW' ? (
+                          <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-md">
+                            Under Admin Review
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={updatingPropertyId === prop.id}
+                            onClick={() => handleToggleListingStatus(prop.id, prop.status)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                              prop.status === 'ACTIVE'
+                                ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-200'
+                                : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border-emerald-300'
+                            }`}
+                          >
+                            {prop.status === 'ACTIVE' ? 'Pause Listing' : 'Resume Listing'}
+                          </button>
                         )}
                       </div>
                     </div>
-
-                    {/* Footer Actions */}
-                    <div className="p-4 pt-0 border-t border-slate-100 mt-2 space-y-2">
-                      <div className="flex items-center justify-between text-xs pt-3">
-                        <Link
-                          href={`/properties/${property.id}`}
-                          className="font-semibold text-emerald-700 hover:text-emerald-800 flex items-center gap-1"
-                        >
-                          <span>{lang === 'en' ? 'View Public Page' : 'सार्वजनिक पृष्ठ हेर्नुहोस्'}</span>
-                          <ExternalLink className="w-3 h-3" />
-                        </Link>
-                      </div>
-
-                      {/* Status Buttons */}
-                      <div className="grid grid-cols-3 gap-1.5 pt-1">
-                        <button
-                          type="button"
-                          disabled={updatingPropertyId === property.id}
-                          onClick={() => handleUpdateStatus(property.id, 'ACTIVE')}
-                          className={`py-1.5 text-[11px] font-bold rounded-lg border text-center transition-colors ${
-                            property.status === 'ACTIVE'
-                              ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
-                              : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                          }`}
-                        >
-                          Active
-                        </button>
-                        <button
-                          type="button"
-                          disabled={updatingPropertyId === property.id}
-                          onClick={() => handleUpdateStatus(property.id, 'PAUSED')}
-                          className={`py-1.5 text-[11px] font-bold rounded-lg border text-center transition-colors ${
-                            property.status === 'PAUSED'
-                              ? 'bg-amber-50 border-amber-300 text-amber-800'
-                              : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                          }`}
-                        >
-                          Pause
-                        </button>
-                        <button
-                          type="button"
-                          disabled={updatingPropertyId === property.id}
-                          onClick={() => handleUpdateStatus(property.id, 'SOLD')}
-                          className={`py-1.5 text-[11px] font-bold rounded-lg border text-center transition-colors ${
-                            property.status === 'SOLD'
-                              ? 'bg-slate-100 border-slate-400 text-slate-900'
-                              : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                          }`}
-                        >
-                          Sold
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
         )}
 
-        {/* ========================================================== */}
-        {/* TAB 2: MY SHORTLIST */}
-        {/* ========================================================== */}
-        {activeTab === 'shortlist' && (
+        {/* ============================================================ */}
+        {/* OWNER VIEW: ENQUIRIES & VISIT REQUESTS TAB                   */}
+        {/* ============================================================ */}
+        {userRole === 'OWNER' && activeTab === 'enquiries' && (
+          <div className="space-y-8">
+            {/* Scheduled Visit Requests Section */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-emerald-600" />
+                  <h2 className="text-lg font-bold text-slate-900">
+                    {lang === 'en' ? 'Scheduled Visit Requests Received' : 'घर हेर्न आएका अनुरोधहरू'}
+                  </h2>
+                </div>
+                <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full">
+                  {ownerVisitRequests.length} Requests
+                </span>
+              </div>
+
+              {ownerVisitRequests.length === 0 ? (
+                <p className="text-xs text-slate-500 py-6 text-center">
+                  No property visit requests received yet.
+                </p>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {ownerVisitRequests.map((req) => (
+                    <div key={req.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-slate-900">{req.renter?.full_name || 'Prospective Tenant'}</span>
+                          <span
+                            className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
+                              req.status === 'CONFIRMED'
+                                ? 'bg-emerald-600 text-white'
+                                : req.status === 'DECLINED'
+                                ? 'bg-rose-600 text-white'
+                                : 'bg-amber-100 text-amber-800 border border-amber-300'
+                            }`}
+                          >
+                            {req.status}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-600">
+                          Property: <span className="font-semibold text-slate-900">{req.property?.title}</span> ({req.property?.locality})
+                        </p>
+                        <p className="text-xs text-emerald-800 font-medium">
+                          Date: <span className="font-bold">{req.visit_date}</span> • Slot: <span className="font-bold">{req.time_slot}</span>
+                        </p>
+                        {req.renter?.phone_np && (
+                          <p className="text-xs text-slate-500 font-mono">
+                            Tenant Contact: <a href={`tel:${req.renter.phone_np}`} className="text-emerald-700 underline font-bold">{req.renter.phone_np}</a>
+                          </p>
+                        )}
+                        {req.note && (
+                          <p className="text-[11px] text-slate-400 italic mt-0.5">&quot;{req.note}&quot;</p>
+                        )}
+                      </div>
+
+                      {req.status === 'PENDING' && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateVisitStatus(req.id, 'CONFIRMED')}
+                            className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs"
+                          >
+                            Confirm Visit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateVisitStatus(req.id, 'DECLINED')}
+                            className="px-3.5 py-2 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs"
+                          >
+                            Decline
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Direct Tenant Contact Unlocks Section */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <Phone className="w-5 h-5 text-emerald-600" />
+                  <h2 className="text-lg font-bold text-slate-900">
+                    {lang === 'en' ? 'Tenants Who Unlocked Your Contact' : 'सम्पर्क अनलक गरेका भाडावालहरू'}
+                  </h2>
+                </div>
+                <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full">
+                  {ownerEnquiries.length} Tenants
+                </span>
+              </div>
+
+              {ownerEnquiries.length === 0 ? (
+                <p className="text-xs text-slate-500 py-6 text-center">
+                  No tenants have unlocked your phone number yet.
+                </p>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {ownerEnquiries.map((enq) => (
+                    <div key={enq.id} className="py-3 flex items-center justify-between">
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-900">{enq.renter?.full_name || 'Tenant Member'}</h4>
+                        <p className="text-[11px] text-slate-500">
+                          Listing: {enq.property?.title} ({enq.property?.locality})
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <a
+                          href={`tel:${enq.renter?.phone_np}`}
+                          className="text-xs font-mono font-bold text-emerald-700 underline block"
+                        >
+                          {enq.renter?.phone_np || 'N/A'}
+                        </a>
+                        <span className="text-[10px] text-slate-400">
+                          {new Date(enq.unlocked_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ============================================================ */}
+        {/* RENTER VIEW: SHORTLIST TAB                                   */}
+        {/* ============================================================ */}
+        {userRole === 'RENTER' && activeTab === 'shortlist' && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
               <div>
                 <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
                   <Heart className="w-6 h-6 text-rose-500 fill-rose-500" />
-                  <span>{lang === 'en' ? 'Shortlisted Properties' : 'सुरक्षित गरिएका सम्पत्तिहरू'}</span>
+                  <span>{lang === 'en' ? 'My Shortlisted Rentals' : 'सुरक्षित गरिएका भाडाका सूचीहरू'}</span>
                 </h1>
                 <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                  {lang === 'en'
-                    ? 'Properties you saved for later review. Unlock verified owner contact details directly.'
-                    : 'तपाईंले पछिका लागि सुरक्षित गर्नुभएका जग्गा तथा घरहरू।'}
+                  Homes and rooms bookmarked for comparison. Unlock landlord phone numbers with your free credits.
                 </p>
               </div>
 
@@ -818,141 +837,181 @@ function DashboardContent() {
                 className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-black text-white font-bold text-xs sm:text-sm shadow-sm transition-all shrink-0"
               >
                 <Search className="w-4 h-4" />
-                <span>{lang === 'en' ? 'Explore More Properties' : 'थप जग्गा खोज्नुहोस्'}</span>
+                <span>Explore More Rentals</span>
               </Link>
             </div>
 
             {loadingShortlist ? (
               <div className="p-12 text-center text-slate-400">
                 <RefreshCw className="w-6 h-6 animate-spin mx-auto text-emerald-600 mb-2" />
-                <p className="text-xs">{lang === 'en' ? 'Loading shortlist...' : 'लोड हुँदैछ...'}</p>
+                <p className="text-xs">Loading shortlist...</p>
               </div>
             ) : shortlistedProperties.length === 0 ? (
               <div className="p-12 rounded-2xl border-2 border-dashed border-slate-200 bg-white text-center">
-                <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center mx-auto mb-3">
-                  <Heart className="w-6 h-6 fill-rose-500" />
-                </div>
-                <h3 className="text-base font-bold text-slate-800">
-                  {lang === 'en' ? 'Your shortlist is currently empty' : 'तपाईंको मनपर्ने सूची खाली छ'}
-                </h3>
+                <Heart className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                <h3 className="text-base font-bold text-slate-800">Your shortlist is empty</h3>
                 <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-5">
-                  {lang === 'en'
-                    ? 'Click the heart icon on any property in the marketplace to bookmark and compare.'
-                    : 'कुनै पनि सम्पत्तिको मुटु आइकनमा क्लिक गरी यहाँ सुरक्षित गर्नुहोस्।'}
+                  Browse rentals and click the heart icon to save listings here.
                 </p>
                 <Link
                   href="/search"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-sm"
+                  className="inline-flex items-center gap-2 py-2.5 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs"
                 >
                   <Search className="w-4 h-4" />
-                  <span>{lang === 'en' ? 'Browse Properties' : 'सम्पत्तिहरू खोज्नुहोस्'}</span>
+                  <span>Browse Rental Marketplace</span>
                 </Link>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {shortlistedProperties.map((property) => (
-                  <div
-                    key={property.id}
-                    className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm flex flex-col justify-between hover:border-emerald-300 transition-all"
-                  >
-                    <div>
-                      {/* Photo */}
-                      <div className="relative h-44 bg-slate-100 overflow-hidden">
-                        <PropertyImage
-                          src={property.photos && property.photos.length > 0 ? property.photos[0] : null}
-                          alt={property.title}
-                          fill
-                          sizes="(max-width: 768px) 100vw, 33vw"
-                          className="object-cover"
-                        />
+                {shortlistedProperties.map((prop) => (
+                  <PropertyCard
+                    key={prop.id}
+                    property={prop}
+                    isFavourite={true}
+                    onUnlock={() => {
+                      setSelectedPropertyForContact(prop);
+                      setContactModalOpen(true);
+                    }}
+                    lang={lang}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
-                        {/* Badges */}
-                        <div className="absolute top-3 left-3 flex items-center gap-1.5">
-                          {property.admin_verified ? (
-                            <span 
-                              title="Government cadastral verified by Sarvabhoomi"
-                              className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-white/95 text-emerald-800 border border-emerald-200 shadow-sm flex items-center gap-1"
-                            >
-                              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                              <span>Lalpurja Verified</span>
-                            </span>
-                          ) : property.owner_declared_lalpurja ? (
-                            <span 
-                              title="Lalpurja claimed by owner — pending verification"
-                              className="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-white/95 text-amber-800 border border-amber-200 shadow-sm flex items-center gap-1"
-                            >
-                              <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
-                              <span>Lalpurja Claimed</span>
-                            </span>
-                          ) : null}
-                        </div>
+        {/* ============================================================ */}
+        {/* RENTER VIEW: UNLOCKED LANDLORDS TAB                          */}
+        {/* ============================================================ */}
+        {userRole === 'RENTER' && activeTab === 'wallet' && (
+          <div className="space-y-6">
+            <div className="bg-gradient-to-r from-emerald-700 to-teal-800 rounded-2xl p-6 text-white flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div>
+                <span className="text-xs uppercase tracking-wider font-bold text-emerald-200 block">
+                  Renter Contact Unlocks
+                </span>
+                <h2 className="text-2xl font-black mt-1">
+                  {creditsRemaining} Credits Remaining
+                </h2>
+                <p className="text-xs text-emerald-100 mt-1">
+                  15 complimentary credits provided upon registration to connect directly with landlords.
+                </p>
+              </div>
+              <Link
+                href="/search"
+                className="px-5 py-2.5 rounded-xl bg-white text-emerald-800 font-bold text-xs shadow-xs hover:bg-emerald-50 transition-colors"
+              >
+                Find More Rentals
+              </Link>
+            </div>
 
-                        {/* Remove heart */}
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveFromShortlist(property.id)}
-                          className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-md text-rose-500 hover:text-slate-400 flex items-center justify-center shadow-sm transition-colors"
-                          title="Remove from shortlist"
-                        >
-                          <Heart className="w-4 h-4 fill-rose-500" />
-                        </button>
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+              <h3 className="text-base font-bold text-slate-900">
+                {lang === 'en' ? 'Unlocked Landlord Contacts' : 'अनलक गरिएका घरधनीहरूको सूची'}
+              </h3>
+
+              {loadingWallet ? (
+                <div className="p-8 text-center text-slate-400">Loading unlocks...</div>
+              ) : unlockedContacts.length === 0 ? (
+                <p className="text-xs text-slate-500 py-6 text-center">
+                  You have not unlocked any landlord contacts yet. Browse rentals and click &quot;Contact Owner&quot;.
+                </p>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {unlockedContacts.map((item) => (
+                    <div key={item.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-900">{item.owner?.full_name || 'Landlord'}</h4>
+                        <p className="text-xs text-slate-600 font-medium">
+                          {item.property?.title} ({item.property?.locality}, {item.property?.district})
+                        </p>
+                        <span className="text-[11px] text-emerald-700 font-bold block mt-0.5">
+                          {formatMonthlyRentNPR(item.property?.monthly_rent_npr || item.property?.price_npr, lang)}
+                        </span>
                       </div>
 
-                      {/* Info */}
-                      <div className="p-4 space-y-3">
-                        <div>
-                          <Link
-                            href={`/properties/${property.id}`}
-                            className="text-base font-bold text-slate-900 hover:text-emerald-700 transition-colors line-clamp-1"
-                          >
-                            {property.title}
-                          </Link>
-                          <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
-                            <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                            <span>
-                              {property.locality}, {property.district}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs">
-                          <div>
-                            <span className="text-[10px] text-slate-500 block">Price</span>
-                            <span className="font-black text-emerald-700 font-mono text-sm">
-                              {formatPriceNPR(property.price_npr)}
-                            </span>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-[10px] text-slate-500 block">Area</span>
-                            <span className="font-bold text-slate-900 font-mono">
-                              {formatArea(property.area_value, property.area_unit)}
-                            </span>
-                          </div>
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={`tel:${item.owner?.phone_np}`}
+                          className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs"
+                        >
+                          <PhoneCall className="w-3.5 h-3.5" />
+                          <span>{item.owner?.phone_np}</span>
+                        </a>
+                        <a
+                          href={`https://wa.me/${item.owner?.phone_np?.replace(/[^0-9]/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3.5 py-2 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs flex items-center gap-1.5 hover:bg-slate-50"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>WhatsApp</span>
+                        </a>
                       </div>
                     </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
-                    {/* CTA Actions */}
-                    <div className="p-4 pt-0 border-t border-slate-100 mt-2 flex items-center gap-2 pt-3">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedPropertyForContact(property);
-                          setContactModalOpen(true);
-                        }}
-                        className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all"
-                      >
-                        <Phone className="w-3.5 h-3.5" />
-                        <span>{lang === 'en' ? 'Contact Landowner' : 'जग्गाधनीसँग सम्पर्क'}</span>
-                      </button>
+        {/* ============================================================ */}
+        {/* RENTER VIEW: SCHEDULED VISITS TAB                            */}
+        {/* ============================================================ */}
+        {userRole === 'RENTER' && activeTab === 'visits' && (
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-emerald-600" />
+                <h2 className="text-lg font-bold text-slate-900">
+                  {lang === 'en' ? 'My Scheduled Property Visits' : 'मैले अनुरोध गरेका भ्रमणहरू'}
+                </h2>
+              </div>
+              <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full">
+                {renterVisitRequests.length} Visits
+              </span>
+            </div>
 
-                      <Link
-                        href={`/properties/${property.id}`}
-                        className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors"
-                        title="View Full Details"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                      </Link>
+            {renterVisitRequests.length === 0 ? (
+              <div className="text-center py-10">
+                <Calendar className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                <p className="text-xs text-slate-500">
+                  You haven&apos;t scheduled any visits yet. Open any rental property detail page to schedule a visit slot.
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {renterVisitRequests.map((v) => (
+                  <div key={v.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Link href={`/properties/${v.property_id}`} className="text-sm font-bold text-slate-900 hover:text-emerald-700">
+                          {v.property?.title}
+                        </Link>
+                        <span
+                          className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
+                            v.status === 'CONFIRMED'
+                              ? 'bg-emerald-600 text-white'
+                              : v.status === 'DECLINED'
+                              ? 'bg-rose-600 text-white'
+                              : 'bg-amber-100 text-amber-800 border border-amber-300'
+                          }`}
+                        >
+                          {v.status}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500">
+                        {v.property?.locality}, {v.property?.district}
+                      </p>
+                      <p className="text-xs text-emerald-800 font-medium">
+                        Requested Date: <span className="font-bold">{v.visit_date}</span> • Slot: <span className="font-bold">{v.time_slot}</span>
+                      </p>
+                      {v.owner?.phone_np && (
+                        <p className="text-xs text-slate-600">
+                          Landlord: <span className="font-semibold">{v.owner.full_name}</span> (<a href={`tel:${v.owner.phone_np}`} className="text-emerald-700 underline font-bold">{v.owner.phone_np}</a>)
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -961,442 +1020,75 @@ function DashboardContent() {
           </div>
         )}
 
-        {/* ========================================================== */}
-        {/* TAB 3: CREDITS WALLET */}
-        {/* ========================================================== */}
-        {activeTab === 'wallet' && (
-          <div className="space-y-6">
-            {/* Wallet Overview Box */}
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-600 via-emerald-700 to-teal-800 text-white p-6 sm:p-8 shadow-sm">
-              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div>
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-emerald-100 text-xs font-bold uppercase tracking-wider mb-3">
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-200" />
-                    <span>Stage 1 Seeding Allocation</span>
-                  </div>
-
-                  <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
-                    {lang === 'en' ? 'Contact Credits Wallet' : 'सम्पर्क अनलक क्रेडिट वालेट'}
-                  </h1>
-
-                  <p className="text-emerald-100 text-xs sm:text-sm max-w-xl mt-1 leading-relaxed">
-                    {lang === 'en'
-                      ? '1 Credit allows you to instantly unlock and view the verified direct mobile phone number of any landowner on Sarvabhoomi with 0% brokerage.'
-                      : '१ क्रेडिटले १ जग्गाधनीको प्रमाणित फोन नम्बर सिधै अनलक गर्दछ। कुनै बिचौलिया कमिसन लाग्दैन।'}
-                  </p>
-                </div>
-
-                <div className="p-5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center gap-5 shrink-0">
-                  <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center text-white">
-                    <Coins className="w-7 h-7" />
-                  </div>
-                  <div>
-                    <div className="text-3xl sm:text-4xl font-black font-mono leading-none">
-                      {creditsRemaining}
-                    </div>
-                    <div className="text-xs font-semibold text-emerald-200 mt-1">
-                      {lang === 'en' ? 'Remaining Credits' : 'बाँकी क्रेडिटहरू'}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-4 text-xs text-emerald-100">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-emerald-300" />
-                  <span>
-                    {lang === 'en' ? 'Promotional Expiry Date' : 'म्याद समाप्ति मिति'}:{' '}
-                    <strong className="text-white">{expirationFormatted}</strong>
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-emerald-300" />
-                  <span>{lang === 'en' ? 'Zero Brokerage Guarantee' : '१००% शून्य दलाली ग्यारेन्टी'}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Unlocked Landowner Contacts History */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                    <KeyRound className="w-4 h-4 text-emerald-600" />
-                    <span>{lang === 'en' ? 'Unlocked Landowner Contacts' : 'अनलक गरिएका जग्गाधनी सम्पर्कहरू'}</span>
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    {lang === 'en'
-                      ? 'All contacts you have unlocked are permanently saved and accessible below.'
-                      : 'तपाईंले अनलक गर्नुभएका सबै नम्बरहरू यहाँ सुरक्षित छन्।'}
-                  </p>
-                </div>
-              </div>
-
-              {loadingWallet ? (
-                <div className="p-8 text-center text-slate-400">
-                  <RefreshCw className="w-5 h-5 animate-spin mx-auto text-emerald-600 mb-2" />
-                  <p className="text-xs">{lang === 'en' ? 'Loading unlock history...' : 'इतिहास लोड हुँदैछ...'}</p>
-                </div>
-              ) : unlockedContacts.length === 0 ? (
-                <div className="p-8 rounded-xl border border-dashed border-slate-200 bg-slate-50 text-center text-xs text-slate-500">
-                  <Phone className="w-6 h-6 text-slate-400 mx-auto mb-2" />
-                  <p className="font-semibold text-slate-700">
-                    {lang === 'en' ? 'No landowner contacts unlocked yet' : 'अहिलेसम्म कुनै नम्बर अनलक गरिएको छैन'}
-                  </p>
-                  <p className="mt-1">
-                    {lang === 'en'
-                      ? 'Browse listings in the marketplace and click "Contact Owner" to reveal numbers.'
-                      : 'सम्पत्ति खोज्नुहोस् र सिधै जग्गाधनीको नम्बर हेर्नुहोस्।'}
-                  </p>
-                </div>
-              ) : (
-                <div className="divide-y divide-slate-100 overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead>
-                      <tr className="text-slate-400 font-semibold border-b border-slate-100">
-                        <th className="py-2.5 px-3">Date</th>
-                        <th className="py-2.5 px-3">Property Title</th>
-                        <th className="py-2.5 px-3">Location</th>
-                        <th className="py-2.5 px-3">Landowner Name</th>
-                        <th className="py-2.5 px-3">Phone Number</th>
-                        <th className="py-2.5 px-3 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                      {unlockedContacts.map((item) => (
-                        <tr key={item.id} className="hover:bg-slate-50">
-                          <td className="py-3 px-3 text-slate-400 font-mono text-[11px]">
-                            {new Date(item.unlocked_at).toLocaleDateString()}
-                          </td>
-                          <td className="py-3 px-3 font-semibold text-slate-900">
-                            {item.property ? (
-                              <Link
-                                href={`/properties/${item.property.id}`}
-                                className="hover:text-emerald-700 transition-colors"
-                              >
-                                {item.property.title}
-                              </Link>
-                            ) : (
-                              'Property Details'
-                            )}
-                          </td>
-                          <td className="py-3 px-3 text-slate-500">
-                            {item.property ? `${item.property.locality}, ${item.property.district}` : 'Nepal'}
-                          </td>
-                          <td className="py-3 px-3 font-semibold text-slate-900">
-                            {item.owner?.full_name || 'Landowner'}
-                          </td>
-                          <td className="py-3 px-3 font-mono font-bold text-emerald-700">
-                            {item.owner?.phone_np || 'N/A'}
-                          </td>
-                          <td className="py-3 px-3 text-right space-x-1.5">
-                            {item.owner?.phone_np && (
-                              <>
-                                <a
-                                  href={`tel:${item.owner.phone_np}`}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 font-semibold text-[11px] transition-colors"
-                                >
-                                  <PhoneCall className="w-3 h-3" />
-                                  <span>Call</span>
-                                </a>
-                                <a
-                                  href={`https://wa.me/${item.owner.phone_np.replace(/\D/g, '')}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 font-semibold text-[11px] transition-colors"
-                                >
-                                  <MessageCircle className="w-3 h-3" />
-                                  <span>WhatsApp</span>
-                                </a>
-                              </>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ========================================================== */}
-        {/* TAB 4: PROFILE & LAND UNITS CONVERTER */}
-        {/* ========================================================== */}
+        {/* ============================================================ */}
+        {/* PROFILE TAB (BOTH ROLES)                                     */}
+        {/* ============================================================ */}
         {activeTab === 'profile' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Left Column: Account Profile & Preferences */}
-            <div className="rounded-2xl bg-white border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
-              <div>
-                <h3 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
-                  <Compass className="w-5 h-5 text-emerald-600" />
-                  <span>{lang === 'en' ? 'Profile & District Preferences' : 'प्रोफाइल तथा जिल्ला प्राथमिकता'}</span>
-                </h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  {lang === 'en'
-                    ? 'Your default measurement system automatically conforms to your selected primary district.'
-                    : 'तपाईंको प्राथमिक जिल्ला अनुसार जग्गा नापी एकाइ (रोपनी वा बिघा) स्वतः समायोजन हुन्छ।'}
-                </p>
-              </div>
+          <div className="space-y-6">
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
+              <h2 className="text-xl font-bold text-slate-900">
+                {lang === 'en' ? 'Account Profile & Role Details' : 'खाता प्रोफाइल र भूमिका विवरण'}
+              </h2>
 
-              {profileSuccessMsg && (
-                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-800 flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>{profileSuccessMsg}</span>
-                </div>
-              )}
-
-              <form onSubmit={handleSaveProfile} className="space-y-4 text-xs">
-                {/* Full Legal Name (Readonly) */}
-                <div>
-                  <label className="block font-bold text-slate-700 uppercase tracking-wider text-[10px] mb-1">
-                    {lang === 'en' ? 'Full Legal Name' : 'पूरा कानुनी नाम'}
-                  </label>
-                  <input
-                    type="text"
-                    disabled
-                    value={profile?.full_name || ''}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 font-semibold cursor-not-allowed"
-                  />
-                </div>
-
-                {/* Mobile Number (Readonly) */}
-                <div>
-                  <label className="block font-bold text-slate-700 uppercase tracking-wider text-[10px] mb-1">
-                    {lang === 'en' ? 'Verified Nepal Mobile' : 'प्रमाणित मोबाइल नम्बर'}
-                  </label>
-                  <input
-                    type="text"
-                    disabled
-                    value={profile?.phone_np || ''}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 font-mono text-emerald-700 font-bold cursor-not-allowed"
-                  />
-                </div>
-
-                {/* Role / Intent */}
-                <div>
-                  <label className="block font-bold text-slate-700 uppercase tracking-wider text-[10px] mb-1">
-                    {lang === 'en' ? 'Platform Role' : 'प्रयोगकर्ताको भूमिका'}
-                  </label>
-                  <div className="px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 font-semibold">
-                    {profile?.user_intent || 'BUYER'} (Zero Brokerage Direct Marketplace)
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                  <span className="text-slate-400 block font-semibold">User Role</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-extrabold text-sm text-slate-900">
+                      {userRole === 'OWNER' ? 'Property Owner / Landlord (घरधनी)' : 'Direct Renter (भाडामा लिने)'}
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                      Permanent
+                    </span>
                   </div>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    {userRole === 'OWNER'
+                      ? 'You can list rental spaces 100% free and manage tenant visit requests.'
+                      : 'You can search, shortlist rentals, unlock owner contacts and schedule visits.'}
+                  </p>
                 </div>
 
-                {/* Primary District Dropdown */}
-                <div>
-                  <label className="block font-bold text-slate-700 uppercase tracking-wider text-[10px] mb-1">
-                    {lang === 'en' ? 'Primary District of Focus' : 'प्राथमिक जिल्ला'}
-                  </label>
-                  <select
-                    value={profileDistrict}
-                    onChange={(e) => {
-                      const d = e.target.value;
-                      setProfileDistrict(d);
-                      setProfileRegion(getRegionForDistrict(d));
-                    }}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  >
-                    {ALL_NEPAL_DISTRICTS.map((d) => (
-                      <option key={d.nameEn} value={d.nameEn}>
-                        {d.nameEn} ({d.nameNe}) - {d.region}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Preferred Unit System Toggle */}
-                <div>
-                  <label className="block font-bold text-slate-700 uppercase tracking-wider text-[10px] mb-1">
-                    {lang === 'en' ? 'Land Unit System' : 'जग्गा नापी प्रणाली'}
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setProfileRegion('HILLY')}
-                      className={`p-3 rounded-xl border text-left transition-all ${
-                        profileRegion === 'HILLY'
-                          ? 'border-emerald-500 bg-emerald-50 text-emerald-900 font-bold ring-1 ring-emerald-500'
-                          : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      <div className="text-xs font-bold">Hilly (पहाडी)</div>
-                      <div className="text-[11px] text-slate-500 mt-0.5">Ropani - Aana - Paisa - Daam</div>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setProfileRegion('TERAI')}
-                      className={`p-3 rounded-xl border text-left transition-all ${
-                        profileRegion === 'TERAI'
-                          ? 'border-emerald-500 bg-emerald-50 text-emerald-900 font-bold ring-1 ring-emerald-500'
-                          : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      <div className="text-xs font-bold">Terai (तराई)</div>
-                      <div className="text-[11px] text-slate-500 mt-0.5">Bigha - Kattha - Dhur</div>
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={savingProfile}
-                  className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-2"
-                >
-                  {savingProfile ? (
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Check className="w-4 h-4" />
-                  )}
-                  <span>{lang === 'en' ? 'Save Preferences' : 'प्राथमिकता सुरक्षित गर्नुहोस्'}</span>
-                </button>
-              </form>
-            </div>
-
-            {/* Right Column: Interactive 3-Way Nepal Land Unit Converter */}
-            <div className="rounded-2xl bg-white border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
-              <div>
-                <h3 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
-                  <Calculator className="w-5 h-5 text-emerald-600" />
-                  <span>{lang === 'en' ? 'Nepal Land Measurement Converter' : 'नेपाल जग्गा नापी क्यालकुलेटर'}</span>
-                </h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  {lang === 'en'
-                    ? 'Instant mathematical conversion between Ropani, Bigha, Sq Ft, and Sq Meters.'
-                    : 'रोपनी, आना, बिघा, कट्ठा, वर्गफिट र वर्गमिटर बीचको तत्काल रूपान्तरण।'}
-                </p>
-              </div>
-
-              {/* Input Form */}
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
-                <div className="text-xs font-bold text-slate-700">Enter Value to Convert:</div>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    step="any"
-                    value={calcInput}
-                    onChange={(e) => setCalcInput(parseFloat(e.target.value) || 0)}
-                    className="flex-1 px-3.5 py-2 rounded-xl border border-slate-300 bg-white font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
-                    placeholder="1"
-                  />
-                  <select
-                    value={calcUnit}
-                    onChange={(e) => setCalcUnit(e.target.value as any)}
-                    className="px-3.5 py-2 rounded-xl border border-slate-300 bg-white font-bold text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  >
-                    <option value="ROPANI">Ropani (रोपनी)</option>
-                    <option value="AANA">Aana (आना)</option>
-                    <option value="BIGHA">Bigha (बिघा)</option>
-                    <option value="KATTHA">Kattha (कट्ठा)</option>
-                    <option value="SQFT">Square Feet (sq ft)</option>
-                  </select>
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                  <span className="text-slate-400 block font-semibold">Phone Number</span>
+                  <span className="font-mono font-bold text-sm text-slate-900">{profile?.phone_np}</span>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    To use the other role, register a separate phone number.
+                  </p>
                 </div>
               </div>
 
-              {/* Conversion Output Grid */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-200">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 block">
-                    Hilly: Ropani
-                  </span>
-                  <div className="text-base font-black text-slate-900 font-mono mt-0.5">
-                    {ropaniVal.toFixed(3)}{' '}
-                    <span className="text-xs font-normal text-slate-500">Ropani</span>
-                  </div>
-                  <div className="text-[11px] text-emerald-700 font-mono mt-0.5">
-                    = {aanaVal.toFixed(2)} Aana
-                  </div>
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-teal-50/60 border border-teal-200">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-teal-800 block">
-                    Terai: Bigha
-                  </span>
-                  <div className="text-base font-black text-slate-900 font-mono mt-0.5">
-                    {bighaVal.toFixed(3)}{' '}
-                    <span className="text-xs font-normal text-slate-500">Bigha</span>
-                  </div>
-                  <div className="text-[11px] text-teal-700 font-mono mt-0.5">
-                    = {katthaVal.toFixed(2)} Kattha
-                  </div>
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                    Square Feet (Sq. Ft.)
-                  </span>
-                  <div className="text-base font-black text-slate-900 font-mono mt-0.5">
-                    {Math.round(sqftVal).toLocaleString()}{' '}
-                    <span className="text-xs font-normal text-slate-500">sq ft</span>
-                  </div>
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                    Square Meters (Sq. M.)
-                  </span>
-                  <div className="text-base font-black text-slate-900 font-mono mt-0.5">
-                    {sqMeters}{' '}
-                    <span className="text-xs font-normal text-slate-500">m²</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Reference Constants */}
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5 text-[11px] text-slate-600 font-mono">
-                <div className="text-xs font-bold text-slate-800 mb-1 font-sans">Official Survey Constants:</div>
-                <div className="flex justify-between">
-                  <span>1 Ropani</span>
-                  <span className="text-slate-900 font-bold">16 Aana = 5,476 sq ft (508.74 m²)</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>1 Aana</span>
-                  <span className="text-slate-900 font-bold">4 Paisa = 342.25 sq ft (31.80 m²)</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>1 Bigha</span>
-                  <span className="text-slate-900 font-bold">20 Kattha = 72,900 sq ft (6,772.63 m²)</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>1 Kattha</span>
-                  <span className="text-slate-900 font-bold">20 Dhur = 3,645 sq ft (338.63 m²)</span>
-                </div>
+              {/* Land Measurement Converter Component */}
+              <div className="pt-4 border-t border-slate-100">
+                <LandCalculator lang={lang} />
               </div>
             </div>
           </div>
         )}
       </main>
 
-      {/* Contact Unlock Modal */}
-      <ContactUnlockModal
-        isOpen={contactModalOpen}
-        onClose={() => {
-          setContactModalOpen(false);
-          setSelectedPropertyForContact(null);
-        }}
-        property={selectedPropertyForContact}
-        currentUser={
-          profile
-            ? {
-                id: profile.id,
-                phone: profile.phone_np,
-                credits: creditsRemaining,
-              }
-            : null
-        }
-        onUnlockSuccess={(propertyId, details) => {
-          setSubscription((prev) =>
-            prev ? { ...prev, credits_remaining: details.creditsRemaining } : null
-          );
-          if (profile) {
-            loadUserWalletHistory(profile.id);
+      {/* Unlock Contact Modal */}
+      {selectedPropertyForContact && (
+        <ContactUnlockModal
+          isOpen={contactModalOpen}
+          onClose={() => setContactModalOpen(false)}
+          property={selectedPropertyForContact}
+          currentUser={
+            profile
+              ? {
+                  id: profile.id,
+                  phone: profile.phone_np,
+                  credits: creditsRemaining,
+                }
+              : null
           }
-        }}
-        lang={lang}
-      />
+          onUnlockSuccess={() => {
+            if (profile) loadRenterData(profile.id);
+          }}
+          lang={lang}
+        />
+      )}
 
+      {/* Footer */}
       <Footer lang={lang} />
     </div>
   );
@@ -1406,10 +1098,8 @@ export default function DashboardPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center font-sans">
-          <div className="w-12 h-12 rounded-xl bg-emerald-600 text-white font-bold flex items-center justify-center text-xl animate-pulse">
-            स
-          </div>
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin" />
         </div>
       }
     >

@@ -58,13 +58,32 @@ Sarvabhoomi/
 │   │   ├── 20261105000002_check_user_exists.sql
 │   │   ├── 20261105000003_properties.sql
 │   │   ├── 20261105000004_lalpurja_verification_split.sql
-│   │   └── 20261105000005_search_performance_indexes.sql
+│   │   ├── 20261105000005_search_performance_indexes.sql
+│   │   ├── 20261106000006_two_roles_rent_only.sql
+│   │   ├── 20261106000007_rent_fields.sql
+│   │   └── 20261106000008_visit_requests.sql
 │   ├── init_sarvabhoomi.sql               # Single-script bootstrap for fresh DB
 │   └── seed_properties.sql                # 12 active realistic seed listings
 └── .github/
     └── workflows/
         └── ci.yml                         # Automated lint, type-check, and build CI
 ```
+
+---
+
+## 👥 Two-Role Model & Rent-Only Architecture
+
+Sarvabhoomi operates strictly as a **Rent-Only P2P Real Estate Marketplace** with **strict two-role separation**:
+
+1. **`RENTER` (भाडामा लिने):**
+   - Workflow: Search & filter rent listings across Nepal, view verified rental specs, shortlist favorites, unlock owner contact info using 15 free launch credits, and schedule property visits.
+   - Guardrails: Cannot post properties, cannot view owner-only dashboard screens, cannot access listing creation APIs.
+2. **`OWNER` (घरधनी / घरबेटी):**
+   - Workflow: List residential/commercial rental units (Rooms, Flats, Houses, Commercial Shops) 100% free with cadastral details, manage rental listings, review visit requests and enquiries.
+   - Guardrails: Cannot browse/search listings, cannot shortlist or unlock contacts. Console defaults to My Listings.
+3. **One Role Per Account Rule:**
+   - Role selection is captured during onboarding or via the one-time migration modal for existing accounts.
+   - Enforced at the database level via PostgreSQL triggers (`trg_enforce_immutable_user_role`) and Row Level Security (RLS). Users cannot alter their role once chosen; users requiring both roles must register with separate phone numbers.
 
 ---
 
@@ -122,6 +141,23 @@ Run the consolidated schema script in your Supabase SQL Editor:
 npm run dev
 ```
 Open [http://localhost:3000](http://localhost:3000) to view the application.
+
+---
+
+## 📋 Owner Listing Review & Activation Workflow
+
+Like NoBroker's quality control, new rental listings submitted by owners default to `status = 'PENDING_REVIEW'` and are hidden from public `/search` until approved by an administrator:
+
+1. **Owner View:** Newly posted properties display an amber badge: `Pending Review / Under Admin Review` on the Owner Dashboard.
+2. **Admin Activation via Supabase Studio:**
+   Execute the following SQL in your Supabase SQL Editor to verify Lalpurja documentation and publish the listing:
+   ```sql
+   UPDATE public.properties
+   SET status = 'ACTIVE',
+       admin_verified = TRUE
+   WHERE id = '<property-uuid>';
+   ```
+3. Once marked `ACTIVE`, the property automatically appears in `/search`, on the homepage, and in district recommendations.
 
 ---
 

@@ -32,6 +32,7 @@ import {
   TERAI_DISTRICTS,
   getRegionForDistrict,
   getAuthDict,
+  UserRole,
   UserIntent,
   PreferredRegion,
 } from '@sarvabhoomi/shared';
@@ -101,7 +102,9 @@ function AuthContent() {
 
   // Step 3 & 4: Role Selection & Profile Form State
   const [userId, setUserId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<UserRole>('RENTER');
   const [userIntent, setUserIntent] = useState<UserIntent>('BUYER');
+  const [isRoleMigration, setIsRoleMigration] = useState<boolean>(false);
   const [fullName, setFullName] = useState('');
   const [district, setDistrict] = useState('Kathmandu');
   const [regionSystem, setRegionSystem] = useState<PreferredRegion>('HILLY');
@@ -140,11 +143,17 @@ function AuthContent() {
           // Check if already onboarded in public.profiles
           const { data: profile } = await supabase
             .from('profiles')
-            .select('is_onboarded, full_name, user_intent, preferred_district, preferred_region')
+            .select('is_onboarded, full_name, user_role, user_intent, preferred_district, preferred_region')
             .eq('id', user.id)
             .maybeSingle();
 
           if (profile?.is_onboarded) {
+            if (!profile.user_role) {
+              // Existing onboarded user without user_role set: show one-time role selection
+              setIsRoleMigration(true);
+              setStep('ROLE_SELECT');
+              return;
+            }
             router.push('/dashboard');
             return;
           }
@@ -503,11 +512,16 @@ function AuthContent() {
         // Double-check public.profiles in case status updated
         const { data: profile } = await supabase
           .from('profiles')
-          .select('is_onboarded, full_name, user_intent, preferred_district, preferred_region')
+          .select('is_onboarded, full_name, user_role, user_intent, preferred_district, preferred_region')
           .eq('id', verifiedUser.id)
           .maybeSingle();
 
         if (profile?.is_onboarded) {
+          if (!profile.user_role) {
+            setIsRoleMigration(true);
+            setStep('ROLE_SELECT');
+            return;
+          }
           router.push('/dashboard');
           return;
         }
@@ -516,7 +530,7 @@ function AuthContent() {
         // Pre-fill any existing profile fields
         if (profile) {
           if (profile.full_name) setFullName(profile.full_name);
-          if (profile.user_intent) setUserIntent(profile.user_intent);
+          if (profile.user_role) setUserRole(profile.user_role);
           if (profile.preferred_district) {
             setDistrict(profile.preferred_district);
             setRegionSystem(getRegionForDistrict(profile.preferred_district));
@@ -559,6 +573,59 @@ function AuthContent() {
   };
 
   // =========================================================================
+  // Role Migration Confirmation for Existing Users
+  // =========================================================================
+  const handleConfirmRoleMigration = async () => {
+    let targetUserId = userId;
+    if (!targetUserId) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      targetUserId = user?.id || null;
+    }
+
+    if (!targetUserId) {
+      setNotice({
+        type: 'error',
+        message: 'Unable to identify authenticated user session. Please sign in again.',
+      });
+      setStep('PHONE');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setNotice(null);
+
+    try {
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          user_role: userRole,
+          user_intent: (userRole === 'OWNER' ? 'OWNER' : 'BUYER') as 'OWNER' | 'BUYER',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', targetUserId);
+
+      if (updateError) {
+        setNotice({
+          type: 'error',
+          message: updateError.message || 'Failed to update user role.',
+        });
+        return;
+      }
+
+      router.push('/dashboard');
+    } catch (err: unknown) {
+      setNotice({
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Error saving role selection.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // =========================================================================
   // STEP 4: Complete Onboarding & Save Profile
   // =========================================================================
   const handleCompleteOnboarding = async (e: React.FormEvent) => {
@@ -566,7 +633,8 @@ function AuthContent() {
 
     const parseResult = onboardingSchema.safeParse({
       fullName,
-      userIntent,
+      userRole,
+      userIntent: userRole,
       preferredRegion: regionSystem,
       preferredDistrict: district,
     });
@@ -611,7 +679,8 @@ function AuthContent() {
         id: targetUserId,
         phone_np: fullPhone,
         full_name: fullName.trim(),
-        user_intent: userIntent,
+        user_role: userRole,
+        user_intent: (userRole === 'OWNER' ? 'OWNER' : 'BUYER') as 'OWNER' | 'BUYER',
         preferred_region: regionSystem,
         preferred_district: district,
         preferred_lang: lang,
@@ -667,9 +736,9 @@ function AuthContent() {
 
   const currentStepIdx = getStepIndex(step);
 
-  // Role Metadata Definition (4 Distinct Roles)
+  // Role Metadata Definition (Strictly 2 Roles: Renter vs Owner)
   const ROLES: {
-    id: UserIntent;
+    id: UserRole;
     titleEn: string;
     titleNe: string;
     descEn: string;
@@ -679,48 +748,28 @@ function AuthContent() {
     icon: React.ComponentType<{ className?: string }>;
   }[] = [
     {
-      id: 'BUYER',
-      titleEn: 'Direct Property Buyer',
-      titleNe: 'प्रत्यक्ष खरिदकर्ता (Direct Buyer)',
-      descEn: 'Buy land (Ghaderi) or houses with 0% brokerage.',
-      descNe: 'कुनै पनि दलाली शुल्क बिना सिधै जग्गाधनीसँग घरजग्गा खरिद गर्नुहोस्।',
-      badgeEn: '0% Broker Commission',
-      badgeNe: '०% कमिसन',
+      id: 'RENTER',
+      titleEn: 'Direct Home Renter',
+      titleNe: 'भाडामा लिने (Direct Renter)',
+      descEn: 'Search & rent rooms, flats, or houses with 0% brokerage. Get 15 free landowner contact unlocks.',
+      descNe: 'कुनै पनि दलाली शुल्क बिना कोठा, फ्ल्याट वा घर भाडामा लिनुहोस्। १५ निःशुल्क घरधनी सम्पर्क पाउनुहोस्।',
+      badgeEn: '15 Free Contact Unlocks',
+      badgeNe: '१५ निःशुल्क सम्पर्क',
       icon: Home,
     },
     {
       id: 'OWNER',
-      titleEn: 'Property Owner / Seller',
-      titleNe: 'जग्गाधनी तथा बिक्रेता (Property Owner)',
-      descEn: 'List land or residential property 100% free of charge.',
-      descNe: 'आफ्नो जग्गा वा घर १००% निःशुल्क सूचीकृत गरी सिधै बिक्री गर्नुहोस्।',
-      badgeEn: '100% Free Listing',
+      titleEn: 'Property Owner / Landlord',
+      titleNe: 'घरधनी तथा घरबेटी (Property Owner)',
+      descEn: 'List rooms, flats, or houses for rent 100% free of charge. Connect directly with verified tenants.',
+      descNe: 'आफ्नो कोठा, फ्ल्याट वा घर १००% निःशुल्क सूचीकृत गरी सिधै भाडामा दिनुहोस्।',
+      badgeEn: '100% Free Rent Listing',
       badgeNe: '१००% निःशुल्क सूची',
       icon: Tag,
     },
-    {
-      id: 'INVESTOR_NRN',
-      titleEn: 'NRN / Institutional Investor',
-      titleNe: 'लगानीकर्ता / एनआरएन (Investor / NRN)',
-      descEn: 'Track wealth, portfolio assets, and market vs. government valuations.',
-      descNe: 'पुँजी वृद्धि, पोर्टफोलियो सम्पत्ति तथा सरकारी र बजार मूल्याङ्कन ट्र्याक गर्नुहोस्।',
-      badgeEn: 'Wealth & Valuation Tracker',
-      badgeNe: 'पुँजी वृद्धि ट्र्याकर',
-      icon: TrendingUp,
-    },
-    {
-      id: 'AGENT_BROKER',
-      titleEn: 'Certified Real Estate Agent / Facilitator',
-      titleNe: 'घरजग्गा सहजकर्ता / एजेन्ट (Facilitator / Agent)',
-      descEn: 'Manage multiple client portfolios with verified cadastral plots.',
-      descNe: 'प्रमाणित कित्ता नापी नक्सा सहित धेरै ग्राहकहरूको पोर्टफोलियो व्यवस्थापन गर्नुहोस्।',
-      badgeEn: 'Multi-Client GIS Portfolio',
-      badgeNe: 'बहु-ग्राहक जीआईएस',
-      icon: Briefcase,
-    },
   ];
 
-  const selectedRoleMeta = ROLES.find((r) => r.id === userIntent) || ROLES[0];
+  const selectedRoleMeta = ROLES.find((r) => r.id === userRole) || ROLES[0];
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between font-sans selection:bg-emerald-600 selection:text-white">
@@ -1192,37 +1241,58 @@ function AuthContent() {
           )}
 
           {/* ============================================================ */}
-          {/* STEP 3: ROLE SELECTION (STANDALONE SCREEN - 4 DISTINCT ROLES) */}
+          {/* STEP 3: ROLE SELECTION (STRICT 2 ROLES: RENTER VS OWNER)    */}
           {/* ============================================================ */}
           {step === 'ROLE_SELECT' && (
             <div className="p-6 sm:p-8">
               <div className="mb-6">
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold mb-3">
                   <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>{lang === 'en' ? 'Step 3 of 4: User Intent' : 'चरण ३: प्रयोगकर्ता भूमिका'}</span>
+                  <span>
+                    {isRoleMigration
+                      ? lang === 'en'
+                        ? 'Account Migration: Choose Your Role'
+                        : 'खाता अद्यावधिक: आफ्नो भूमिका रोज्नुहोस्'
+                      : lang === 'en'
+                      ? 'Step 3 of 4: User Role'
+                      : 'चरण ३: प्रयोगकर्ता भूमिका'}
+                  </span>
                 </div>
                 <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-                  {lang === 'en' ? 'Select Your Role in Nepal Real Estate' : 'नेपाल घरजग्गा बजारमा आफ्नो भूमिका रोज्नुहोस्'}
+                  {lang === 'en' ? 'Select Your Role in Sarvabhoomi' : 'सर्वभूमिमा आफ्नो भूमिका रोज्नुहोस्'}
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-500 mt-1.5 leading-relaxed">
                   {lang === 'en'
-                    ? 'Choose how you intend to use Sarvabhoomi to access customized zero-brokerage tools and parcel analytics.'
-                    : 'शून्य-दलाली सुविधा र कित्ता नापी नक्सा उपकरणहरू प्राप्त गर्न आफ्नो मुख्य उद्देश्य छनोट गर्नुहोस्।'}
+                    ? 'Sarvabhoomi strictly separates Renters and Property Owners. Choose once — your choice is permanent for this phone number.'
+                    : 'सर्वभूमिमा भाडामा लिने (Renter) र घरधनी (Owner) को छुट्टाछुट्टै भूमिका हुन्छ। यो रोजाइ स्थायी हुनेछ।'}
                 </p>
               </div>
 
-              {/* 4 Distinct Role Cards Grid */}
+              {/* Notice for permanent choice */}
+              <div className="mb-5 p-3 rounded-xl bg-amber-50/80 border border-amber-200 text-amber-900 text-xs flex items-start gap-2.5 leading-relaxed">
+                <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <span>
+                  {lang === 'en'
+                    ? 'One role per account: Renters can only search & rent. Owners can only list & manage their rental properties. Switching later requires a different phone number.'
+                    : 'प्रति खाता एक भूमिका: भाडामा लिनेले घर खोज्न र भाडामा लिन मात्र सक्नुहुनेछ। घरधनीले आफ्नो घर भाडामा राख्न मात्र सक्नुहुनेछ।'}
+                </span>
+              </div>
+
+              {/* 2 Enforced Role Cards Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mb-6">
                 {ROLES.map((role) => {
-                  const isSelected = userIntent === role.id;
+                  const isSelected = userRole === role.id;
                   const IconComponent = role.icon;
 
                   return (
                     <button
                       key={role.id}
                       type="button"
-                      onClick={() => setUserIntent(role.id)}
-                      className={`p-4 rounded-xl border text-left transition-all relative flex flex-col justify-between cursor-pointer group min-h-[165px] ${
+                      onClick={() => {
+                        setUserRole(role.id);
+                        setUserIntent(role.id as any);
+                      }}
+                      className={`p-4 rounded-xl border text-left transition-all relative flex flex-col justify-between cursor-pointer group min-h-[175px] ${
                         isSelected
                           ? 'border-2 border-emerald-600 bg-emerald-50/70 shadow-sm ring-2 ring-emerald-100'
                           : 'border border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/80 shadow-xs'
@@ -1265,23 +1335,45 @@ function AuthContent() {
 
               {/* Navigation Action Buttons */}
               <div className="flex items-center gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setStep('OTP')}
-                  className="px-4 py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm flex items-center gap-1.5 transition-colors"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>{lang === 'en' ? 'Back' : 'पछाडि'}</span>
-                </button>
+                {!isRoleMigration && (
+                  <button
+                    type="button"
+                    onClick={() => setStep('OTP')}
+                    className="px-4 py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs sm:text-sm flex items-center gap-1.5 transition-colors"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span>{lang === 'en' ? 'Back' : 'पछाडि'}</span>
+                  </button>
+                )}
 
-                <button
-                  type="button"
-                  onClick={() => setStep('PROFILE_FORM')}
-                  className="flex-1 py-3.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs sm:text-sm tracking-wide shadow-xs hover:shadow-sm flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
-                >
-                  <span>{lang === 'en' ? 'Continue to Profile Setup' : 'प्रोफाइल विवरण भर्न अगाडि बढ्नुहोस्'}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
+                {isRoleMigration ? (
+                  <button
+                    type="button"
+                    onClick={handleConfirmRoleMigration}
+                    disabled={isSubmitting}
+                    className="flex-1 py-3.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs sm:text-sm tracking-wide shadow-xs hover:shadow-sm flex items-center justify-center gap-2 transition-all active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    <span>
+                      {isSubmitting
+                        ? lang === 'en'
+                          ? 'Saving Role...'
+                          : 'सुरक्षित गर्दै...'
+                        : lang === 'en'
+                        ? 'Confirm Role & Enter Dashboard'
+                        : 'भूमिका पुष्टि गरी ड्यासबोर्ड जानुहोस्'}
+                    </span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setStep('PROFILE_FORM')}
+                    className="flex-1 py-3.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs sm:text-sm tracking-wide shadow-xs hover:shadow-sm flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
+                  >
+                    <span>{lang === 'en' ? 'Continue to Profile Setup' : 'प्रोफाइल विवरण भर्न अगाडि बढ्नुहोस्'}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             </div>
           )}

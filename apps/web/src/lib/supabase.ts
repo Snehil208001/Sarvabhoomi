@@ -40,6 +40,7 @@ export type Database = {
           id: string;
           phone_np: string;
           full_name: string | null;
+          user_role: 'RENTER' | 'OWNER' | null;
           user_intent: 'BUYER' | 'OWNER' | 'INVESTOR_NRN' | 'AGENT_BROKER' | null;
           preferred_region: 'HILLY' | 'TERAI';
           preferred_district: string;
@@ -53,6 +54,7 @@ export type Database = {
           id: string;
           phone_np: string;
           full_name?: string | null;
+          user_role?: 'RENTER' | 'OWNER' | null;
           user_intent?: 'BUYER' | 'OWNER' | 'INVESTOR_NRN' | 'AGENT_BROKER' | null;
           preferred_region?: 'HILLY' | 'TERAI';
           preferred_district?: string;
@@ -66,6 +68,7 @@ export type Database = {
           id?: string;
           phone_np?: string;
           full_name?: string | null;
+          user_role?: 'RENTER' | 'OWNER' | null;
           user_intent?: 'BUYER' | 'OWNER' | 'INVESTOR_NRN' | 'AGENT_BROKER' | null;
           preferred_region?: 'HILLY' | 'TERAI';
           preferred_district?: string;
@@ -115,6 +118,17 @@ export type Database = {
           description: string | null;
           listing_type: 'BUY_LAND' | 'BUY_HOUSE' | 'RENT_HOUSE' | 'COMMERCIAL';
           price_npr: number;
+          monthly_rent_npr: number | null;
+          deposit_npr: number | null;
+          maintenance_npr: number | null;
+          maintenance_included: boolean;
+          furnishing: 'FULLY' | 'SEMI' | 'UNFURNISHED' | null;
+          property_subtype: 'HOUSE' | 'FLAT' | 'ROOM' | 'SHOP' | null;
+          preferred_tenant: 'FAMILY' | 'BACHELOR' | 'BACHELOR_MALE' | 'BACHELOR_FEMALE' | 'COMPANY' | 'ANY' | null;
+          available_from: string | null;
+          floor_no: number | null;
+          total_floors: number | null;
+          parking: boolean | null;
           district: string;
           municipality: string | null;
           ward: number | null;
@@ -131,7 +145,7 @@ export type Database = {
           admin_verified: boolean;
           kitta_no: string | null;
           photos: string[];
-          status: 'ACTIVE' | 'DRAFT' | 'SOLD' | 'PAUSED';
+          status: 'ACTIVE' | 'DRAFT' | 'SOLD' | 'PAUSED' | 'PENDING_REVIEW';
           views_count: number;
           created_at: string;
           updated_at: string;
@@ -143,6 +157,17 @@ export type Database = {
           description?: string | null;
           listing_type: 'BUY_LAND' | 'BUY_HOUSE' | 'RENT_HOUSE' | 'COMMERCIAL';
           price_npr: number;
+          monthly_rent_npr?: number | null;
+          deposit_npr?: number | null;
+          maintenance_npr?: number | null;
+          maintenance_included?: boolean;
+          furnishing?: 'FULLY' | 'SEMI' | 'UNFURNISHED' | null;
+          property_subtype?: 'HOUSE' | 'FLAT' | 'ROOM' | 'SHOP' | null;
+          preferred_tenant?: 'FAMILY' | 'BACHELOR' | 'BACHELOR_MALE' | 'BACHELOR_FEMALE' | 'COMPANY' | 'ANY' | null;
+          available_from?: string | null;
+          floor_no?: number | null;
+          total_floors?: number | null;
+          parking?: boolean | null;
           district: string;
           municipality?: string | null;
           ward?: number | null;
@@ -159,7 +184,7 @@ export type Database = {
           admin_verified?: boolean;
           kitta_no?: string | null;
           photos?: string[];
-          status?: 'ACTIVE' | 'DRAFT' | 'SOLD' | 'PAUSED';
+          status?: 'ACTIVE' | 'DRAFT' | 'SOLD' | 'PAUSED' | 'PENDING_REVIEW';
           views_count?: number;
           created_at?: string;
           updated_at?: string;
@@ -171,6 +196,17 @@ export type Database = {
           description?: string | null;
           listing_type?: 'BUY_LAND' | 'BUY_HOUSE' | 'RENT_HOUSE' | 'COMMERCIAL';
           price_npr?: number;
+          monthly_rent_npr?: number | null;
+          deposit_npr?: number | null;
+          maintenance_npr?: number | null;
+          maintenance_included?: boolean;
+          furnishing?: 'FULLY' | 'SEMI' | 'UNFURNISHED' | null;
+          property_subtype?: 'HOUSE' | 'FLAT' | 'ROOM' | 'SHOP' | null;
+          preferred_tenant?: 'FAMILY' | 'BACHELOR' | 'BACHELOR_MALE' | 'BACHELOR_FEMALE' | 'COMPANY' | 'ANY' | null;
+          available_from?: string | null;
+          floor_no?: number | null;
+          total_floors?: number | null;
+          parking?: boolean | null;
           district?: string;
           municipality?: string | null;
           ward?: number | null;
@@ -187,7 +223,7 @@ export type Database = {
           admin_verified?: boolean;
           kitta_no?: string | null;
           photos?: string[];
-          status?: 'ACTIVE' | 'DRAFT' | 'SOLD' | 'PAUSED';
+          status?: 'ACTIVE' | 'DRAFT' | 'SOLD' | 'PAUSED' | 'PENDING_REVIEW';
           views_count?: number;
           created_at?: string;
           updated_at?: string;
@@ -274,6 +310,67 @@ export type Database = {
           }
         ];
       };
+      property_visit_requests: {
+        Row: {
+          id: string;
+          property_id: string;
+          renter_id: string;
+          owner_id: string;
+          visit_date: string;
+          time_slot: string;
+          note: string | null;
+          status: 'PENDING' | 'CONFIRMED' | 'DECLINED';
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          property_id: string;
+          renter_id: string;
+          owner_id: string;
+          visit_date: string;
+          time_slot: string;
+          note?: string | null;
+          status?: 'PENDING' | 'CONFIRMED' | 'DECLINED';
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          property_id?: string;
+          renter_id?: string;
+          owner_id?: string;
+          visit_date?: string;
+          time_slot?: string;
+          note?: string | null;
+          status?: 'PENDING' | 'CONFIRMED' | 'DECLINED';
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "property_visit_requests_property_id_fkey";
+            columns: ["property_id"];
+            isOneToOne: false;
+            referencedRelation: "properties";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "property_visit_requests_renter_id_fkey";
+            columns: ["renter_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "property_visit_requests_owner_id_fkey";
+            columns: ["owner_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -290,6 +387,7 @@ export type Database = {
         Returns: {
           exists: boolean;
           is_onboarded: boolean;
+          user_role?: 'RENTER' | 'OWNER' | null;
           user_intent: 'BUYER' | 'OWNER' | 'INVESTOR_NRN' | 'AGENT_BROKER' | null;
         };
       };

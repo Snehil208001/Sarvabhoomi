@@ -1,0 +1,53 @@
+# 🇳🇵 NoBroker vs. Sarvabhoomi: Architecture & Screen Comparison
+
+> **Platform:** Sarvabhoomi Capital & Investment — Nepal Zero-Brokerage P2P Rental Marketplace  
+> **Benchmark:** [NoBroker.in](https://www.nobroker.in/)  
+> **Task Objective:** Transform Sarvabhoomi into a dedicated **Rent-Only** platform with strict **Two-Role Separation (`RENTER` vs `OWNER`)**, adopting NoBroker's rental layout and field taxonomy adapted for Nepal.
+
+---
+
+## 🔍 Screen-by-Screen Side-by-Side Comparison
+
+| Screen | NoBroker.in (Benchmark) | Sarvabhoomi Today (Baseline at `3f246d5`) | Key Differences | Fix Planned in this Task |
+| :--- | :--- | :--- | :--- | :--- |
+| **Homepage Hero (`/`)** | Tabs: `Rent`, `Buy`, `Commercial`. In `Rent`: Selects City (Bangalore, Mumbai, etc.) + Locality search (up to 3 localities) + Apartment Type (1RK, 1BHK, 2BHK, 3BHK, 4BHK+) + Availability ("Immediate", "Within 15 days", "Within 30 days"). Hero CTA: "Search". Secondary CTAs: "Post Free Property Ad", "Rental Agreement". Trust: "₹130+ Cr Brokerage Saved". | `apps/web/src/app/page.tsx:275-310`: 4 tabs: `BUY_LAND` ("Buy Land / Ghaderi"), `BUY_HOUSE` ("Buy House / Villa"), `COMMERCIAL` ("Commercial Land"), `VALUATION` ("Valuation Tracker"). District dropdown (Kathmandu) + Locality input. CTA: "Search Properties". Trust strip: "0% Broker Commission", "100% Free Listing", "Verified Cadastral Kitta", "Direct Owner Unlocks". | Sarvabhoomi is sale-first and land-oriented. No rent-specific filters on hero. Promotes land valuation instead of tenancy. | **Pivot to Rent-Only**: Remove Buy/Commercial/Valuation tabs. Hero features 77 Districts, locality search, property subtype (House/Flat/Room/Shop), and monthly rent range. Honest trust strip ("0% Brokerage • Direct Owner Contact • Lalpurja Verified") with zero fake figures. |
+| **Search & Filters (`/search`)** | Left sidebar filters + 12-item results grid. Filters: BHK (1RK, 1–4+ BHK), Rent range slider, Availability (Immediate / date), Preferred Tenant (`Family`, `Bachelor Male`, `Bachelor Female`, `Company`), Property Type (`Apartment`, `Independent House`, `Gated Community`), Furnishing (`Full`, `Semi`, `Unfurnished`), Parking (`Bike`, `Car`). Sort: Relevance, Rent Low-High, Rent High-Low. | `apps/web/src/app/search/page.tsx:210-240`: Tabs: `BUY_LAND`, `BUY_HOUSE`, `COMMERCIAL`. Price range presets for capital sales (Under 50 Lakh, 50L–1 Cr, 1–2 Cr, etc.), Area in Aana/Ropani/Kattha, Facing, Road width, Lalpurja verified checkbox. Server-side `.range()` pagination (12/page). | Sarvabhoomi filters by capital purchase price (Lakhs/Crores) and land measurement units rather than rental monthly rates, furnishing, or tenant eligibility. | **Rent-Only Search Engine**: Monthly Rent filters (Under 10k, 10k–25k, 25k–50k, 50k–1L, 1L+ NPR), BHK/Bedrooms, Property Subtype (House/Flat/Room/Shop), Furnishing, Preferred Tenant, Availability date, District, Lalpurja Admin-verified. Sort by Newest, Rent Low-High, Rent High-Low. |
+| **Property Listing Card (`PropertyCard.tsx`)** | Card headline: e.g. "2 BHK Flat For Rent in [Locality]". **Prominent Monthly Rent** in ₹/month. Sub-bar: Security Deposit, Built-up Area (sq ft), Furnishing status. Tenant preference tag (`Family / Bachelors`). Availability date. Direct Owner badge. Action buttons: "Get Owner Details" & Shortlist heart icon. | `apps/web/src/components/PropertyCard.tsx:145-165`: Shows total capital price (e.g. `Rs. 1.50 Cr`) and price per unit (`Rs. 35 Lakh / Aana`). Land area in Ropani-Aana / Bigha-Kattha. Road width, Facing, Kitta number, Lalpurja badge. | Shows purchase price instead of monthly rent. Lacks deposit, maintenance, furnishing status, and tenant criteria. | **Tenancy Card Design**: Photo-led with ambient framing. Large **Monthly Rent (NPR XX,XXX/month)** headline. Deposit + Maintenance on same row. Area in sq ft. Furnishing and Tenant tags. "Available From" date. "Contact Owner" trigger. |
+| **Property Detail (`/properties/[id]`)** | Photo gallery showcase. Rent breakdown: Monthly Rent, Security Deposit, Maintenance charges, Brokerage Saved (1–2 months rent). Specs: BHK, Bathrooms, Balconies, Floor, Total Floors, Facing, Parking, Age, Furnishing inventory. Honest location landmarks. Sticky Owner Contact card + "Schedule a Visit" modal. | `apps/web/src/app/properties/[id]/page.tsx:380-450, 520-560`: Sale price in Lakh/Crore, land area breakdown (Ropani/Kattha), Kitta no, road width. Cadastral reference with Google Maps link. 1-credit contact unlock modal. | Designed for land/building purchases. No monthly rent breakdown, deposit, maintenance, furnishing inventory, or visit scheduling. | **Tenancy Showcase**: Rent + Deposit + Maintenance breakdown. Specs grid (Subtype, BHK, Bathrooms, Floor, Parking, Road, Facing, Kitta). Google Maps area links. 0% Brokerage saved based on 1 month's rent. Direct Owner Unlock (1 credit) + "Schedule a Visit" request. |
+| **Post-Property Form (`/post-property`)** | Wizard: (1) Property details (City, Locality, Subtype, BHK, Floor), (2) Rental financials (Rent, Deposit, Maintenance), (3) Furnishing & amenities, (4) Tenant preferences & availability, (5) Photos upload. Status set to `PENDING_REVIEW` until admin verification. | `apps/web/src/app/post-property/page.tsx:215-255`: 5-step wizard for land/house sales: (1) Type & Location (`BUY_LAND`, `BUY_HOUSE`, etc.), (2) Area & Specs, (3) Photos (Supabase Storage), (4) Sale Price (`price_npr`), Kitta, Lalpurja declaration, (5) Review & Publish. Automatically sets `status = 'ACTIVE'`. | Collects capital price and land units. Auto-publishes without review. Does not collect monthly rent, deposit, maintenance, or tenant preferences. | **Rent-Only Owner Wizard**: (1) Type & Location (House/Flat/Room/Shop, District, Ward, Locality), (2) Rent & Details (Monthly rent, Deposit, Maintenance, Furnishing, BHK/Bath, Floor, Parking, Tenant preference, Available from), (3) Photos, (4) Price & Ownership (Rent summary, Kitta, Lalpurja claim, non-broker declaration), (5) Review & Publish. Status defaults to `PENDING_REVIEW`. |
+| **Roles & Permissions (Signup Flow)** | **No Roles**: Single account model. Any user can search rentals AND post rental listings under the same phone number. | `apps/web/src/app/auth/page.tsx:645-720`: 4 cosmetic display intents (`BUYER`, `OWNER`, `INVESTOR_NRN`, `AGENT_BROKER`). All accounts share the same permissions. | NoBroker has no roles. Sarvabhoomi has cosmetic intents without real security boundaries. | **Strict Two-Role Separation (`RENTER` vs `OWNER`)**: Deliberate departure from NoBroker. User chooses ONCE at signup: `RENTER` (search, shortlist, unlock contact, schedule visit) or `OWNER` (list properties, manage inquiries). Enforced in Database RLS, route middleware, and UI guards. One role per account permanently. |
+| **Dashboard (`/dashboard`)** | Separate views for Owners ("My Listings", tenant inquiries, rent agreements) vs Renters (Shortlisted, Contacted Owners, Scheduled Visits). | `apps/web/src/app/dashboard/page.tsx:530-650`: Shared 4-tab dashboard (My Listings, Shortlist, Wallet, Profile) with Portfolio Valuation card summing sale prices for all users. | Blends owner tools with renter tools. Portfolio valuation assumes capital sales. | **Role-Specific Dashboards**: **Renter View**: Shortlist, Unlocked Contacts, Visit Requests, Profile (with 15-credit wallet). **Owner View**: My Listings (Pending Review / Active / Paused), Enquiries / Visit Requests received (with unlocked tenant name & phone), Profile. |
+| **Contact Unlock & Pricing Model** | Plan-based subscriptions (e.g., Relax Plan, Freedom Plan) or free contact packs. | `ContactUnlockModal.tsx`: Credit wallet system. New users receive 15 free unlock credits upon phone verification. 1 credit = 1 contact unlock. | NoBroker charges tiered subscription fees. Sarvabhoomi gives 15 free launch credits. | **Retain 15-Credit Launch Offer**: Keep Sarvabhoomi's user-friendly 15-credit model for `RENTER` accounts. Owners do not spend credits to list or view inquiries. |
+
+---
+
+## 🏛️ Strategic Decisions & Architecture Rules
+
+1. **Deliberate Departure from NoBroker on Roles**:
+   - NoBroker allows any logged-in user to act as both a tenant and a landlord.
+   - **Sarvabhoomi strictly enforces two roles**: `RENTER` and `OWNER`.
+   - Once chosen during mobile onboarding, `user_role` is permanently locked at the database level (`profiles.user_role`).
+   - Role switching is disabled on a single account. Users wishing to both rent and list must use separate phone numbers.
+2. **Server-Side Security Enforcement (Not Just Hidden Buttons)**:
+   - Database RLS prevents `RENTER` accounts from inserting or updating `properties`.
+   - Database RLS prevents `OWNER` accounts from inserting `property_favourites` or `contact_unlocks`.
+   - Next.js middleware and page guards redirect cross-role route attempts (e.g., Renters trying to visit `/post-property` are redirected to `/dashboard` with an explicit notice; Owners trying to visit `/search` or `/properties/[id]` are redirected to their listings dashboard).
+3. **Rent-Only Paradigm**:
+   - `listing_type` restricted to rental housing (`RENT_HOUSE`).
+   - Legacy sale and commercial seed rows are preserved in the database but set to `PAUSED` so they never appear on the rental marketplace.
+   - The `/valuation` route file is preserved for reference, but removed from navbar, hero tabs, and footer links.
+4. **Listing Review Gatekeeper**:
+   - In accordance with NoBroker's quality standards, newly submitted listings enter `status = 'PENDING_REVIEW'`.
+   - Only admin/service role can certify Lalpurja cadastral boundaries and approve listings to `ACTIVE`.
+
+---
+
+## 🔒 Verification & Compliance Checklist
+
+- [ ] **Renter RLS Enforcement**: Attempting to insert a property as a `RENTER` returns PostgreSQL RLS violation.
+- [ ] **Owner RLS Enforcement**: Attempting to insert a favourite or unlock contact as an `OWNER` returns PostgreSQL RLS violation.
+- [ ] **Renter Route Guard**: Directly visiting `/post-property` as a Renter redirects to `/dashboard` with a warning message.
+- [ ] **Owner Route Guard**: Directly visiting `/search` as an Owner redirects to `/dashboard` with a warning message.
+- [ ] **Two-Card Auth Step**: Step 3 in `/auth` shows only `RENTER` and `OWNER` cards with Nepali and English descriptions.
+- [ ] **One-Time Role Migration**: Existing users with `user_role IS NULL` are prompted with a non-skippable 2-card role selection screen upon their next dashboard visit.
+- [ ] **All Quality Gates Green**: `npm test` passes, `npm run lint` passes, `npm run type-check` passes, `npm run build` passes.

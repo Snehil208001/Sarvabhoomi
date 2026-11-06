@@ -7,20 +7,21 @@ import {
   ShieldAlert,
   Heart,
   MapPin,
-  Compass,
-  Milestone,
+  Calendar,
   Bed,
   ArrowRight,
   Phone,
   Eye,
   KeyRound,
   Trash2,
+  Users,
+  Armchair,
+  Maximize2,
 } from 'lucide-react';
 import {
   Property,
-  formatPriceNPR,
-  formatArea,
-  formatPricePerUnit,
+  formatMonthlyRentNPR,
+  formatDeposit,
 } from '@sarvabhoomi/shared';
 import { PropertyImage } from '@/components/PropertyImage';
 
@@ -48,7 +49,22 @@ export function PropertyCard({
   const photoUrl =
     property.photos && property.photos.length > 0
       ? property.photos[0]
-      : 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80';
+      : 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80';
+
+  const monthlyRent = property.monthly_rent_npr || property.price_npr;
+  const subtypeLabel = property.property_subtype || (property.bedrooms ? `${property.bedrooms} BHK Flat` : 'Rental');
+  const furnishingLabel = property.furnishing
+    ? `${property.furnishing.charAt(0) + property.furnishing.slice(1).toLowerCase()} Furnished`
+    : (lang === 'en' ? 'Furnishing N/A' : 'फर्निसिङ उल्लेख छैन');
+  const tenantLabel = property.preferred_tenant
+    ? property.preferred_tenant === 'FAMILY'
+      ? (lang === 'en' ? 'Family Preferred' : 'परिवारलाई प्राथमिकता')
+      : property.preferred_tenant === 'BACHELOR'
+      ? (lang === 'en' ? 'Bachelors Allowed' : 'विद्यार्थी/ब्याचलर')
+      : property.preferred_tenant === 'COMPANY'
+      ? (lang === 'en' ? 'Company / Office' : 'कम्पनी / कार्यालय')
+      : (lang === 'en' ? 'Any Tenant' : 'जोसुकै')
+    : (lang === 'en' ? 'Family / Bachelor' : 'परिवार वा ब्याचलर');
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-md hover:border-emerald-300 transition-all group flex flex-col justify-between">
@@ -118,10 +134,10 @@ export function PropertyCard({
             </button>
           )}
 
-          {/* Bottom Left: Listing Type Pill */}
+          {/* Bottom Left: Property Subtype Pill */}
           <div className="absolute bottom-3 left-3">
-            <span className="px-2 py-0.5 rounded bg-slate-900/75 text-white text-[10px] font-semibold tracking-wider uppercase">
-              {property.listing_type.replace('_', ' ')}
+            <span className="px-2.5 py-0.5 rounded bg-slate-900/80 text-white text-[10px] font-bold tracking-wider uppercase backdrop-blur-xs">
+              {subtypeLabel}
             </span>
           </div>
 
@@ -142,25 +158,35 @@ export function PropertyCard({
 
         {/* Content Body */}
         <div className="p-5 space-y-3">
-          {/* Price Header */}
+          {/* Prominent Monthly Rent Header (NoBroker layout) */}
           <div>
             <div className="flex items-baseline justify-between gap-2">
-              <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">
-                {formatPriceNPR(property.price_npr, lang)}
+              <h3 className="text-xl sm:text-2xl font-black text-emerald-700 tracking-tight">
+                {formatMonthlyRentNPR(monthlyRent, lang)}
               </h3>
-              <span className="text-[11px] font-semibold text-slate-500">
-                {formatPricePerUnit(property.price_npr, property.area_value, property.area_unit, lang)}
-              </span>
+              <div className="text-right">
+                <span className="text-[11px] font-bold text-slate-600 block">
+                  Deposit: {formatDeposit(property.deposit_npr, lang)}
+                </span>
+                <span className="text-[10px] text-slate-400 block">
+                  {property.maintenance_npr
+                    ? `+ Rs. ${property.maintenance_npr.toLocaleString('en-IN')} Maint.`
+                    : property.maintenance_included
+                    ? (lang === 'en' ? 'Maint. Included' : 'मर्मत समावेश')
+                    : (lang === 'en' ? 'No Maint. Fee' : 'कुनै अतिरिक्त मर्मत शुल्क छैन')}
+                </span>
+              </div>
             </div>
+
             <Link
               href={`/properties/${property.id}`}
-              className="text-sm font-bold text-slate-800 hover:text-emerald-700 line-clamp-1 transition-colors mt-0.5 block"
+              className="text-sm font-bold text-slate-900 hover:text-emerald-700 line-clamp-1 transition-colors mt-1 block"
             >
               {property.title}
             </Link>
           </div>
 
-          {/* Location Landmark */}
+          {/* Locality Landmark */}
           <div className="flex items-center gap-1.5 text-xs text-slate-600 font-medium">
             <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
             <span className="truncate">
@@ -169,34 +195,37 @@ export function PropertyCard({
             </span>
           </div>
 
-          {/* Property Specifications Grid */}
-          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-xs">
-            <div className="flex items-center gap-1.5 text-slate-600">
-              <span className="font-semibold text-slate-900">
-                {formatArea(property.area_value, property.area_unit, lang)}
+          {/* NoBroker-style Rental Specs Grid */}
+          <div className="grid grid-cols-2 gap-2 pt-2.5 border-t border-slate-100 text-xs">
+            {/* Built-up Area */}
+            <div className="flex items-center gap-1.5 text-slate-600 truncate">
+              <Maximize2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span className="font-semibold text-slate-900 truncate">
+                {property.area_sqft || Math.round(property.area_value)} sq. ft.
               </span>
             </div>
 
-            {property.facing && (
-              <div className="flex items-center gap-1.5 text-slate-600 truncate">
-                <Compass className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <span className="truncate">{property.facing} Facing</span>
-              </div>
-            )}
+            {/* Furnishing */}
+            <div className="flex items-center gap-1.5 text-slate-600 truncate">
+              <Armchair className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span className="truncate font-medium">{furnishingLabel}</span>
+            </div>
 
-            {property.road_access && (
-              <div className="flex items-center gap-1.5 text-slate-600 truncate">
-                <Milestone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <span className="truncate">{property.road_access}</span>
-              </div>
-            )}
+            {/* Preferred Tenant */}
+            <div className="flex items-center gap-1.5 text-slate-600 truncate">
+              <Users className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span className="truncate font-medium">{tenantLabel}</span>
+            </div>
 
-            {property.bedrooms && (
-              <div className="flex items-center gap-1.5 text-slate-600">
-                <Bed className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <span>{property.bedrooms} Beds</span>
-              </div>
-            )}
+            {/* Availability */}
+            <div className="flex items-center gap-1.5 text-slate-600 truncate">
+              <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span className="truncate font-medium text-emerald-800">
+                {property.available_from
+                  ? `From ${property.available_from}`
+                  : (lang === 'en' ? 'Ready to Move' : 'तुरुन्त सर्न सकिने')}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -218,7 +247,7 @@ export function PropertyCard({
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 ${
               isUnlocked
                 ? 'bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100'
-                : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                : 'bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95'
             }`}
           >
             <Phone className="w-3.5 h-3.5" />
@@ -229,7 +258,7 @@ export function PropertyCard({
                   : 'सम्पर्क खुल्यो'
                 : lang === 'en'
                 ? 'Contact Owner'
-                : 'जग्गाधनी सम्पर्क'}
+                : 'घरधनी सम्पर्क'}
             </span>
           </button>
         )}
@@ -237,4 +266,3 @@ export function PropertyCard({
     </div>
   );
 }
-

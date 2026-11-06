@@ -16,6 +16,12 @@ export const DISTRICT_MAX_LENGTH = 60;
 
 export const OTP_REGEX = new RegExp(`^\\d{${OTP_LENGTH}}$`);
 
+export const userRoleEnum = z.enum(['RENTER', 'OWNER']);
+export type UserRole = z.infer<typeof userRoleEnum>;
+
+/**
+ * @deprecated Legacy 4-intent enum. Kept as alias to avoid breaking legacy code.
+ */
 export const userIntentEnum = z.enum(['BUYER', 'OWNER', 'INVESTOR_NRN', 'AGENT_BROKER']);
 export type UserIntent = z.infer<typeof userIntentEnum>;
 
@@ -67,7 +73,8 @@ export const onboardingSchema = z.object({
     .trim()
     .min(FULL_NAME_MIN_LENGTH, `Full name must be at least ${FULL_NAME_MIN_LENGTH} characters.`)
     .max(FULL_NAME_MAX_LENGTH, `Full name must not exceed ${FULL_NAME_MAX_LENGTH} characters.`),
-  userIntent: userIntentEnum,
+  userRole: userRoleEnum.optional(),
+  userIntent: userIntentEnum.optional(),
   preferredRegion: regionEnum,
   preferredDistrict: z
     .string()

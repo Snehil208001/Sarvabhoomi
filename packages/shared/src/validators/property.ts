@@ -3,6 +3,22 @@ import { z } from 'zod';
 export const listingTypeEnum = z.enum(['BUY_LAND', 'BUY_HOUSE', 'RENT_HOUSE', 'COMMERCIAL']);
 export type ListingType = z.infer<typeof listingTypeEnum>;
 
+export const propertySubtypeEnum = z.enum(['HOUSE', 'FLAT', 'ROOM', 'SHOP']);
+export type PropertySubtype = z.infer<typeof propertySubtypeEnum>;
+
+export const furnishingEnum = z.enum(['FULLY', 'SEMI', 'UNFURNISHED']);
+export type Furnishing = z.infer<typeof furnishingEnum>;
+
+export const preferredTenantEnum = z.enum([
+  'FAMILY',
+  'BACHELOR',
+  'BACHELOR_MALE',
+  'BACHELOR_FEMALE',
+  'COMPANY',
+  'ANY',
+]);
+export type PreferredTenant = z.infer<typeof preferredTenantEnum>;
+
 export const areaUnitEnum = z.enum(['ROPANI', 'AANA', 'BIGHA', 'KATTHA', 'SQFT']);
 export type AreaUnit = z.infer<typeof areaUnitEnum>;
 
@@ -18,7 +34,7 @@ export const propertyFacingEnum = z.enum([
 ]);
 export type PropertyFacing = z.infer<typeof propertyFacingEnum>;
 
-export const propertyStatusEnum = z.enum(['ACTIVE', 'DRAFT', 'SOLD', 'PAUSED']);
+export const propertyStatusEnum = z.enum(['ACTIVE', 'DRAFT', 'SOLD', 'PAUSED', 'PENDING_REVIEW']);
 export type PropertyStatus = z.infer<typeof propertyStatusEnum>;
 
 export interface Property {
@@ -28,6 +44,17 @@ export interface Property {
   description: string | null;
   listing_type: ListingType;
   price_npr: number;
+  monthly_rent_npr?: number | null;
+  deposit_npr?: number | null;
+  maintenance_npr?: number | null;
+  maintenance_included?: boolean;
+  furnishing?: Furnishing | null;
+  property_subtype?: PropertySubtype | null;
+  preferred_tenant?: PreferredTenant | null;
+  available_from?: string | null;
+  floor_no?: number | null;
+  total_floors?: number | null;
+  parking?: boolean | null;
   district: string;
   municipality: string | null;
   ward: number | null;
@@ -54,6 +81,7 @@ export interface Property {
     id: string;
     full_name: string | null;
     phone_np: string;
+    user_role?: string | null;
     user_intent: string | null;
   };
   is_favourited?: boolean;
@@ -65,6 +93,17 @@ export const createPropertySchema = z.object({
   description: z.string().trim().max(3000).optional(),
   listing_type: listingTypeEnum,
   price_npr: z.number().positive('Price must be greater than zero'),
+  monthly_rent_npr: z.number().positive('Monthly rent must be greater than zero').optional().nullable(),
+  deposit_npr: z.number().nonnegative().optional().nullable(),
+  maintenance_npr: z.number().nonnegative().optional().nullable(),
+  maintenance_included: z.boolean().default(false),
+  furnishing: furnishingEnum.optional().nullable(),
+  property_subtype: propertySubtypeEnum.optional().nullable(),
+  preferred_tenant: preferredTenantEnum.optional().nullable(),
+  available_from: z.string().optional().nullable(),
+  floor_no: z.number().int().optional().nullable(),
+  total_floors: z.number().int().optional().nullable(),
+  parking: z.boolean().optional().nullable(),
   district: z.string().min(2, 'Please select a valid district'),
   municipality: z.string().trim().optional(),
   ward: z.number().int().min(1).max(50).optional(),
@@ -90,6 +129,11 @@ export interface PropertyFilterParams {
   locality?: string;
   min_price?: number;
   max_price?: number;
+  min_rent?: number;
+  max_rent?: number;
+  furnishing?: Furnishing;
+  property_subtype?: PropertySubtype;
+  preferred_tenant?: PreferredTenant;
   area_unit?: AreaUnit;
   min_area?: number;
   max_area?: number;
@@ -100,5 +144,6 @@ export interface PropertyFilterParams {
   admin_verified?: boolean;
   bedrooms?: number;
   bathrooms?: number;
-  sort_by?: 'newest' | 'price_asc' | 'price_desc' | 'area_asc' | 'area_desc';
+  parking?: boolean;
+  sort_by?: 'newest' | 'price_asc' | 'price_desc' | 'rent_asc' | 'rent_desc' | 'area_asc' | 'area_desc';
 }

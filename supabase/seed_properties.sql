@@ -1,14 +1,13 @@
 -- ==============================================================================
 -- SARVABHOOMI CAPITAL & INVESTMENT — SEED PROPERTIES DATASET
--- 12 Realistic Active Listings across Kathmandu Valley, Pokhara, Terai
--- Label: SEED DATA ONLY (Unsplash Architecture Real Estate Placeholders)
+-- 6 Active Rent Listings across Kathmandu, Lalitpur, Pokhara, Chitwan, Butwal
+-- Historical BUY/COMMERCIAL rows marked as PAUSED per rent-only pivot
+-- Label: [Seed] (Unsplash Architecture Real Estate Placeholders)
 -- ==============================================================================
 
 DO $$
 DECLARE
     v_owner_1 UUID;
-    v_owner_2 UUID;
-    v_owner_3 UUID;
 BEGIN
     -- Look for any existing real user profile to anchor seed properties
     SELECT id INTO v_owner_1 FROM public.profiles LIMIT 1;
@@ -29,28 +28,33 @@ BEGIN
             NOW()
         ) ON CONFLICT (id) DO NOTHING;
 
-        INSERT INTO public.profiles (id, phone_np, full_name, user_intent, preferred_region, preferred_district, is_onboarded)
+        INSERT INTO public.profiles (id, phone_np, full_name, user_role, user_intent, preferred_region, preferred_district, is_onboarded)
         VALUES (
             v_owner_1,
             '+9779841000001',
             'Hari Prasad Sharma',
             'OWNER',
+            'OWNER',
             'HILLY',
             'Kathmandu',
             true
-        ) ON CONFLICT (id) DO UPDATE SET full_name = EXCLUDED.full_name, is_onboarded = true;
+        ) ON CONFLICT (id) DO UPDATE SET user_role = 'OWNER', full_name = EXCLUDED.full_name, is_onboarded = true;
     END IF;
 
     -- Clean existing seed entries if re-run
     DELETE FROM public.properties WHERE title LIKE '%[Seed]%' OR title LIKE '%(Verified Owner)%';
 
-    -- 1. Budhanilkantha Residential Land (Kathmandu)
+    -- ==========================================================================
+    -- HISTORICAL NON-RENT SEED LISTINGS (PAUSED PER RENT-ONLY PIVOT)
+    -- ==========================================================================
+
+    -- 1. Budhanilkantha Residential Land (Kathmandu) - PAUSED
     INSERT INTO public.properties (
         owner_id, title, description, listing_type, price_npr, district, municipality, ward, locality,
         area_value, area_unit, area_sqft, road_access, facing, owner_declared_lalpurja, admin_verified, lalpurja_verified, kitta_no, photos, status
     ) VALUES (
         v_owner_1,
-        'Prime 4.25 Aana Residential Ghaderi near Golfutar',
+        '[Seed] Prime 4.25 Aana Residential Ghaderi near Golfutar',
         'Direct owner sale. Peaceful VIP residential height with unobstructed view of Shivapuri National Park. 16 ft blacktopped road access, water pipeline, 3-phase electricity available. Pure rectangular plot ideal for immediate bungalow construction. Cadastral map certified.',
         'BUY_LAND',
         14500000,
@@ -69,16 +73,16 @@ BEGIN
             'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80',
             'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80'
         ],
-        'ACTIVE'
+        'PAUSED'
     );
 
-    -- 2. Imadol Modern House (Lalitpur)
+    -- 2. Imadol Modern House (Lalitpur) - PAUSED
     INSERT INTO public.properties (
         owner_id, title, description, listing_type, price_npr, district, municipality, ward, locality,
         area_value, area_unit, area_sqft, road_access, facing, bedrooms, bathrooms, owner_declared_lalpurja, admin_verified, lalpurja_verified, kitta_no, photos, status
     ) VALUES (
         v_owner_1,
-        'Brand New 2.5 Storey Contemporary Villa in Imadol',
+        '[Seed] Brand New 2.5 Storey Contemporary Villa in Imadol',
         'Newly constructed earthquake-resistant pillar system house built on 3.75 Aana land. Semi-furnished with modular kitchen, false ceiling, solar water heating, and parking for 1 SUV + 3 bikes. 13 ft concrete road, 800m from Gwarko Ring Road junction.',
         'BUY_HOUSE',
         27500000,
@@ -97,19 +101,18 @@ BEGIN
         'KITTA-118',
         ARRAY[
             'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80',
-            'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80',
-            'https://images.unsplash.com/photo-1600565193348-f74bd3c7ccdf?auto=format&fit=crop&w=1200&q=80'
+            'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80'
         ],
-        'ACTIVE'
+        'PAUSED'
     );
 
-    -- 3. New Baneshwor Commercial Building / Land (Kathmandu)
+    -- 3. New Baneshwor Commercial Building / Land (Kathmandu) - PAUSED
     INSERT INTO public.properties (
         owner_id, title, description, listing_type, price_npr, district, municipality, ward, locality,
         area_value, area_unit, area_sqft, road_access, facing, owner_declared_lalpurja, admin_verified, lalpurja_verified, kitta_no, photos, status
     ) VALUES (
         v_owner_1,
-        'Commercial Land Plot on Main Road in New Baneshwor',
+        '[Seed] Commercial Land Plot on Main Road in New Baneshwor',
         'Rare 8 Aana prime commercial parcel situated just 150m from Baneshwor Chowk. High footfall commercial belt suitable for corporate bank branch, IT office, clinic, or high-yield commercial complex. 32 ft wide blacktopped road.',
         'COMMERCIAL',
         52000000,
@@ -128,257 +131,145 @@ BEGIN
             'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80',
             'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80'
         ],
-        'ACTIVE'
+        'PAUSED'
     );
 
-    -- 4. Pokhara Lakeside Tourism Plot (Kaski)
-    INSERT INTO public.properties (
-        owner_id, title, description, listing_type, price_npr, district, municipality, ward, locality,
-        area_value, area_unit, area_sqft, road_access, facing, owner_declared_lalpurja, admin_verified, lalpurja_verified, kitta_no, photos, status
-    ) VALUES (
-        v_owner_1,
-        '1 Ropani Panoramic Annapurna View Land at Lakeside',
-        'Spectacular 1 Ropani plot located in quiet upper Lakeside elevation. Direct, unobstructed views of Phewa Lake and Annapurna Range. Optimal for luxury boutique resort, yoga retreat, or premium holiday villa. 20 ft wide blacktopped road access.',
-        'BUY_LAND',
-        38000000,
-        'Kaski',
-        'Pokhara Metropolitan City',
-        6,
-        'Upper Lakeside, Pokhara',
-        1.0,
-        'ROPANI',
-        5476.0,
-        '20 ft Pitched',
-        'WEST',
-        true, true, true,
-        'KITTA-521',
-        ARRAY[
-            'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&w=1200&q=80',
-            'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80'
-        ],
-        'ACTIVE'
-    );
+    -- ==========================================================================
+    -- 6 ACTIVE RENTAL SEED LISTINGS (RENT_HOUSE)
+    -- ==========================================================================
 
-    -- 5. Bharatpur Residential / Agriculture Land (Chitwan)
+    -- RENT 1. Bhaisepati Modern Furnished Villa (Lalitpur)
     INSERT INTO public.properties (
-        owner_id, title, description, listing_type, price_npr, district, municipality, ward, locality,
-        area_value, area_unit, area_sqft, road_access, facing, owner_declared_lalpurja, admin_verified, lalpurja_verified, kitta_no, photos, status
+        owner_id, title, description, listing_type, price_npr, monthly_rent_npr, deposit_npr, maintenance_npr, maintenance_included,
+        furnishing, property_subtype, preferred_tenant, available_from, floor_no, total_floors, parking,
+        district, municipality, ward, locality, area_value, area_unit, area_sqft, road_access, facing,
+        bedrooms, bathrooms, owner_declared_lalpurja, admin_verified, lalpurja_verified, kitta_no, photos, status
     ) VALUES (
         v_owner_1,
-        '15 Kattha High-Yield Land Plot in Bharatpur',
-        'Direct owner listing in rapidly expanding Bharatpur residential corridor. 15 Kattha (over 54,000 sq ft) fertile, level topography. 24 ft gravel access road, 3 km from Narayangarh center. Clear land registration ownership deeds.',
-        'BUY_LAND',
-        9500000,
-        'Chitwan',
-        'Bharatpur Metropolitan City',
-        11,
-        'Bhojad, Bharatpur',
-        15.0,
-        'KATTHA',
-        54675.0,
-        '24 ft Graveled',
-        'SOUTH',
-        true, false, false,
-        'KITTA-903',
-        ARRAY[
-            'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80'
-        ],
-        'ACTIVE'
-    );
-
-    -- 6. Butwal Highway Commercial Land (Rupandehi)
-    INSERT INTO public.properties (
-        owner_id, title, description, listing_type, price_npr, district, municipality, ward, locality,
-        area_value, area_unit, area_sqft, road_access, facing, owner_declared_lalpurja, admin_verified, lalpurja_verified, kitta_no, photos, status
-    ) VALUES (
-        v_owner_1,
-        '10 Kattha Commercial Highway Plot in Kalikanagar',
-        'Outstanding location fronting secondary arterial 40 ft road just off East-West highway. Ideal for showroom, warehouse, educational institute or logistics depot. Level land with all utility infrastructure.',
-        'COMMERCIAL',
-        21000000,
-        'Rupandehi',
-        'Butwal Sub-Metropolitan City',
-        10,
-        'Kalikanagar, Butwal',
-        10.0,
-        'KATTHA',
-        36450.0,
-        '40 ft Pitched',
-        'SOUTH',
-        false, false, false,
-        'KITTA-774',
-        ARRAY[
-            'https://images.unsplash.com/photo-1582407947304-fd86f028f716?auto=format&fit=crop&w=1200&q=80'
-        ],
-        'ACTIVE'
-    );
-
-    -- 7. Suryabinayak Peaceful Ghaderi (Bhaktapur)
-    INSERT INTO public.properties (
-        owner_id, title, description, listing_type, price_npr, district, municipality, ward, locality,
-        area_value, area_unit, area_sqft, road_access, facing, owner_declared_lalpurja, admin_verified, lalpurja_verified, kitta_no, photos, status
-    ) VALUES (
-        v_owner_1,
-        '4 Aana Residential Plot in Peaceful Suryabinayak Colony',
-        'Direct owner sale. Located inside organized residential layout near Suryabinayak Temple forest. 14 ft concrete road, fresh water well, quiet green environment. 5 minutes drive to Araniko Highway.',
-        'BUY_LAND',
-        9800000,
-        'Bhaktapur',
-        'Suryabinayak Municipality',
-        5,
-        'Katunje, Suryabinayak',
-        4.0,
-        'AANA',
-        1369.0,
-        '14 ft Dhalan',
-        'SOUTH',
-        true, true, true,
-        'KITTA-312',
-        ARRAY[
-            'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80'
-        ],
-        'ACTIVE'
-    );
-
-    -- 8. Tokha Ready-to-Build Land (Kathmandu)
-    INSERT INTO public.properties (
-        owner_id, title, description, listing_type, price_npr, district, municipality, ward, locality,
-        area_value, area_unit, area_sqft, road_access, facing, owner_declared_lalpurja, admin_verified, lalpurja_verified, kitta_no, photos, status
-    ) VALUES (
-        v_owner_1,
-        '3.5 Aana Square Plot in Tokha Chandeshwori Height',
-        'Perfect square geometry plot with 16 ft blacktopped road access. Facing East with all-day sunlight. Soil tested and ready for immediate building permit approval from Tokha municipality.',
-        'BUY_LAND',
-        12500000,
-        'Kathmandu',
-        'Tokha Municipality',
-        2,
-        'Chandeshwori, Tokha',
-        3.5,
-        'AANA',
-        1197.88,
-        '16 ft Pitched',
-        'EAST',
-        true, true, true,
-        'KITTA-208',
-        ARRAY[
-            'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80'
-        ],
-        'ACTIVE'
-    );
-
-    -- 9. Sanepa Luxury Residence (Lalitpur)
-    INSERT INTO public.properties (
-        owner_id, title, description, listing_type, price_npr, district, municipality, ward, locality,
-        area_value, area_unit, area_sqft, road_access, facing, bedrooms, bathrooms, owner_declared_lalpurja, admin_verified, lalpurja_verified, kitta_no, photos, status
-    ) VALUES (
-        v_owner_1,
-        'Architectural 4 BHK Luxury Bungalow in Sanepa',
-        'Built on 8 Aana land in the prestigious diplomatic enclave of Sanepa. High ceilings, Italian marble flooring, expansive lawn garden, guard house, and double garage. 20 ft pitched road with immediate connectivity to Jhamsikhel.',
-        'BUY_HOUSE',
-        65000000,
-        'Lalitpur',
-        'Lalitpur Metropolitan City',
-        2,
-        'Sanepa Heights, Lalitpur',
-        8.0,
-        'AANA',
-        2738.0,
-        '20 ft Pitched',
-        'NORTH_EAST',
-        4,
-        5,
-        true, false, false,
-        'KITTA-14',
-        ARRAY[
-            'https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=1200&q=80',
-            'https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1200&q=80'
-        ],
-        'ACTIVE'
-    );
-
-    -- 10. Biratnagar Industrial / Commercial Land (Morang)
-    INSERT INTO public.properties (
-        owner_id, title, description, listing_type, price_npr, district, municipality, ward, locality,
-        area_value, area_unit, area_sqft, road_access, facing, owner_declared_lalpurja, admin_verified, lalpurja_verified, kitta_no, photos, status
-    ) VALUES (
-        v_owner_1,
-        '1 Bigha Commercial Parcel on Biratnagar Ring Road',
-        'Huge 1 Bigha (72,900 sq ft) parcel on 30 ft pitched road. High commercial visibility, 3-phase dedicated electricity line, suitable for manufacturing unit, cold storage, or educational campus.',
-        'COMMERCIAL',
-        35000000,
-        'Morang',
-        'Biratnagar Metropolitan City',
-        4,
-        'Ring Road, Biratnagar',
-        1.0,
-        'BIGHA',
-        72900.0,
-        '30 ft Pitched',
-        'EAST',
-        true, true, true,
-        'KITTA-1002',
-        ARRAY[
-            'https://images.unsplash.com/photo-1582407947304-fd86f028f716?auto=format&fit=crop&w=1200&q=80'
-        ],
-        'ACTIVE'
-    );
-
-    -- 11. Dhulikhel Resort / Villa Land (Kavre)
-    INSERT INTO public.properties (
-        owner_id, title, description, listing_type, price_npr, district, municipality, ward, locality,
-        area_value, area_unit, area_sqft, road_access, facing, owner_declared_lalpurja, admin_verified, lalpurja_verified, kitta_no, photos, status
-    ) VALUES (
-        v_owner_1,
-        '2 Ropani Resort / Second-Home Plot in Dhulikhel',
-        'Unmatched Himalayan sunrise view extending from Langtang to Everest range. Gently terraced 2 Ropani land with 16 ft road access, natural water spring nearby, and tranquil forest surroundings.',
-        'BUY_LAND',
-        18000000,
-        'Kavrepalanchok',
-        'Dhulikhel Municipality',
-        3,
-        'Bhattedada, Dhulikhel',
-        2.0,
-        'ROPANI',
-        10952.0,
-        '16 ft Pitched',
-        'NORTH',
-        true, false, false,
-        'KITTA-661',
-        ARRAY[
-            'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&w=1200&q=80'
-        ],
-        'ACTIVE'
-    );
-
-    -- 12. Bhaisepati Modern Villa for Rent / Sale (Lalitpur)
-    INSERT INTO public.properties (
-        owner_id, title, description, listing_type, price_npr, district, municipality, ward, locality,
-        area_value, area_unit, area_sqft, road_access, facing, bedrooms, bathrooms, owner_declared_lalpurja, admin_verified, lalpurja_verified, kitta_no, photos, status
-    ) VALUES (
-        v_owner_1,
-        '3 BHK Modern Villa with Garden in Bhaisepati',
-        'Beautifully furnished residence in safe, secured colony in Bhaisepati. 3 master bedrooms with attached baths, open plan living-dining, private lawn, rooftop terrace with panoramic valley view. 16 ft blacktopped road.',
+        '[Seed] 3 BHK Modern Furnished Villa with Private Garden in Bhaisepati',
+        'Beautifully furnished independent residence in safe, secured colony in Bhaisepati. 3 master bedrooms with attached baths, open plan living-dining, private lawn, rooftop terrace with panoramic valley view. 16 ft blacktopped road. Ideal for diplomats and expat families.',
         'RENT_HOUSE',
-        125000,
-        'Lalitpur',
-        'Karyabinayak Municipality',
-        1,
-        'Radio Nepal Area, Bhaisepati',
-        4.0,
-        'AANA',
-        1369.0,
-        '16 ft Pitched',
-        'WEST',
-        3,
-        3,
-        true, false, false,
-        'KITTA-84',
+        125000, 125000, 250000, 5000, false,
+        'FULLY', 'HOUSE', 'FAMILY', '2026-12-01', 1, 3, true,
+        'Lalitpur', 'Karyabinayak Municipality', 1, 'Radio Nepal Area, Bhaisepati',
+        4.0, 'AANA', 1369.0, '16 ft Pitched', 'WEST',
+        3, 3, true, true, true, 'KITTA-84',
         ARRAY[
             'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80',
             'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80'
         ],
         'ACTIVE'
     );
-END $$;
 
+    -- RENT 2. Baluwatar Sunlit Modern 2 BHK Flat (Kathmandu)
+    INSERT INTO public.properties (
+        owner_id, title, description, listing_type, price_npr, monthly_rent_npr, deposit_npr, maintenance_npr, maintenance_included,
+        furnishing, property_subtype, preferred_tenant, available_from, floor_no, total_floors, parking,
+        district, municipality, ward, locality, area_value, area_unit, area_sqft, road_access, facing,
+        bedrooms, bathrooms, owner_declared_lalpurja, admin_verified, lalpurja_verified, kitta_no, photos, status
+    ) VALUES (
+        v_owner_1,
+        '[Seed] 2 BHK Sunlit Modern Flat near Russian Embassy, Baluwatar',
+        'Peaceful residential flat on 2nd floor with abundant natural sunlight, modular kitchen, solar backup, dedicated car parking, and 24-hr clean boring water. Within 5 minutes walk from Prime Minister Residence and embassies.',
+        'RENT_HOUSE',
+        45000, 45000, 90000, 2500, true,
+        'SEMI', 'FLAT', 'FAMILY', '2026-11-15', 2, 4, true,
+        'Kathmandu', 'Kathmandu Metropolitan City', 4, 'Baluwatar Embassy Zone',
+        950, 'SQFT', 950.0, '20 ft Pitched', 'SOUTH',
+        2, 2, true, true, true, 'KITTA-209',
+        ARRAY[
+            'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1200&q=80',
+            'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80'
+        ],
+        'ACTIVE'
+    );
+
+    -- RENT 3. New Baneshwor Single Room with Attached Bath (Kathmandu)
+    INSERT INTO public.properties (
+        owner_id, title, description, listing_type, price_npr, monthly_rent_npr, deposit_npr, maintenance_npr, maintenance_included,
+        furnishing, property_subtype, preferred_tenant, available_from, floor_no, total_floors, parking,
+        district, municipality, ward, locality, area_value, area_unit, area_sqft, road_access, facing,
+        bedrooms, bathrooms, owner_declared_lalpurja, admin_verified, lalpurja_verified, kitta_no, photos, status
+    ) VALUES (
+        v_owner_1,
+        '[Seed] Clean Single Room with Attached Bath near Baneshwor Chowk',
+        'Spacious, freshly painted room on 3rd floor with private attached bathroom and separate balcony. High-speed WiFi, shared terrace, 24-hr water supply. Ideal for working professionals or serious students near Civil Hospital.',
+        'RENT_HOUSE',
+        14000, 14000, 14000, 500, true,
+        'SEMI', 'ROOM', 'BACHELOR', '2026-11-10', 3, 4, false,
+        'Kathmandu', 'Kathmandu Metropolitan City', 10, 'Prayag Marg, New Baneshwor',
+        250, 'SQFT', 250.0, '12 ft Dhalan', 'EAST',
+        1, 1, true, false, false, 'KITTA-312',
+        ARRAY[
+            'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=1200&q=80'
+        ],
+        'ACTIVE'
+    );
+
+    -- RENT 4. Pokhara Lakeside 2 BHK Lakeview Apartment (Kaski)
+    INSERT INTO public.properties (
+        owner_id, title, description, listing_type, price_npr, monthly_rent_npr, deposit_npr, maintenance_npr, maintenance_included,
+        furnishing, property_subtype, preferred_tenant, available_from, floor_no, total_floors, parking,
+        district, municipality, ward, locality, area_value, area_unit, area_sqft, road_access, facing,
+        bedrooms, bathrooms, owner_declared_lalpurja, admin_verified, lalpurja_verified, kitta_no, photos, status
+    ) VALUES (
+        v_owner_1,
+        '[Seed] 2 BHK Lakeview Furnished Apartment in Lakeside Center',
+        'Stunning uninterrupted view of Phewa Lake and Peace Pagoda. Fully furnished with European kitchen, AC in bedrooms, high-speed fiber internet, and dedicated covered scooter/bike parking. 2 minutes walk to Lake promenade.',
+        'RENT_HOUSE',
+        38000, 38000, 76000, 2000, false,
+        'FULLY', 'FLAT', 'ANY', '2026-12-01', 3, 5, true,
+        'Kaski', 'Pokhara Metropolitan City', 6, 'Lakeside Baidam, Pokhara',
+        850, 'SQFT', 850.0, '16 ft Pitched', 'SOUTH_WEST',
+        2, 2, true, true, true, 'KITTA-145',
+        ARRAY[
+            'https://images.unsplash.com/photo-1540518614846-7ede433c4550?auto=format&fit=crop&w=1200&q=80',
+            'https://images.unsplash.com/photo-1502005229762-ee1b2da97a06?auto=format&fit=crop&w=1200&q=80'
+        ],
+        'ACTIVE'
+    );
+
+    -- RENT 5. Bharatpur Ground Floor Commercial Shutter (Chitwan)
+    INSERT INTO public.properties (
+        owner_id, title, description, listing_type, price_npr, monthly_rent_npr, deposit_npr, maintenance_npr, maintenance_included,
+        furnishing, property_subtype, preferred_tenant, available_from, floor_no, total_floors, parking,
+        district, municipality, ward, locality, area_value, area_unit, area_sqft, road_access, facing,
+        bedrooms, bathrooms, owner_declared_lalpurja, admin_verified, lalpurja_verified, kitta_no, photos, status
+    ) VALUES (
+        v_owner_1,
+        '[Seed] Main Road Commercial Shutter & Showroom Space in Bharatpur',
+        'Prime road-facing commercial space on ground floor with 2 heavy shutters, attached restroom, and wide customer parking front. Ideal for pharmacy, diagnostic lab, grocery store, hardware, or corporate brand outlet on Lion Chowk corridor.',
+        'RENT_HOUSE',
+        28000, 28000, 100000, 0, true,
+        'UNFURNISHED', 'SHOP', 'COMPANY', '2026-11-20', 0, 3, true,
+        'Chitwan', 'Bharatpur Metropolitan City', 10, 'Lions Chowk, Bharatpur',
+        450, 'SQFT', 450.0, '40 ft Highway', 'NORTH',
+        0, 1, true, true, true, 'KITTA-512',
+        ARRAY[
+            'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80'
+        ],
+        'ACTIVE'
+    );
+
+    -- RENT 6. Butwal Golpark 3 BHK Independent Upper Flat (Rupandehi)
+    INSERT INTO public.properties (
+        owner_id, title, description, listing_type, price_npr, monthly_rent_npr, deposit_npr, maintenance_npr, maintenance_included,
+        furnishing, property_subtype, preferred_tenant, available_from, floor_no, total_floors, parking,
+        district, municipality, ward, locality, area_value, area_unit, area_sqft, road_access, facing,
+        bedrooms, bathrooms, owner_declared_lalpurja, admin_verified, lalpurja_verified, kitta_no, photos, status
+    ) VALUES (
+        v_owner_1,
+        '[Seed] 3 BHK Independent Upper Flat with Terrace in Golpark, Butwal',
+        'Airy and spacious residential flat with 3 bedrooms, large living hall, kitchen with dining space, separate pooja room, and private rooftop access. Located in quiet family neighborhood 300m inside Siddhartha Highway.',
+        'RENT_HOUSE',
+        22000, 22000, 44000, 1000, true,
+        'UNFURNISHED', 'FLAT', 'FAMILY', '2026-11-25', 1, 2, true,
+        'Rupandehi', 'Butwal Sub-Metropolitan City', 3, 'Golpark Residential Area, Butwal',
+        1100, 'SQFT', 1100.0, '14 ft Concrete', 'EAST',
+        3, 2, true, true, true, 'KITTA-673',
+        ARRAY[
+            'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1200&q=80'
+        ],
+        'ACTIVE'
+    );
+END $$;

@@ -11,28 +11,32 @@ import {
   Upload,
   MapPin,
   Home,
-  Building,
   Tag,
-  Coins,
   AlertCircle,
   X,
   RefreshCw,
   Image as ImageIcon,
   Check,
   Sparkles,
-  HelpCircle,
+  Bed,
+  Users,
+  Armchair,
+  Car,
+  Layers,
+  Calendar,
 } from 'lucide-react';
 import {
-  ListingType,
   AreaUnit,
   PropertyFacing,
-  HILLY_DISTRICTS,
-  TERAI_DISTRICTS,
+  PropertySubtype,
+  Furnishing,
+  PreferredTenant,
+  ALL_NEPAL_DISTRICTS,
   getRegionForDistrict,
   toSqFt,
-  formatPriceNPR,
+  formatMonthlyRentNPR,
+  formatDeposit,
   formatArea,
-  getAuthDict,
 } from '@sarvabhoomi/shared';
 import { supabase } from '@/lib/supabase';
 import { PropertyImage } from '@/components/PropertyImage';
@@ -41,10 +45,10 @@ type WizardStep = 1 | 2 | 3 | 4 | 5;
 
 const STEPS = [
   { num: 1, titleEn: 'Type & Location', titleNe: 'प्रकार र स्थान' },
-  { num: 2, titleEn: 'Area & Specs', titleNe: 'क्षेत्रफल र विवरण' },
+  { num: 2, titleEn: 'Rent & Details', titleNe: 'भाडा र विवरण' },
   { num: 3, titleEn: 'Photos', titleNe: 'तस्बिरहरू' },
-  { num: 4, titleEn: 'Price & Lalpurja', titleNe: 'मूल्य र लालपुर्जा' },
-  { num: 5, titleEn: 'Review & Publish', titleNe: 'समीक्षा र प्रकाशन' },
+  { num: 4, titleEn: 'Price & Ownership', titleNe: 'स्वामित्व घोषणा' },
+  { num: 5, titleEn: 'Review & Submit', titleNe: 'समीक्षा र पेश' },
 ];
 
 export default function PostPropertyPage() {
@@ -58,20 +62,30 @@ export default function PostPropertyPage() {
   // Active step
   const [currentStep, setCurrentStep] = useState<WizardStep>(1);
 
-  // Step 1: Type & Location
-  const [listingType, setListingType] = useState<ListingType>('BUY_LAND');
+  // Step 1: Type & Location (Subtype: House, Flat, Room, Shop)
+  const [subtype, setSubtype] = useState<PropertySubtype>('FLAT');
   const [district, setDistrict] = useState('Kathmandu');
   const [municipality, setMunicipality] = useState('');
   const [ward, setWard] = useState<string>('');
   const [locality, setLocality] = useState('');
 
-  // Step 2: Area & Specs
-  const [areaValue, setAreaValue] = useState<string>('');
-  const [areaUnit, setAreaUnit] = useState<AreaUnit>('AANA');
-  const [roadAccess, setRoadAccess] = useState('');
+  // Step 2: Rent & Details
+  const [monthlyRentNpr, setMonthlyRentNpr] = useState<string>('');
+  const [depositNpr, setDepositNpr] = useState<string>('');
+  const [maintenanceNpr, setMaintenanceNpr] = useState<string>('');
+  const [maintenanceIncluded, setMaintenanceIncluded] = useState(false);
+  const [furnishing, setFurnishing] = useState<Furnishing>('SEMI');
+  const [preferredTenant, setPreferredTenant] = useState<PreferredTenant>('FAMILY');
+  const [availableFrom, setAvailableFrom] = useState('');
+  const [bedrooms, setBedrooms] = useState<string>('2');
+  const [bathrooms, setBathrooms] = useState<string>('1');
+  const [floorNo, setFloorNo] = useState<string>('2');
+  const [totalFloors, setTotalFloors] = useState<string>('4');
+  const [hasParking, setHasParking] = useState(true);
+  const [areaValue, setAreaValue] = useState<string>('750');
+  const [areaUnit, setAreaUnit] = useState<AreaUnit>('SQFT');
+  const [roadAccess, setRoadAccess] = useState('16 ft Pitched');
   const [facing, setFacing] = useState<PropertyFacing>('EAST');
-  const [bedrooms, setBedrooms] = useState<string>('3');
-  const [bathrooms, setBathrooms] = useState<string>('2');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
 
@@ -81,31 +95,17 @@ export default function PostPropertyPage() {
   const [photoError, setPhotoError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Step 4: Price & Lalpurja Verification
-  const [priceNpr, setPriceNpr] = useState<string>('');
+  // Step 4: Ownership & Non-Brokerage Declaration
   const [kittaNo, setKittaNo] = useState('');
   const [hasLalpurja, setHasLalpurja] = useState(true);
   const [ownershipConfirmed, setOwnershipConfirmed] = useState(false);
+  const [nonBrokerConfirmed, setNonBrokerConfirmed] = useState(false);
 
   // Form submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Auto-set default area unit based on District (Hilly = AANA, Terai = KATTHA)
-  useEffect(() => {
-    const region = getRegionForDistrict(district);
-    if (region === 'TERAI') {
-      if (areaUnit === 'AANA' || areaUnit === 'ROPANI') {
-        setAreaUnit('KATTHA');
-      }
-    } else {
-      if (areaUnit === 'KATTHA' || areaUnit === 'BIGHA') {
-        setAreaUnit('AANA');
-      }
-    }
-  }, [district]);
-
-  // Auth protection check
+  // Auth protection & role check: Renter CANNOT access /post-property
   useEffect(() => {
     let isMounted = true;
     async function checkAuth() {
@@ -119,11 +119,23 @@ export default function PostPropertyPage() {
           return;
         }
 
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('user_role')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (profile?.user_role === 'RENTER') {
+          router.replace('/dashboard?error=renter_cannot_post');
+          return;
+        }
+
         if (isMounted) {
           setUserId(user.id);
           setLoadingUser(false);
         }
-      } catch {
+      } catch (err) {
+        console.error('Auth verification error:', err);
         router.replace('/auth');
       }
     }
@@ -134,35 +146,14 @@ export default function PostPropertyPage() {
     };
   }, [router]);
 
-  // Handle Photo Upload to Supabase Storage
+  // Handle local photo selection & Supabase Storage upload
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    if (!userId) {
-      setPhotoError('You must be signed in to upload listing photos.');
-      return;
-    }
-
     if (photos.length + files.length > 10) {
-      setPhotoError('You can upload a maximum of 10 photos per listing.');
+      setPhotoError('Maximum 10 property photos allowed.');
       return;
-    }
-
-    const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-    const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
-
-    // Validate MIME types and file sizes before attempting upload
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-        setPhotoError(`Invalid file format for "${file.name}". Only JPEG, PNG, and WebP images are permitted.`);
-        return;
-      }
-      if (file.size > MAX_SIZE_BYTES) {
-        setPhotoError(`File "${file.name}" exceeds the 5MB size limit.`);
-        return;
-      }
     }
 
     setUploadingPhotos(true);
@@ -172,123 +163,149 @@ export default function PostPropertyPage() {
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const cleanFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-      const filePath = `${userId}/${Date.now()}-${cleanFileName}`;
+      if (file.size > 5 * 1024 * 1024) {
+        setPhotoError(`File "${file.name}" exceeds maximum allowed 5MB limit.`);
+        continue;
+      }
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${userId || 'guest'}_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `property-images/${fileName}`;
 
       try {
-        const { data, error } = await supabase.storage
+        const { error: uploadErr } = await supabase.storage
           .from('property-photos')
-          .upload(filePath, file, { 
-            cacheControl: '3600', 
+          .upload(filePath, file, {
+            cacheControl: '3600',
             upsert: false,
-            contentType: file.type,
           });
 
-        if (error) {
-          console.warn('Storage upload error:', error.message);
-          if (error.message.toLowerCase().includes('bucket not found')) {
-            setPhotoError(
-              'Storage bucket "property-photos" not found in your Supabase project. Create a public bucket named "property-photos" in your Supabase Dashboard (Storage -> New Bucket) or run supabase/fix_storage_bucket.sql. You can also skip photos and proceed.'
-            );
-          } else {
-            setPhotoError(`Upload failed for "${file.name}": ${error.message}`);
-          }
-        } else if (data) {
-          const { data: pubUrl } = supabase.storage
-            .from('property-photos')
-            .getPublicUrl(filePath);
-          uploadedUrls.push(pubUrl.publicUrl);
+        if (uploadErr) {
+          setPhotoError(`Upload failed for "${file.name}": ${uploadErr.message}`);
+          continue;
         }
-      } catch (uploadErr) {
-        console.error('Upload exception:', uploadErr);
-        setPhotoError(`Unexpected error uploading "${file.name}".`);
+
+        const { data: publicData } = supabase.storage
+          .from('property-photos')
+          .getPublicUrl(filePath);
+
+        if (publicData?.publicUrl) {
+          uploadedUrls.push(publicData.publicUrl);
+        }
+      } catch (uploadException) {
+        console.warn('Supabase storage upload error:', uploadException);
       }
     }
 
-    if (uploadedUrls.length > 0) {
-      setPhotos((prev) => [...prev, ...uploadedUrls]);
-    }
+    setPhotos((prev) => [...prev, ...uploadedUrls]);
     setUploadingPhotos(false);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
   };
 
-  const handleRemovePhoto = (idx: number) => {
-    setPhotos((prev) => prev.filter((_, i) => i !== idx));
+  const handleRemovePhoto = (index: number) => {
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Step Validation & Navigation
-  const handleNextStep = () => {
+  // Step validation
+  const validateStep = (step: WizardStep): boolean => {
     setErrorMessage(null);
 
-    if (currentStep === 1) {
+    if (step === 1) {
       if (!locality.trim()) {
-        setErrorMessage('Please enter the locality or landmark.');
-        return;
+        setErrorMessage(lang === 'en' ? 'Please enter a locality, ward, or landmark.' : 'कृपया टोल वा चोक उल्लेख गर्नुहोस्।');
+        return false;
       }
-      setCurrentStep(2);
-    } else if (currentStep === 2) {
-      const numArea = parseFloat(areaValue);
-      if (!areaValue || isNaN(numArea) || numArea <= 0) {
-        setErrorMessage('Please enter a valid property area greater than 0.');
-        return;
+      return true;
+    }
+
+    if (step === 2) {
+      const rent = parseFloat(monthlyRentNpr);
+      if (isNaN(rent) || rent <= 0) {
+        setErrorMessage(lang === 'en' ? 'Please enter a valid monthly rent amount.' : 'कृपया मान्य मासिक भाडा रकम प्रविष्ट गर्नुहोस्।');
+        return false;
       }
-      if (!title.trim()) {
-        // Auto-generate title if empty
-        const autoTitle = `${formatArea(numArea, areaUnit, lang, { includeSqft: false })} ${listingType.replace('_', ' ')} in ${locality}, ${district}`;
-        setTitle(autoTitle);
-      }
-      setCurrentStep(3);
-    } else if (currentStep === 3) {
-      // Photos are optional but encouraged
-      setCurrentStep(4);
-    } else if (currentStep === 4) {
-      const numPrice = parseFloat(priceNpr);
-      if (!priceNpr || isNaN(numPrice) || numPrice <= 0) {
-        setErrorMessage('Please enter a valid property price in NPR.');
-        return;
-      }
+      return true;
+    }
+
+    if (step === 4) {
       if (!ownershipConfirmed) {
-        setErrorMessage('You must confirm property ownership or authority to list.');
-        return;
+        setErrorMessage(
+          lang === 'en'
+            ? 'Please confirm that you are the lawful owner or authorized representative.'
+            : 'कृपया तपाईं घरधनी वा अधिकार प्राप्त प्रतिनिधि भएको पुष्टि गर्नुहोस्।'
+        );
+        return false;
       }
-      setCurrentStep(5);
+      if (!nonBrokerConfirmed) {
+        setErrorMessage(
+          lang === 'en'
+            ? 'Please certify that you will not charge brokerage commission to tenants.'
+            : 'कृपया भाडावालसँग कुनै दलाली शुल्क नलिने प्रतिबद्धता जनाउनुहोस्।'
+        );
+        return false;
+      }
+      return true;
+    }
+
+    return true;
+  };
+
+  const handleNext = () => {
+    if (validateStep(currentStep)) {
+      setCurrentStep((prev) => Math.min(5, prev + 1) as WizardStep);
     }
   };
 
-  const handlePrevStep = () => {
+  const handleBack = () => {
     setErrorMessage(null);
-    if (currentStep > 1) {
-      setCurrentStep((prev) => (prev - 1) as WizardStep);
-    }
+    setCurrentStep((prev) => Math.max(1, prev - 1) as WizardStep);
   };
 
-  // Final Publish Handler
-  const handlePublish = async (status: 'ACTIVE' | 'DRAFT' = 'ACTIVE') => {
-    if (!userId) return;
+  // Final Form Submission — Creates Listing with status = 'PENDING_REVIEW'
+  const handlePublish = async (status: 'PENDING_REVIEW' | 'DRAFT' = 'PENDING_REVIEW') => {
+    if (!validateStep(1) || !validateStep(2) || !validateStep(4)) {
+      return;
+    }
+
+    if (!userId) {
+      setErrorMessage('User session missing. Please re-login.');
+      return;
+    }
+
     setIsSubmitting(true);
     setErrorMessage(null);
 
-    const numArea = parseFloat(areaValue) || 1;
-    const numPrice = parseFloat(priceNpr) || 1000000;
-    const sqft = toSqFt(numArea, areaUnit);
+    const numRent = parseFloat(monthlyRentNpr) || 15000;
+    const numDeposit = depositNpr ? parseFloat(depositNpr) : null;
+    const numMaint = maintenanceNpr ? parseFloat(maintenanceNpr) : null;
+    const numArea = parseFloat(areaValue) || 500;
+    const sqft = areaUnit === 'SQFT' ? numArea : toSqFt(numArea, areaUnit);
 
     const defaultTitle =
       title.trim() ||
-      `${formatArea(numArea, areaUnit, lang, { includeSqft: false })} ${listingType.replace('_', ' ')} in ${locality}, ${district}`;
+      `${subtype} for Rent in ${locality}, ${district}`;
 
     const defaultPhotos =
       photos.length > 0
         ? photos
-        : ['https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80'];
+        : ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1200&q=80'];
 
     const propertyPayload = {
       owner_id: userId,
       title: defaultTitle,
-      description: description.trim() || 'Direct owner listing verified on Sarvabhoomi 0% brokerage network.',
-      listing_type: listingType,
-      price_npr: numPrice,
+      description: description.trim() || 'Direct landlord listing. Verified zero-brokerage rental on Sarvabhoomi.',
+      listing_type: 'RENT_HOUSE' as const,
+      price_npr: numRent, // stored total field
+      monthly_rent_npr: numRent,
+      deposit_npr: numDeposit,
+      maintenance_npr: numMaint,
+      maintenance_included: maintenanceIncluded,
+      furnishing,
+      property_subtype: subtype,
+      preferred_tenant: preferredTenant,
+      available_from: availableFrom || null,
+      floor_no: floorNo ? parseInt(floorNo, 10) : null,
+      total_floors: totalFloors ? parseInt(totalFloors, 10) : null,
+      parking: hasParking,
       district,
       municipality: municipality.trim() || null,
       ward: ward ? parseInt(ward, 10) : null,
@@ -298,14 +315,14 @@ export default function PostPropertyPage() {
       area_sqft: sqft,
       road_access: roadAccess.trim() || '16 ft Pitched Road',
       facing,
-      bedrooms: listingType === 'BUY_HOUSE' || listingType === 'RENT_HOUSE' ? parseInt(bedrooms, 10) : null,
-      bathrooms: listingType === 'BUY_HOUSE' || listingType === 'RENT_HOUSE' ? parseInt(bathrooms, 10) : null,
+      bedrooms: bedrooms ? parseInt(bedrooms, 10) : null,
+      bathrooms: bathrooms ? parseInt(bathrooms, 10) : null,
       owner_declared_lalpurja: hasLalpurja,
       admin_verified: false,
       lalpurja_verified: false,
       kitta_no: kittaNo.trim() || null,
       photos: defaultPhotos,
-      status,
+      status, // PENDING_REVIEW per NoBroker review requirement
       views_count: 0,
       updated_at: new Date().toISOString(),
     };
@@ -319,19 +336,11 @@ export default function PostPropertyPage() {
 
       if (error) {
         console.warn('Publish insert error:', error.message);
-        setErrorMessage(error.message || 'Error publishing property. Please ensure database tables are created.');
+        setErrorMessage(error.message || 'Error publishing listing. Please check database permissions.');
         return;
       }
 
-      if (data?.id) {
-        if (status === 'ACTIVE') {
-          router.push(`/properties/${data.id}`);
-        } else {
-          router.push('/dashboard');
-        }
-      } else {
-        router.push('/dashboard');
-      }
+      router.push('/dashboard?posted=success');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to publish listing.';
       setErrorMessage(msg);
@@ -364,7 +373,7 @@ export default function PostPropertyPage() {
             <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow-xs">
               स
             </div>
-            <span className="font-extrabold text-slate-900 text-sm">Post Free Property</span>
+            <span className="font-extrabold text-slate-900 text-sm">Post Free Rental Listing</span>
             <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
               0% Brokerage
             </span>
@@ -434,113 +443,111 @@ export default function PostPropertyPage() {
           )}
 
           {/* ============================================================ */}
-          {/* STEP 1: TYPE & LOCATION */}
+          {/* STEP 1: TYPE & LOCATION                                      */}
           {/* ============================================================ */}
           {currentStep === 1 && (
             <div className="space-y-6">
               <div>
                 <h2 className="text-xl font-bold text-slate-900">
-                  {lang === 'en' ? 'Property Type & Location' : 'सम्पत्ति प्रकार तथा लोकेसन'}
+                  {lang === 'en' ? 'Rental Type & Location' : 'भाडाको प्रकार तथा लोकेसन'}
                 </h2>
                 <p className="text-xs text-slate-500 mt-1">
                   {lang === 'en'
-                    ? 'Select what you are listing and its exact municipal location.'
-                    : 'तपाईंले बिक्री वा भाडामा राख्न लाग्नुभएको सम्पत्ति छनोट गर्नुहोस्।'}
+                    ? 'Select the property subtype and its exact location in Nepal.'
+                    : 'तपाईंले भाडामा दिन लाग्नुभएको सम्पत्तिको प्रकार र लोकेसन रोज्नुहोस्।'}
                 </p>
               </div>
 
-              {/* Listing Type Radio Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[
-                  { id: 'BUY_LAND', label: 'Land / Ghaderi', icon: Tag },
-                  { id: 'BUY_HOUSE', label: 'House / Villa', icon: Home },
-                  { id: 'RENT_HOUSE', label: 'Rental House', icon: Building },
-                  { id: 'COMMERCIAL', label: 'Commercial', icon: Sparkles },
-                ].map((type) => (
-                  <button
-                    key={type.id}
-                    type="button"
-                    onClick={() => setListingType(type.id as ListingType)}
-                    className={`p-3.5 rounded-xl border text-center transition-all flex flex-col items-center gap-2 ${
-                      listingType === type.id
-                        ? 'border-2 border-emerald-600 bg-emerald-50 text-emerald-900 font-bold shadow-xs'
-                        : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
-                    }`}
-                  >
-                    <type.icon className="w-5 h-5 text-emerald-600" />
-                    <span className="text-xs">{type.label}</span>
-                  </button>
-                ))}
+              {/* Subtype Selector */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-2">
+                  {lang === 'en' ? 'Property Subtype' : 'सम्पत्ति प्रकार'}
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    { id: 'FLAT', labelEn: 'Flat / Apartment', labelNe: 'फ्ल्याट', icon: Home },
+                    { id: 'ROOM', labelEn: 'Single Room', labelNe: 'कोठा', icon: Bed },
+                    { id: 'HOUSE', labelEn: 'Independent House', labelNe: 'घर', icon: Layers },
+                    { id: 'SHOP', labelEn: 'Commercial Shop', labelNe: 'पसल / सटर', icon: Tag },
+                  ].map((item) => {
+                    const isSelected = subtype === item.id;
+                    const IconComp = item.icon;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setSubtype(item.id as PropertySubtype)}
+                        className={`p-3.5 rounded-xl border text-left transition-all ${
+                          isSelected
+                            ? 'border-2 border-emerald-600 bg-emerald-50/70 font-bold text-emerald-950'
+                            : 'border-slate-200 hover:border-slate-300 text-slate-700'
+                        }`}
+                      >
+                        <IconComp className={`w-5 h-5 mb-2 ${isSelected ? 'text-emerald-700' : 'text-slate-400'}`} />
+                        <span className="text-xs block font-bold">{lang === 'en' ? item.labelEn : item.labelNe}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* Location Fields */}
-              <div className="space-y-4">
+              {/* District & Locality Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-2">
-                    Primary District
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    {lang === 'en' ? 'District' : 'जिल्ला'} *
                   </label>
                   <select
                     value={district}
                     onChange={(e) => setDistrict(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:outline-none focus:border-emerald-600"
                   >
-                    <optgroup label="🏔️ Hilly & Valley Districts (Ropani / Aana)">
-                      {HILLY_DISTRICTS.map((d) => (
-                        <option key={d} value={d}>
-                          {d}
-                        </option>
-                      ))}
-                    </optgroup>
-                    <optgroup label="🌾 Terai Districts (Bigha / Kattha)">
-                      {TERAI_DISTRICTS.map((d) => (
-                        <option key={d} value={d}>
-                          {d}
-                        </option>
-                      ))}
-                    </optgroup>
+                    {ALL_NEPAL_DISTRICTS.map((d) => (
+                      <option key={d.nameEn} value={d.nameEn}>
+                        {lang === 'ne' ? d.nameNe : d.nameEn}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-2">
-                      Municipality / VDC
-                    </label>
-                    <input
-                      type="text"
-                      value={municipality}
-                      onChange={(e) => setMunicipality(e.target.value)}
-                      placeholder="e.g., Budhanilkantha Municipality"
-                      className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-2">
-                      Ward Number
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={50}
-                      value={ward}
-                      onChange={(e) => setWard(e.target.value)}
-                      placeholder="e.g., 3"
-                      className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    {lang === 'en' ? 'Municipality / VDC' : 'नगरपालिका / गाउँपालिका'}
+                  </label>
+                  <input
+                    type="text"
+                    value={municipality}
+                    onChange={(e) => setMunicipality(e.target.value)}
+                    placeholder="e.g. Kathmandu Metropolitan City"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600"
+                  />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-2">
-                    Locality / Tole / Landmark <span className="text-rose-500">*</span>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    {lang === 'en' ? 'Ward Number' : 'वडा नम्बर'}
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="50"
+                    value={ward}
+                    onChange={(e) => setWard(e.target.value)}
+                    placeholder="e.g. 4"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    {lang === 'en' ? 'Locality / Landmark' : 'टोल वा चोक'} *
                   </label>
                   <input
                     type="text"
                     value={locality}
                     onChange={(e) => setLocality(e.target.value)}
-                    placeholder="e.g., Golfutar, near Shivapuri School"
-                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600"
+                    placeholder="e.g. Baluwatar Embassy Zone, Baneshwor..."
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600"
                   />
                 </div>
               </div>
@@ -548,153 +555,212 @@ export default function PostPropertyPage() {
           )}
 
           {/* ============================================================ */}
-          {/* STEP 2: AREA & SPECIFICATIONS */}
+          {/* STEP 2: RENT & DETAILS                                       */}
           {/* ============================================================ */}
           {currentStep === 2 && (
             <div className="space-y-6">
               <div>
                 <h2 className="text-xl font-bold text-slate-900">
-                  {lang === 'en' ? 'Area & Specifications' : 'क्षेत्रफल तथा विशेषताहरू'}
+                  {lang === 'en' ? 'Rent & Property Details' : 'मासिक भाडा तथा थप विवरण'}
                 </h2>
                 <p className="text-xs text-slate-500 mt-1">
                   {lang === 'en'
-                    ? 'Enter the land area and key specifications.'
-                    : 'जग्गाको क्षेत्रफल र बाटो/मोहोडा सम्बन्धी विवरण भर्नुहोस्।'}
+                    ? 'Enter monthly rent, security deposit, maintenance, and unit specs.'
+                    : 'मासिक भाडा दर, धरौटी र फर्निसिङ सम्बन्धी विवरण भर्नुहोस्।'}
                 </p>
               </div>
 
-              {/* Area Input & Unit Selector */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Rent, Deposit & Maintenance Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-2">
-                    Area Value <span className="text-rose-500">*</span>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    {lang === 'en' ? 'Monthly Rent (NPR)' : 'मासिक भाडा (रु)'} *
                   </label>
                   <input
                     type="number"
-                    step="0.01"
-                    value={areaValue}
-                    onChange={(e) => setAreaValue(e.target.value)}
-                    placeholder="e.g., 4.25"
-                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm font-mono text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600"
+                    value={monthlyRentNpr}
+                    onChange={(e) => setMonthlyRentNpr(e.target.value)}
+                    placeholder="e.g. 25000"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-emerald-600 font-bold"
                   />
-                  {areaValue && (
-                    <p className="mt-1.5 text-xs text-emerald-700 font-medium">
-                      ≈ {toSqFt(parseFloat(areaValue) || 0, areaUnit).toLocaleString()} sq. ft.
-                    </p>
-                  )}
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-2">
-                    Measurement Unit
-                  </label>
-                  <select
-                    value={areaUnit}
-                    onChange={(e) => setAreaUnit(e.target.value as AreaUnit)}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:border-emerald-600"
-                  >
-                    <option value="AANA">Aana (आना) - Hilly</option>
-                    <option value="ROPANI">Ropani (रोपनी) - Hilly</option>
-                    <option value="KATTHA">Kattha (कट्ठा) - Terai</option>
-                    <option value="BIGHA">Bigha (बिघा) - Terai</option>
-                    <option value="SQFT">Square Feet (वर्ग फिट)</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Road Access & Facing */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-2">
-                    Road Access & Width
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    {lang === 'en' ? 'Security Deposit (NPR)' : 'धरौटी रकम (रु)'}
                   </label>
                   <input
-                    type="text"
-                    value={roadAccess}
-                    onChange={(e) => setRoadAccess(e.target.value)}
-                    placeholder="e.g., 16 ft Pitched / 13 ft Dhalan"
-                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600"
+                    type="number"
+                    value={depositNpr}
+                    onChange={(e) => setDepositNpr(e.target.value)}
+                    placeholder="e.g. 50000"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-emerald-600"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-2">
-                    Facing Direction (मोहोडा)
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    {lang === 'en' ? 'Maintenance (NPR / Month)' : 'मर्मत शुल्क (रु)'}
                   </label>
-                  <select
-                    value={facing}
-                    onChange={(e) => setFacing(e.target.value as PropertyFacing)}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:border-emerald-600"
-                  >
-                    <option value="EAST">East (पूर्व)</option>
-                    <option value="WEST">West (पश्चिम)</option>
-                    <option value="NORTH">North (उत्तर)</option>
-                    <option value="SOUTH">South (दक्षिण)</option>
-                    <option value="NORTH_EAST">North-East (ईशान)</option>
-                    <option value="SOUTH_EAST">South-East (आग्नेय)</option>
-                    <option value="NORTH_WEST">North-West (वायव्य)</option>
-                    <option value="SOUTH_WEST">South-West (नैऋत्य)</option>
-                  </select>
+                  <input
+                    type="number"
+                    disabled={maintenanceIncluded}
+                    value={maintenanceNpr}
+                    onChange={(e) => setMaintenanceNpr(e.target.value)}
+                    placeholder={maintenanceIncluded ? 'Included in Rent' : 'e.g. 1500'}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-emerald-600 disabled:opacity-50"
+                  />
+                  <label className="flex items-center gap-1.5 mt-2 cursor-pointer text-[11px] text-slate-600">
+                    <input
+                      type="checkbox"
+                      checked={maintenanceIncluded}
+                      onChange={(e) => {
+                        setMaintenanceIncluded(e.target.checked);
+                        if (e.target.checked) setMaintenanceNpr('');
+                      }}
+                      className="rounded text-emerald-600"
+                    />
+                    <span>Maintenance included in monthly rent</span>
+                  </label>
                 </div>
               </div>
 
-              {/* If House: Bedrooms & Bathrooms */}
-              {(listingType === 'BUY_HOUSE' || listingType === 'RENT_HOUSE') && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-2">
-                      Bedrooms
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={20}
-                      value={bedrooms}
-                      onChange={(e) => setBedrooms(e.target.value)}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-2">
-                      Bathrooms
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={20}
-                      value={bathrooms}
-                      onChange={(e) => setBathrooms(e.target.value)}
-                      className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900"
-                    />
-                  </div>
+              {/* Furnishing, Preferred Tenant, Availability */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    {lang === 'en' ? 'Furnishing Status' : 'फर्निसिङ'}
+                  </label>
+                  <select
+                    value={furnishing}
+                    onChange={(e) => setFurnishing(e.target.value as Furnishing)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:outline-none focus:border-emerald-600"
+                  >
+                    <option value="FULLY">Fully Furnished</option>
+                    <option value="SEMI">Semi Furnished</option>
+                    <option value="UNFURNISHED">Unfurnished</option>
+                  </select>
                 </div>
-              )}
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    {lang === 'en' ? 'Preferred Tenant' : 'प्राथमिकता'}
+                  </label>
+                  <select
+                    value={preferredTenant}
+                    onChange={(e) => setPreferredTenant(e.target.value as PreferredTenant)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:outline-none focus:border-emerald-600"
+                  >
+                    <option value="FAMILY">Family Preferred</option>
+                    <option value="BACHELOR">Bachelors / Students</option>
+                    <option value="COMPANY">Company / Office</option>
+                    <option value="ANY">Any Tenant</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    {lang === 'en' ? 'Available From' : 'उपलब्ध मिति'}
+                  </label>
+                  <input
+                    type="date"
+                    value={availableFrom}
+                    onChange={(e) => setAvailableFrom(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-emerald-600"
+                  />
+                </div>
+              </div>
+
+              {/* Bedrooms, Bathrooms, Floor, Parking */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Bedrooms / BHK</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={bedrooms}
+                    onChange={(e) => setBedrooms(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-emerald-600"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Bathrooms</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={bathrooms}
+                    onChange={(e) => setBathrooms(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-emerald-600"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Floor No</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={floorNo}
+                    onChange={(e) => setFloorNo(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-emerald-600"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Total Floors</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={totalFloors}
+                    onChange={(e) => setTotalFloors(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-emerald-600"
+                  />
+                </div>
+              </div>
+
+              {/* Parking toggle & Area */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Built-up Area (Sq. Ft.)</label>
+                  <input
+                    type="number"
+                    value={areaValue}
+                    onChange={(e) => setAreaValue(e.target.value)}
+                    placeholder="e.g. 850"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-emerald-600"
+                  />
+                </div>
+
+                <div className="flex items-center pt-6">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-800">
+                    <input
+                      type="checkbox"
+                      checked={hasParking}
+                      onChange={(e) => setHasParking(e.target.checked)}
+                      className="rounded text-emerald-600 w-4 h-4"
+                    />
+                    <span>Dedicated Parking Available (Car / Bike)</span>
+                  </label>
+                </div>
+              </div>
 
               {/* Title & Description */}
-              <div className="space-y-4">
+              <div className="space-y-4 pt-2 border-t border-slate-100">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-2">
-                    Listing Title (Optional, auto-generated if blank)
-                  </label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Listing Title</label>
                   <input
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="e.g., Prime 4 Aana Residential Ghaderi in Golfutar"
-                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600"
+                    placeholder="e.g. Beautiful 2 BHK Sunlit Flat in Baluwatar"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-emerald-600"
                   />
                 </div>
-
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-2">
-                    Property Description
-                  </label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Detailed Description</label>
                   <textarea
-                    rows={4}
+                    rows={3}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Mention surrounding environment, water supply, electricity, proximity to markets/schools..."
-                    className="w-full bg-white border border-slate-300 rounded-xl p-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600 leading-relaxed"
+                    placeholder="Describe amenities, surroundings, water supply, sunlight..."
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs text-slate-900 focus:outline-none focus:border-emerald-600"
                   />
                 </div>
               </div>
@@ -702,33 +768,24 @@ export default function PostPropertyPage() {
           )}
 
           {/* ============================================================ */}
-          {/* STEP 3: PHOTOS */}
+          {/* STEP 3: PHOTOS                                               */}
           {/* ============================================================ */}
           {currentStep === 3 && (
             <div className="space-y-6">
               <div>
                 <h2 className="text-xl font-bold text-slate-900">
-                  {lang === 'en' ? 'Property Photos (Up to 10)' : 'सम्पत्तिका तस्बिरहरू (१० वटासम्म)'}
+                  {lang === 'en' ? 'Property Photos (Up to 10)' : 'सम्पत्तिका तस्बिरहरू'}
                 </h2>
                 <p className="text-xs text-slate-500 mt-1">
-                  {lang === 'en'
-                    ? 'Upload clear photos of the plot, access road, and surroundings.'
-                    : 'जग्गा वा घरका स्पष्ट तस्बिरहरू अपलोड गर्नुहोस्।'}
+                  Upload clear photos of the rooms, kitchen, balcony, and entrance.
                 </p>
               </div>
 
               {photoError && (
-                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
-                    <span className="leading-relaxed">{photoError}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setPhotoError(null)}
-                    className="text-rose-600 hover:text-rose-900 font-semibold px-2 py-0.5 rounded hover:bg-rose-100 transition shrink-0"
-                  >
-                    Dismiss
+                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center justify-between">
+                  <span>{photoError}</span>
+                  <button type="button" onClick={() => setPhotoError(null)}>
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
               )}
@@ -736,35 +793,35 @@ export default function PostPropertyPage() {
               {/* Upload Dropzone */}
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-2xl p-8 text-center cursor-pointer transition-colors bg-slate-50/50 hover:bg-emerald-50/20"
+                className="border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-2xl p-8 text-center cursor-pointer bg-slate-50/60 hover:bg-emerald-50/20 transition-all group"
               >
                 <input
                   ref={fileInputRef}
                   type="file"
                   multiple
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp"
                   onChange={handlePhotoUpload}
                   className="hidden"
                 />
-                <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center mx-auto mb-3">
-                  <Upload className="w-6 h-6" />
+                <div className="w-12 h-12 rounded-full bg-emerald-100/80 text-emerald-700 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                  {uploadingPhotos ? <RefreshCw className="w-6 h-6 animate-spin" /> : <Upload className="w-6 h-6" />}
                 </div>
-                <h4 className="text-sm font-bold text-slate-900">
-                  {uploadingPhotos ? 'Uploading to storage...' : 'Click to select or drag & drop photos'}
+                <h4 className="text-sm font-bold text-slate-800">
+                  {uploadingPhotos ? 'Uploading photos...' : 'Click to select or drag & drop photos'}
                 </h4>
-                <p className="text-xs text-slate-500 mt-1">JPG, PNG, WebP up to 5MB each (Max 10 photos)</p>
+                <p className="text-[11px] text-slate-500 mt-1">JPG, PNG, WebP up to 5MB each (Max 10 photos)</p>
               </div>
 
               {/* Photos Preview Grid */}
               {photos.length > 0 && (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {photos.map((url, idx) => (
-                    <div key={idx} className="relative group rounded-xl overflow-hidden border border-slate-200 h-28 bg-slate-100">
-                      <PropertyImage src={url} alt={`Upload ${idx + 1}`} fill sizes="150px" className="object-cover" />
+                    <div key={idx} className="relative h-28 rounded-xl overflow-hidden border border-slate-200 group">
+                      <PropertyImage src={url} alt={`Photo ${idx + 1}`} fill sizes="200px" className="object-cover" />
                       <button
                         type="button"
                         onClick={() => handleRemovePhoto(idx)}
-                        className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-slate-900/80 text-white flex items-center justify-center hover:bg-rose-600 transition-colors"
+                        className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/70 text-white flex items-center justify-center hover:bg-rose-600 transition-colors"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -776,244 +833,180 @@ export default function PostPropertyPage() {
           )}
 
           {/* ============================================================ */}
-          {/* STEP 4: PRICE & LALPURJA VERIFICATION */}
+          {/* STEP 4: PRICE & OWNERSHIP DECLARATION                         */}
           {/* ============================================================ */}
           {currentStep === 4 && (
             <div className="space-y-6">
               <div>
                 <h2 className="text-xl font-bold text-slate-900">
-                  {lang === 'en' ? 'Price & Ownership Verification' : 'मूल्य तथा लालपुर्जा प्रमाणीकरण'}
+                  {lang === 'en' ? 'Rental Summary & Ownership Declaration' : 'भाडा सारांश र स्वामित्व घोषणा'}
                 </h2>
                 <p className="text-xs text-slate-500 mt-1">
-                  {lang === 'en'
-                    ? 'State your direct asking price with zero middleman fee.'
-                    : 'बिना दलाल सिधै खरिदकर्तालाई दिने मूल्य प्रविष्ट गर्नुहोस्।'}
+                  Certify zero-brokerage direct landlord status and ownership reference.
                 </p>
               </div>
 
-              {/* Price Field */}
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-2">
-                  Total Asking Price in NPR <span className="text-rose-500">*</span>
-                </label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-500 text-sm">
-                    Rs.
-                  </span>
-                  <input
-                    type="number"
-                    value={priceNpr}
-                    onChange={(e) => setPriceNpr(e.target.value)}
-                    placeholder="e.g., 14500000"
-                    className="w-full bg-white border border-slate-300 rounded-xl pl-12 pr-4 py-3 text-base font-mono font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600"
-                  />
-                </div>
-                {priceNpr && (
-                  <p className="mt-2 text-xs font-bold text-emerald-800">
-                    Display: {formatPriceNPR(parseFloat(priceNpr) || 0, lang)}
-                  </p>
-                )}
+              {/* Monthly Rent Summary Card */}
+              <div className="p-5 rounded-xl bg-emerald-50/80 border border-emerald-200 space-y-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 block">
+                  Proposed Monthly Rent
+                </span>
+                <span className="text-2xl font-black text-emerald-950 block">
+                  {formatMonthlyRentNPR(parseFloat(monthlyRentNpr) || 0, lang)}
+                </span>
+                <span className="text-xs text-emerald-800 block">
+                  Security Deposit: {formatDeposit(depositNpr ? parseFloat(depositNpr) : null, lang)}
+                </span>
               </div>
 
-              {/* Cadastral Kitta Number */}
+              {/* Cadastral Kitta No Reference */}
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-2">
-                  Cadastral Kitta Number (नापी कित्ता नम्बर)
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Cadastral Plot / Kitta No (कित्ता नम्बर)
                 </label>
                 <input
                   type="text"
                   value={kittaNo}
                   onChange={(e) => setKittaNo(e.target.value)}
-                  placeholder="e.g., KITTA-402"
-                  className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600"
+                  placeholder="e.g. KITTA-402 (or leave blank if unsure)"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-emerald-600"
                 />
-                <p className="text-[11px] text-slate-500 mt-1">
-                  Helps buyers verify parcel boundary maps on the official survey grid.
-                </p>
               </div>
 
-              {/* Verification & Ownership Checkbox */}
-              <div className="space-y-3 pt-2">
-                <label className="flex items-start gap-3 p-4 rounded-xl border border-emerald-200 bg-emerald-50/60 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={hasLalpurja}
-                    onChange={(e) => setHasLalpurja(e.target.checked)}
-                    className="mt-0.5 rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4"
-                  />
-                  <div>
-                    <span className="text-xs font-bold text-emerald-950 block">
-                      I possess a legal Lalpurja (Land Ownership Certificate) for this property (subject to verification)
-                    </span>
-                    <span className="text-[11px] text-emerald-800 leading-relaxed block mt-0.5">
-                      Self-declared certificates are displayed as &quot;Lalpurja claimed by owner — pending verification&quot; until official cadastral survey verification is conducted by Sarvabhoomi.
-                    </span>
-                  </div>
-                </label>
-
-                <label className="flex items-start gap-3 p-4 rounded-xl border border-slate-200 bg-white cursor-pointer">
+              {/* Legal Non-Brokerage & Ownership Declarations */}
+              <div className="space-y-3 pt-3 border-t border-slate-100">
+                <label className="flex items-start gap-2.5 cursor-pointer text-xs text-slate-700">
                   <input
                     type="checkbox"
                     checked={ownershipConfirmed}
                     onChange={(e) => setOwnershipConfirmed(e.target.checked)}
-                    className="mt-0.5 rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4"
+                    className="mt-0.5 rounded text-emerald-600 w-4 h-4"
                   />
-                  <div>
-                    <span className="text-xs font-bold text-slate-900 block">
-                      Legal Ownership Declaration <span className="text-rose-500">*</span>
-                    </span>
-                    <span className="text-[11px] text-slate-500 leading-relaxed block mt-0.5">
-                      I declare that I am the genuine legal owner or authorized representative of this property. No unauthorized broker listings allowed.
-                    </span>
-                  </div>
+                  <span>
+                    <strong>Owner / Authorized Representative Declaration:</strong> I certify that I am the legal owner or authorized representative of this property, and all rental specifications provided are authentic.
+                  </span>
+                </label>
+
+                <label className="flex items-start gap-2.5 cursor-pointer text-xs text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={nonBrokerConfirmed}
+                    onChange={(e) => setNonBrokerConfirmed(e.target.checked)}
+                    className="mt-0.5 rounded text-emerald-600 w-4 h-4"
+                  />
+                  <span>
+                    <strong>Zero Brokerage Commitment:</strong> I certify that this listing is 100% direct and I will not solicit, demand, or charge any brokerage commission from visiting or moving-in tenants.
+                  </span>
                 </label>
               </div>
             </div>
           )}
 
           {/* ============================================================ */}
-          {/* STEP 5: REVIEW & PUBLISH */}
+          {/* STEP 5: REVIEW & PUBLISH                                     */}
           {/* ============================================================ */}
           {currentStep === 5 && (
             <div className="space-y-6">
               <div>
                 <h2 className="text-xl font-bold text-slate-900">
-                  {lang === 'en' ? 'Review & Publish Listing' : 'समीक्षा तथा प्रकाशन'}
+                  {lang === 'en' ? 'Review & Submit Listing' : 'समीक्षा तथा पेश गर्नुहोस्'}
                 </h2>
                 <p className="text-xs text-slate-500 mt-1">
-                  {lang === 'en'
-                    ? 'Review your details before publishing free of charge.'
-                    : 'विवरण जाँच गरी निःशुल्क सूचीकृत गर्नुहोस्।'}
+                  Please review your rental details. New listings are submitted for review before going live.
                 </p>
               </div>
 
               {/* Review Summary Card */}
-              <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-4">
-                <div className="flex items-start justify-between pb-3 border-b border-slate-200">
+              <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-4 text-xs">
+                <div className="flex items-baseline justify-between border-b border-slate-200/80 pb-3">
                   <div>
-                    <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded uppercase">
-                      {listingType.replace('_', ' ')}
+                    <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold block">
+                      {subtype} FOR RENT
                     </span>
-                    <h3 className="text-base font-bold text-slate-900 mt-1">
-                      {title || 'Verified Property Listing'}
+                    <h3 className="text-base font-bold text-slate-900 mt-0.5">
+                      {title || `${subtype} in ${locality}, ${district}`}
                     </h3>
-                    <p className="text-xs text-slate-600 flex items-center gap-1 mt-0.5">
-                      <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      <span>{locality}, {district}</span>
+                    <p className="text-slate-500 text-[11px]">
+                      {locality}, {municipality ? `${municipality}, ` : ''}{district}
                     </p>
                   </div>
-
                   <div className="text-right">
-                    <span className="text-xl font-black text-slate-900 block">
-                      {formatPriceNPR(parseFloat(priceNpr) || 0, lang)}
+                    <span className="text-xl font-black text-emerald-700">
+                      {formatMonthlyRentNPR(parseFloat(monthlyRentNpr) || 0, lang)}
                     </span>
-                    <span className="text-xs font-bold text-emerald-700">
-                      {formatArea(parseFloat(areaValue) || 0, areaUnit, lang, { includeSqft: false })}
+                    <span className="text-[10px] text-slate-400 block">
+                      Deposit: {formatDeposit(depositNpr ? parseFloat(depositNpr) : null, lang)}
                     </span>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-slate-700">
                   <div>
-                    <span className="text-slate-500 block text-[10px]">Road Access</span>
-                    <span className="font-bold text-slate-900">{roadAccess || '16 ft Pitched'}</span>
+                    <span className="text-slate-400 block text-[10px]">Bedrooms</span>
+                    <span className="font-bold">{bedrooms} BHK</span>
                   </div>
                   <div>
-                    <span className="text-slate-500 block text-[10px]">Facing</span>
-                    <span className="font-bold text-slate-900">{facing}</span>
+                    <span className="text-slate-400 block text-[10px]">Furnishing</span>
+                    <span className="font-bold">{furnishing}</span>
                   </div>
                   <div>
-                    <span className="text-slate-500 block text-[10px]">Kitta No</span>
-                    <span className="font-bold text-slate-900">{kittaNo || 'N/A'}</span>
+                    <span className="text-slate-400 block text-[10px]">Area</span>
+                    <span className="font-bold">{areaValue} Sq. Ft.</span>
                   </div>
                   <div>
-                    <span className="text-slate-500 block text-[10px]">Verification</span>
-                    <span className="font-bold text-amber-700">
-                      {hasLalpurja ? 'Lalpurja Claimed (Pending)' : 'Standard'}
-                    </span>
+                    <span className="text-slate-400 block text-[10px]">Tenant</span>
+                    <span className="font-bold">{preferredTenant}</span>
                   </div>
                 </div>
-              </div>
 
-              {/* Zero Fee Guarantee Callout */}
-              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-3">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                <div className="text-xs text-emerald-900">
-                  <span className="font-bold">100% Free Owner Listing:</span> No hidden commission or middleman brokerage. Direct buyer contacts are connected via Sarvabhoomi.
+                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2">
+                  <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Review Before Live:</strong> To maintain Sarvabhoomi&apos;s zero-brokerage authenticity, your listing will be created with status <strong>Pending Review</strong> and reviewed before appearing in public search.
+                  </span>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Navigation Controls */}
-          <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
+          {/* Wizard Action Controls */}
+          <div className="flex items-center justify-between pt-4 border-t border-slate-100">
             {currentStep > 1 ? (
               <button
                 type="button"
-                onClick={handlePrevStep}
-                className="px-4 py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs sm:text-sm flex items-center gap-1.5 transition-colors"
+                onClick={handleBack}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center gap-1.5 transition-colors"
               >
-                <ArrowLeft className="w-4 h-4" />
+                <ArrowLeft className="w-3.5 h-3.5" />
                 <span>{lang === 'en' ? 'Back' : 'पछाडि'}</span>
               </button>
             ) : (
               <div />
             )}
 
-            <div className="flex items-center gap-2">
-              {currentStep === 5 ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => handlePublish('DRAFT')}
-                    disabled={isSubmitting}
-                    className="px-4 py-3 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs sm:text-sm transition-colors"
-                  >
-                    Save as Draft
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handlePublish('ACTIVE')}
-                    disabled={isSubmitting}
-                    className="py-3 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-xs flex items-center gap-2 transition-all"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 animate-spin text-white" />
-                        <span>Publishing...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Publish Free Property</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </>
-                    )}
-                  </button>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleNextStep}
-                  className="py-3 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-xs flex items-center gap-2 transition-all"
-                >
-                  <span>{lang === 'en' ? 'Continue' : 'अगाडि बढ्नुहोस्'}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              )}
-            </div>
+            {currentStep < 5 ? (
+              <button
+                type="button"
+                onClick={handleNext}
+                className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs active:scale-95"
+              >
+                <span>{lang === 'en' ? 'Continue' : 'अगाडि बढ्नुहोस्'}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => handlePublish('PENDING_REVIEW')}
+                disabled={isSubmitting}
+                className="px-8 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all shadow-sm active:scale-95 disabled:opacity-50"
+              >
+                <span>{isSubmitting ? 'Submitting...' : 'Submit Rental Listing'}</span>
+                <Check className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white py-6 text-center text-xs text-slate-500">
-        <div className="max-w-4xl mx-auto px-4 flex items-center justify-between">
-          <span>© 2026 Sarvabhoomi Capital & Investment Pvt. Ltd.</span>
-          <span>100% Zero Brokerage P2P</span>
-        </div>
-      </footer>
     </div>
   );
 }
-

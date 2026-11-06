@@ -14,6 +14,97 @@ This log tracks all architectural decisions, feature implementations, verificati
 
 ## 🗓️ Engineering Log
 
+### 📅 Session: November 6, 2026 (Pivot: Rent-Only Marketplace & Two-Role Enforced Architecture)
+
+#### 🎯 Focus: Side-by-Side NoBroker Comparison, 2 Enforced Roles (`RENTER` vs `OWNER`), Immutable Role Selection, Rent Schema & Workflows
+
+---
+
+### ✅ Completed Milestones
+
+#### 1. Step 0: Side-by-Side NoBroker Comparison (`docs/nobroker-comparison.md`)
+- Detailed feature matrix comparing NoBroker's rent flows to Sarvabhoomi's architecture:
+  - Homepage Hero, Search & Filters, Property Card, Property Detail, Post-Property Wizard, Roles/Auth, Dashboard, and Contact Unlock.
+  - Formulated the deliberate architectural departure: NoBroker has no roles (single account does both); Sarvabhoomi strictly isolates `RENTER` and `OWNER` at the database and application levels.
+
+#### 2. Phase 1: 4 Display Intents → 2 Enforced Roles (`RENTER` vs `OWNER`)
+- **Database Migration (`supabase/migrations/20261106000006_two_roles_rent_only.sql`)**:
+  - Added `profiles.user_role TEXT CHECK (user_role IN ('RENTER', 'OWNER'))`.
+  - Backfilled existing `OWNER` users; set legacy buyers/investors to NULL for one-time role migration.
+  - Created trigger `trg_enforce_immutable_user_role` preventing users from modifying their role once chosen (only service role/admin can alter).
+  - RLS policies enforcing:
+    - `properties` INSERT/UPDATE/DELETE strictly require `user_role = 'OWNER'`.
+    - `contact_unlocks` and `property_favourites` INSERT strictly require `user_role = 'RENTER'`.
+    - `unlock_property_contact` RPC raises `FORBIDDEN_ROLE` if called by an owner.
+    - Paused non-rent seed/historical listings (`status = 'PAUSED'`) and enforced `listing_type = 'RENT_HOUSE'`.
+- **Shared Enums & Validators (`packages/shared/src/validators/auth.ts`)**:
+  - Introduced `userRoleEnum` (`'RENTER'`, `'OWNER'`) and updated `onboardingSchema`. Retained `userIntentEnum` as legacy alias.
+- **Onboarding & Role Migration UI (`apps/web/src/app/auth/page.tsx`)**:
+  - Replaced 4-card role selector with 2 high-contrast role cards: Renter (15 free unlocks, rent search) vs Owner (100% free listing).
+  - Built unskippable one-time role migration screen for existing users with `user_role IS NULL`.
+  - Added banner detailing the "one role per account / phone number" rule.
+- **Dashboard Guardrail (`apps/web/src/app/dashboard/page.tsx`)**:
+  - Added redirect to `/auth` if authenticated user has not finalized their role choice.
+  - Automatically defaults tab to `shortlist` for Renters instead of `my-listings`.
+
+#### 3. Phase 2: Rent Schema & Units (`supabase/migrations/20261106000007_rent_fields.sql`)
+- Added real rental attributes:
+  - `monthly_rent_npr`, `deposit_npr`, `maintenance_npr`, `maintenance_included` (boolean).
+  - `furnishing` (`FULLY`, `SEMI`, `UNFURNISHED`).
+  - `property_subtype` (`HOUSE`, `FLAT`, `ROOM`, `SHOP`).
+  - `preferred_tenant` (`FAMILY`, `BACHELOR`, `BACHELOR_MALE`, `BACHELOR_FEMALE`, `COMPANY`, `ANY`).
+  - `available_from`, `floor_no`, `total_floors`, `parking`, `bedrooms`, `bathrooms`.
+- Backfilled `monthly_rent_npr = price_npr` for existing rental rows and added composite performance indexes.
+- Extended `@sarvabhoomi/shared` unit formatters: `formatMonthlyRentNPR` and `formatDeposit`.
+- Added seed rental listings across Kathmandu, Lalitpur, Pokhara, Chitwan, and Butwal with realistic NPR pricing (`supabase/seed_properties.sql`).
+- Added comprehensive Vitest test suite for rent validation & formatters (`packages/shared/src/__tests__/rent.test.ts`).
+
+#### 4. Phase 3: Renter Workflow (Rent-First UI)
+- **Rent-First Homepage (`apps/web/src/app/page.tsx`)**:
+  - Rent tab only; removed Buy/Commercial/Valuation tabs.
+  - Hero search targeting 77 Nepal districts + rental subtype + monthly rent range presets.
+  - 0% Brokerage trust strip and direct owner rental highlights.
+- **Rent Search & Filter Engine (`apps/web/src/app/search/page.tsx`)**:
+  - NoBroker-style left filter panel: Monthly Rent presets (Under 10k, 10–25k, 25–50k, 50k–1L, 1L+ NPR), BHK buttons, subtype, furnishing, preferred tenant, and Lalpurja toggle.
+  - Dynamic sort: Newest, Rent Low-High, Rent High-Low.
+- **Redesigned PropertyCard & Detail Page (`apps/web/src/components/PropertyCard.tsx`, `apps/web/src/app/properties/[id]/page.tsx`)**:
+  - Photo-led card displaying Monthly Rent prominently with `/month`, deposit + maintenance row, and availability tag.
+  - Detail page breakdown: rent + deposit + maintenance, specs grid (subtype, floor, parking, road access, facing), honest Google Maps search links, and similar rentals in same district.
+  - Brokerage savings banner accurately calculated on 1 month's rent instead of sale prices.
+
+#### 5. Phase 4: Owner Workflow & Visit Requests (`supabase/migrations/20261106000008_visit_requests.sql`)
+- **5-Step Rental Wizard (`apps/web/src/app/post-property/page.tsx`)**:
+  - Step 1: Type & Location (House/Flat/Room/Shop + 77 districts, municipality, ward, locality).
+  - Step 2: Rent & Details (monthly rent, deposit, maintenance, furnishing, bedrooms, floor, parking, preferred tenant, available from).
+  - Step 3: Photos (Supabase Storage upload, max 10 photos, preview grid).
+  - Step 4: Ownership & Non-Brokerage Declaration (Kitta no, Lalpurja verification claim, zero middleman terms).
+  - Step 5: Review & Publish.
+- **Moderation Workflow (`PENDING_REVIEW`)**:
+  - New properties are submitted with `status = 'PENDING_REVIEW'`.
+  - Owners see an amber badge `Pending Review / Under Admin Review` on their dashboard until an admin activates it via Supabase Studio.
+- **Property Visit Requests (`property_visit_requests`)**:
+  - Renters schedule a visit with date, preferred time slot (Morning, Afternoon, Evening), and optional note.
+  - Owners review received visit requests with prospective tenant contact info and can Confirm or Decline.
+- **Owner Dashboard Console**:
+  - Dedicated `my-listings` tab with status management (Active, Paused, Sold/Rented).
+  - Dedicated `enquiries` tab showing tenant visit requests and tenant contact unlocks.
+
+#### 6. Phase 5: Strict Role Isolation & Server Guardrails
+- **Next.js Server-Side Middleware (`apps/web/src/middleware.ts`)**:
+  - Authenticated `RENTER` attempting to access `/post-property` is redirected via 307 to `/dashboard?error=renter_cannot_post`.
+  - Authenticated `OWNER` attempting to access `/search` is redirected via 307 to `/dashboard?error=owner_cannot_search`.
+- **Client-Side Guardrails**:
+  - Navbar conditionally displays "Post Free Rental" for Owners only, and "Find Rentals" for Renters.
+  - Post-property page checks role and shows blocking modal for Renters.
+
+#### 7. Verification & Quality Gates
+- **Type Check**: `npm run type-check` passed across all monorepo packages with 0 errors.
+- **Unit Tests**: `npm test` ran Vitest with all 20 tests passing (100% pass rate).
+- **ESLint**: `npm run lint` passed with 0 errors and 0 warnings.
+- **Production Build**: `npm run build` compiled all 13 routes and Next.js middleware with optimized bundle sizes.
+
+---
+
 ### 📅 Session: November 5, 2026 (Phases 3, 4, 5 & 6 — Structure, Hygiene, Features & Quality Gates)
 
 #### 🎯 Focus: Component Modularization, SEO & Project Hygiene, Real Valuation Engine & Map References, Vitest Unit Testing & ESLint Gates

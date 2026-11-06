@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import {
@@ -16,35 +16,34 @@ import {
   Calendar,
   Eye,
   Compass,
-  Building,
   Coins,
-  Lock,
   Unlock,
   AlertCircle,
   Home,
-  Tag,
   Check,
   MessageCircle,
-  Layers,
-  Sparkles,
   Maximize2,
   Minimize2,
   ChevronLeft,
   ChevronRight,
   X,
   ExternalLink,
+  Users,
+  Armchair,
+  Clock,
+  Send,
 } from 'lucide-react';
 import {
   Property,
-  formatPriceNPR,
+  formatMonthlyRentNPR,
+  formatDeposit,
   formatArea,
-  formatPricePerUnit,
-  toSqFt,
   getAuthDict,
 } from '@sarvabhoomi/shared';
 import { supabase } from '@/lib/supabase';
 import { ContactUnlockModal } from '@/components/ContactUnlockModal';
 import { PropertyImage } from '@/components/PropertyImage';
+import { PropertyCard } from '@/components/PropertyCard';
 import { Footer } from '@/components/Footer';
 
 export default function PropertyDetailPage() {
@@ -53,7 +52,6 @@ export default function PropertyDetailPage() {
   const propertyId = params?.id as string;
 
   const [lang, setLang] = useState<'en' | 'ne'>('en');
-  const dict = getAuthDict(lang);
 
   const [property, setProperty] = useState<Property | null>(null);
   const [similarProperties, setSimilarProperties] = useState<Property[]>([]);
@@ -61,13 +59,26 @@ export default function PropertyDetailPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Authenticated user state
-  const [user, setUser] = useState<{ id: string; phone?: string; credits: number } | null>(null);
+  const [user, setUser] = useState<{ id: string; phone?: string; credits: number; userRole?: 'RENTER' | 'OWNER' | null } | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [ownerContact, setOwnerContact] = useState<{
     phone: string;
     name: string;
   } | null>(null);
+
+  // Visit Request State
+  const [visitRequest, setVisitRequest] = useState<{
+    id: string;
+    visit_date: string;
+    time_slot: string;
+    status: 'PENDING' | 'CONFIRMED' | 'DECLINED';
+  } | null>(null);
+  const [visitDate, setVisitDate] = useState('');
+  const [visitTimeSlot, setVisitTimeSlot] = useState('Morning (9 AM - 12 PM)');
+  const [visitNote, setVisitNote] = useState('');
+  const [submittingVisit, setSubmittingVisit] = useState(false);
+  const [visitSuccessMsg, setVisitSuccessMsg] = useState<string | null>(null);
 
   // Photo viewer state
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
@@ -97,6 +108,13 @@ export default function PropertyDetailPage() {
         let currentUserId: string | null = null;
         if (authUser && isMounted) {
           currentUserId = authUser.id;
+
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('user_role')
+            .eq('id', authUser.id)
+            .maybeSingle();
+
           const { data: sub } = await supabase
             .from('user_subscriptions')
             .select('credits_remaining')
@@ -107,6 +125,7 @@ export default function PropertyDetailPage() {
             id: authUser.id,
             phone: authUser.phone,
             credits: sub?.credits_remaining ?? 15,
+            userRole: profile?.user_role || null,
           });
         }
 
@@ -119,84 +138,83 @@ export default function PropertyDetailPage() {
               id,
               full_name,
               phone_np,
+              user_role,
               user_intent
             )
           `)
           .eq('id', propertyId)
           .maybeSingle();
 
-        if (propErr || !propData) {
-          if (isMounted) {
-            setError('Property listing not found or has been removed.');
-          }
+        if (propErr) throw propErr;
+        if (!propData) {
+          if (isMounted) setError('Rental property not found.');
           return;
         }
 
-        const typedProperty = propData as unknown as Property;
         if (isMounted) {
-          setProperty(typedProperty);
+          setProperty(propData as unknown as Property);
         }
 
-        // 3. Increment views count
-        supabase
+        // Increment view count
+        await supabase
           .from('properties')
           .update({ views_count: (propData.views_count || 0) + 1 })
-          .eq('id', propertyId)
-          .then();
+          .eq('id', propertyId);
 
-        // 4. Check if current user is owner or has already unlocked contact
+        // Check if unlocked or favorited
         if (currentUserId && isMounted) {
-          const ownerObj = typedProperty.owner;
-          if (currentUserId === propData.owner_id) {
+          const { data: unlockRow } = await supabase
+            .from('contact_unlocks')
+            .select('*')
+            .eq('user_id', currentUserId)
+            .eq('property_id', propertyId)
+            .maybeSingle();
+
+          if (unlockRow) {
             setIsUnlocked(true);
+            const ownerProfile = (propData as any).owner;
             setOwnerContact({
-              phone: ownerObj?.phone_np || '+9779841000000',
-              name: ownerObj?.full_name || 'You (Owner)',
+              phone: ownerProfile?.phone_np || 'N/A',
+              name: ownerProfile?.full_name || 'Landlord',
             });
-          } else {
-            // Check contact_unlocks table
-            const { data: unlockRow } = await supabase
-              .from('contact_unlocks')
-              .select('id')
-              .eq('user_id', currentUserId)
-              .eq('property_id', propertyId)
-              .maybeSingle();
+          }
 
-            if (unlockRow) {
-              setIsUnlocked(true);
-              setOwnerContact({
-                phone: ownerObj?.phone_np || '+9779841000000',
-                name: ownerObj?.full_name || 'Verified Owner',
-              });
-            }
+          const { data: favRow } = await supabase
+            .from('property_favourites')
+            .select('id')
+            .eq('user_id', currentUserId)
+            .eq('property_id', propertyId)
+            .maybeSingle();
 
-            // Check favorites
-            const { data: favRow } = await supabase
-              .from('property_favourites')
-              .select('id')
-              .eq('user_id', currentUserId)
-              .eq('property_id', propertyId)
-              .maybeSingle();
+          if (favRow) setIsFavorite(true);
 
-            if (favRow) {
-              setIsFavorite(true);
-            }
+          // Check if visit request exists
+          const { data: vReq } = await supabase
+            .from('property_visit_requests')
+            .select('id, visit_date, time_slot, status')
+            .eq('property_id', propertyId)
+            .eq('renter_id', currentUserId)
+            .maybeSingle();
+
+          if (vReq && isMounted) {
+            setVisitRequest(vReq as any);
           }
         }
 
-        // 5. Fetch 3 similar properties in same district or category
-        const { data: similarData } = await supabase
+        // 3. Fetch similar rentals in the same district
+        const { data: simData } = await supabase
           .from('properties')
           .select('*')
           .eq('status', 'ACTIVE')
-          .neq('id', propertyId)
+          .eq('listing_type', 'RENT_HOUSE')
           .eq('district', propData.district)
+          .neq('id', propData.id)
           .limit(3);
 
-        if (similarData && isMounted) {
-          setSimilarProperties(similarData as Property[]);
+        if (simData && isMounted) {
+          setSimilarProperties(simData as unknown as Property[]);
         }
-      } catch (err) {
+      } catch (err: unknown) {
         console.error('Error loading property detail:', err);
         if (isMounted) {
           setError('Failed to load property details.');
@@ -215,7 +233,7 @@ export default function PropertyDetailPage() {
   // Lightbox keyboard navigation & escape to close
   useEffect(() => {
     if (!isLightboxOpen) return;
-    const numPhotos = (property?.photos && property.photos.length > 0) ? property.photos.length : 1;
+    const numPhotos = property?.photos && property.photos.length > 0 ? property.photos.length : 1;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setIsLightboxOpen(false);
       if (e.key === 'ArrowLeft' && numPhotos > 1) {
@@ -229,7 +247,6 @@ export default function PropertyDetailPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isLightboxOpen, property?.photos]);
 
-  // Toggle favorite
   const handleToggleFavorite = async () => {
     if (!user) {
       router.push('/auth');
@@ -253,7 +270,6 @@ export default function PropertyDetailPage() {
     }
   };
 
-  // Copy listing link
   const handleShare = () => {
     if (typeof window !== 'undefined') {
       navigator.clipboard.writeText(window.location.href);
@@ -262,7 +278,6 @@ export default function PropertyDetailPage() {
     }
   };
 
-  // On contact unlock success from modal
   const handleUnlockSuccess = (
     _id: string,
     details: { phone: string; name: string; creditsRemaining: number }
@@ -277,6 +292,50 @@ export default function PropertyDetailPage() {
     }
   };
 
+  // Schedule a Visit Request
+  const handleScheduleVisit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) {
+      router.push('/auth');
+      return;
+    }
+    if (!visitDate) return;
+
+    setSubmittingVisit(true);
+    setVisitSuccessMsg(null);
+
+    try {
+      const { data: newV, error: vErr } = await supabase
+        .from('property_visit_requests')
+        .insert({
+          property_id: propertyId,
+          renter_id: user.id,
+          owner_id: property!.owner_id,
+          visit_date: visitDate,
+          time_slot: visitTimeSlot,
+          note: visitNote.trim() || null,
+          status: 'PENDING',
+        })
+        .select('id, visit_date, time_slot, status')
+        .single();
+
+      if (!vErr && newV) {
+        setVisitRequest(newV as any);
+        setVisitSuccessMsg(
+          lang === 'en'
+            ? 'Visit request sent to owner! Awaiting confirmation.'
+            : 'घर हेर्ने अनुरोध पठाइयो! घरधनीको स्वीकृतिको प्रतीक्षामा।'
+        );
+      } else if (vErr) {
+        console.warn('Error saving visit request:', vErr.message);
+      }
+    } catch (err) {
+      console.error('Error submitting visit request:', err);
+    } finally {
+      setSubmittingVisit(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -285,7 +344,7 @@ export default function PropertyDetailPage() {
             स
           </div>
           <span className="text-xs text-slate-500 font-medium">
-            {lang === 'en' ? 'Loading verified property details...' : 'सम्पत्ति विवरण लोड हुँदैछ...'}
+            {lang === 'en' ? 'Loading rental details...' : 'भाडाको विवरण लोड हुँदैछ...'}
           </span>
         </div>
       </div>
@@ -302,7 +361,7 @@ export default function PropertyDetailPage() {
           <h2 className="text-lg font-bold text-slate-900">
             {lang === 'en' ? 'Property Not Available' : 'सम्पत्ति फेला परेन'}
           </h2>
-          <p className="text-xs text-slate-500">{error || 'This listing might have been removed or marked as sold.'}</p>
+          <p className="text-xs text-slate-500">{error || 'This listing might have been removed.'}</p>
           <Link
             href="/search"
             className="inline-flex items-center gap-2 py-2.5 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs"
@@ -318,10 +377,17 @@ export default function PropertyDetailPage() {
   const photos =
     property.photos && property.photos.length > 0
       ? property.photos
-      : ['https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80'];
+      : ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1200&q=80'];
 
-  const sqft = toSqFt(property.area_value, property.area_unit);
-  const sqm = Math.round(sqft * 0.092903 * 100) / 100;
+  const monthlyRent = property.monthly_rent_npr || property.price_npr;
+  const deposit = property.deposit_npr;
+  const maintenance = property.maintenance_npr;
+  const sqft = property.area_sqft || Math.round(property.area_value);
+
+  // Minimum date for visit is tomorrow
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const minDateStr = tomorrow.toISOString().split('T')[0];
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-emerald-600 selection:text-white flex flex-col justify-between">
@@ -371,104 +437,97 @@ export default function PropertyDetailPage() {
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <span className="px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold uppercase tracking-wider">
-              {property.listing_type.replace('_', ' ')}
+              {property.property_subtype || 'Rental'}
             </span>
             {property.admin_verified ? (
-              <span 
+              <span
                 title="Government cadastral verified by Sarvabhoomi"
                 className="px-2.5 py-1 rounded-md bg-emerald-600 text-white text-xs font-bold flex items-center gap-1 shadow-xs"
               >
-                <ShieldCheck className="w-4 h-4" />
-                <span>Lalpurja Verified Ownership</span>
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Lalpurja Verified</span>
               </span>
             ) : property.owner_declared_lalpurja ? (
-              <span 
-                title="Lalpurja claimed by owner — pending official cadastral survey verification"
-                className="px-2.5 py-1 rounded-md bg-amber-50 text-amber-900 border border-amber-200 text-xs font-semibold flex items-center gap-1 shadow-2xs"
+              <span
+                title="Lalpurja claimed by owner — pending cadastral verification by Sarvabhoomi"
+                className="px-2.5 py-1 rounded-md bg-slate-900 text-amber-300 border border-amber-400/40 text-xs font-semibold flex items-center gap-1 shadow-xs"
               >
-                <ShieldAlert className="w-4 h-4 text-amber-600" />
-                <span>Lalpurja claimed by owner — pending verification</span>
+                <ShieldAlert className="w-3.5 h-3.5 text-amber-300" />
+                <span>Lalpurja Claimed (Pending)</span>
               </span>
             ) : null}
-            <span className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold">
-              0% Brokerage Direct P2P
+
+            <span className="px-2.5 py-1 rounded-md bg-white text-emerald-800 border border-emerald-200 text-xs font-bold uppercase tracking-wider shadow-2xs">
+              0% Brokerage
             </span>
-            {property.kitta_no && (
-              <span className="px-2.5 py-1 rounded-md bg-white border border-slate-300 text-slate-700 text-xs font-mono font-bold">
-                {property.kitta_no}
-              </span>
-            )}
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight leading-snug">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight leading-snug">
             {property.title}
           </h1>
 
           <div className="flex flex-wrap items-center gap-4 text-xs sm:text-sm text-slate-600">
-            <span className="flex items-center gap-1.5 font-medium">
+            <div className="flex items-center gap-1.5 font-medium">
               <MapPin className="w-4 h-4 text-emerald-600 shrink-0" />
               <span>
                 {property.locality}
-                {property.ward ? `, Ward ${property.ward}` : ''}
-                {property.municipality ? `, ${property.municipality}` : ''}, {property.district}
+                {property.ward ? `, Ward ${property.ward}` : ''}, {property.district}
               </span>
-            </span>
-            <span>•</span>
-            <span className="flex items-center gap-1 text-slate-500">
-              <Eye className="w-4 h-4 text-slate-400" />
-              <span>{property.views_count} views</span>
-            </span>
-            <span>•</span>
-            <span className="flex items-center gap-1 text-slate-500">
-              <Calendar className="w-4 h-4 text-slate-400" />
+            </div>
+            <div className="flex items-center gap-1.5 text-slate-400">
+              <Eye className="w-3.5 h-3.5" />
+              <span>{property.views_count || 1} views</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-slate-400">
+              <Calendar className="w-3.5 h-3.5" />
               <span>Listed {new Date(property.created_at).toLocaleDateString()}</span>
-            </span>
+            </div>
           </div>
         </div>
 
         {/* ============================================================ */}
-        {/* Photo Gallery Showcase */}
+        {/* Photo Gallery with Lightbox and Fit Toggle                   */}
         {/* ============================================================ */}
         <div className="space-y-3">
-          <div className="relative aspect-[16/10] sm:aspect-[16/9] max-h-[520px] w-full rounded-2xl overflow-hidden bg-slate-950 border border-slate-200 shadow-md group">
+          <div className="relative h-[360px] sm:h-[460px] md:h-[520px] rounded-2xl overflow-hidden shadow-sm border border-slate-200 bg-slate-950">
             {/* Ambient Blurred Backdrop */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none select-none">
               <PropertyImage
                 src={photos[activePhotoIdx]}
                 alt=""
                 fill
-                className="object-cover blur-3xl scale-125 opacity-40 brightness-75 transition-all duration-500"
+                sizes="100vw"
+                className="object-cover blur-3xl opacity-40 scale-110"
+                priority
               />
-              <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-xs" />
             </div>
 
-            {/* Sharp Foreground Image */}
-            <div className="relative w-full h-full flex items-center justify-center p-2 sm:p-4">
+            {/* Foreground Display Image */}
+            <div
+              onClick={() => setIsLightboxOpen(true)}
+              className="relative w-full h-full cursor-zoom-in flex items-center justify-center p-2 sm:p-4 z-1"
+            >
               <PropertyImage
                 src={photos[activePhotoIdx]}
-                alt={property.title}
+                alt={`${property.title} - Photo ${activePhotoIdx + 1}`}
                 fill
+                sizes="(max-width: 1200px) 100vw, 1200px"
+                className={imageFitMode === 'contain' ? 'object-contain drop-shadow-2xl' : 'object-cover'}
                 priority
-                sizes="(max-width: 1024px) 100vw, 66vw"
-                className={`${
-                  imageFitMode === 'contain' ? 'object-contain' : 'object-cover'
-                } transition-all duration-300 drop-shadow-xl`}
               />
             </div>
 
-            {/* Top Bar: Controls */}
-            <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none z-10">
-              <div className="pointer-events-auto px-3 py-1.5 rounded-lg bg-black/60 backdrop-blur-md text-white text-xs font-bold flex items-center gap-1.5 shadow-xs">
-                <span>Photo {activePhotoIdx + 1} of {photos.length}</span>
-              </div>
+            {/* Gallery Control Badges */}
+            <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between pointer-events-none z-10">
+              <span className="px-3 py-1.5 rounded-lg bg-black/60 backdrop-blur-md text-white text-xs font-mono">
+                Photo {activePhotoIdx + 1} of {photos.length}
+              </span>
 
-              <div className="pointer-events-auto flex items-center gap-2">
-                {/* Fit Mode Toggle */}
+              <div className="flex items-center gap-2 pointer-events-auto">
                 <button
                   type="button"
                   onClick={() => setImageFitMode((prev) => (prev === 'contain' ? 'cover' : 'contain'))}
-                  className="px-2.5 py-1.5 rounded-lg bg-black/60 hover:bg-black/80 backdrop-blur-md text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
-                  title={imageFitMode === 'contain' ? 'Switch to Fill Frame' : 'Switch to Fit Entire Image'}
+                  className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg bg-black/60 hover:bg-black/80 backdrop-blur-md text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
                 >
                   {imageFitMode === 'contain' ? (
                     <>
@@ -483,12 +542,10 @@ export default function PropertyDetailPage() {
                   )}
                 </button>
 
-                {/* Fullscreen Lightbox Button */}
                 <button
                   type="button"
                   onClick={() => setIsLightboxOpen(true)}
                   className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg bg-black/60 hover:bg-black/80 backdrop-blur-md text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
-                  title="View Fullscreen"
                 >
                   <Eye className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Fullscreen</span>
@@ -496,25 +553,21 @@ export default function PropertyDetailPage() {
               </div>
             </div>
 
-            {/* Carousel Previous / Next Arrows */}
+            {/* Previous / Next Arrows */}
             {photos.length > 1 && (
               <>
                 <button
                   type="button"
-                  onClick={() =>
-                    setActivePhotoIdx((prev) => (prev > 0 ? prev - 1 : photos.length - 1))
-                  }
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-black/85 backdrop-blur-md text-white flex items-center justify-center transition shadow-md opacity-80 hover:opacity-100 z-10"
+                  onClick={() => setActivePhotoIdx((prev) => (prev > 0 ? prev - 1 : photos.length - 1))}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-black/85 backdrop-blur-md text-white flex items-center justify-center transition shadow-md z-10"
                   aria-label="Previous photo"
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
                 <button
                   type="button"
-                  onClick={() =>
-                    setActivePhotoIdx((prev) => (prev < photos.length - 1 ? prev + 1 : 0))
-                  }
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-black/85 backdrop-blur-md text-white flex items-center justify-center transition shadow-md opacity-80 hover:opacity-100 z-10"
+                  onClick={() => setActivePhotoIdx((prev) => (prev < photos.length - 1 ? prev + 1 : 0))}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-black/85 backdrop-blur-md text-white flex items-center justify-center transition shadow-md z-10"
                   aria-label="Next photo"
                 >
                   <ChevronRight className="w-5 h-5" />
@@ -545,98 +598,151 @@ export default function PropertyDetailPage() {
         </div>
 
         {/* ============================================================ */}
-        {/* Two-Column Property Details */}
+        {/* Two-Column Rental Details & Actions                          */}
         {/* ============================================================ */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-          {/* Left Column (2 Cols): Specs, Description, GIS Cadastral Map */}
+          {/* Left Column (2 Cols): Rent Breakdown, Specs, Cadastral Map */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Key Metrics Dashboard Banner */}
+            {/* Rent Breakdown Dashboard Banner (NoBroker Layout) */}
             <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs grid grid-cols-2 sm:grid-cols-4 gap-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
               <div className="pb-3 sm:pb-0">
                 <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                  Total Price
+                  Monthly Rent
                 </span>
-                <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mt-0.5 block">
-                  {formatPriceNPR(property.price_npr, lang)}
+                <span className="text-xl sm:text-2xl font-black text-emerald-700 tracking-tight mt-0.5 block">
+                  {formatMonthlyRentNPR(monthlyRent, lang)}
                 </span>
-                <span className="text-[11px] font-bold text-emerald-700">
-                  {formatPricePerUnit(property.price_npr, property.area_value, property.area_unit, lang)}
-                </span>
+                <span className="text-[11px] font-bold text-slate-400">Fixed Monthly</span>
               </div>
 
               <div className="pt-3 sm:pt-0 sm:pl-4">
                 <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                  Land Area
+                  Security Deposit
                 </span>
                 <span className="text-base sm:text-lg font-extrabold text-slate-900 mt-0.5 block">
-                  {formatArea(property.area_value, property.area_unit, lang, { includeSqft: false })}
+                  {formatDeposit(deposit, lang)}
+                </span>
+                <span className="text-[11px] text-slate-500">Refundable at move-out</span>
+              </div>
+
+              <div className="pt-3 sm:pt-0 sm:pl-4">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                  Maintenance
+                </span>
+                <span className="text-base sm:text-lg font-bold text-slate-900 mt-0.5 block">
+                  {maintenance
+                    ? `Rs. ${maintenance.toLocaleString('en-IN')}/mo`
+                    : property.maintenance_included
+                    ? 'Included in Rent'
+                    : 'No Maintenance Fee'}
+                </span>
+                <span className="text-[11px] text-slate-500">Society / Water maintenance</span>
+              </div>
+
+              <div className="pt-3 sm:pt-0 sm:pl-4">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                  Built-up Area
+                </span>
+                <span className="text-base sm:text-lg font-bold text-slate-900 mt-0.5 block">
+                  {sqft.toLocaleString()} sq. ft.
                 </span>
                 <span className="text-[11px] text-slate-500">
-                  {sqft.toLocaleString()} sq ft • {sqm} m²
+                  {formatArea(property.area_value, property.area_unit, lang, { includeSqft: false })}
                 </span>
-              </div>
-
-              <div className="pt-3 sm:pt-0 sm:pl-4">
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                  Road Access
-                </span>
-                <span className="text-base sm:text-lg font-bold text-slate-900 mt-0.5 block">
-                  {property.road_access || 'Standard Access'}
-                </span>
-                <span className="text-[11px] text-slate-500">Vehicular Access</span>
-              </div>
-
-              <div className="pt-3 sm:pt-0 sm:pl-4">
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                  Orientation
-                </span>
-                <span className="text-base sm:text-lg font-bold text-slate-900 mt-0.5 block">
-                  {property.facing || 'East Facing'}
-                </span>
-                <span className="text-[11px] text-slate-500">All-day Sunlight</span>
               </div>
             </div>
 
             {/* Description Narrative */}
             <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 shadow-xs space-y-4">
               <h3 className="text-base font-bold text-slate-900">
-                {lang === 'en' ? 'Property Overview & Features' : 'सम्पत्ति विवरण तथा विशेषताहरू'}
+                {lang === 'en' ? 'Rental Overview & Description' : 'भाडा सम्बन्धी थप विवरण'}
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-line font-normal">
                 {property.description ||
-                  'Direct owner listing. Verified cadastral plot with clear ownership boundaries. 100% zero brokerage through Sarvabhoomi peer-to-peer network.'}
+                  'Direct landlord listing. Verified property specs with zero middleman commission. Rent directly through Sarvabhoomi peer-to-peer network.'}
               </p>
             </div>
 
             {/* Specifications Matrix */}
             <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 shadow-xs space-y-4">
               <h3 className="text-base font-bold text-slate-900">
-                {lang === 'en' ? 'Technical Specifications' : 'प्राविधिक विवरण'}
+                {lang === 'en' ? 'Rental Specifications & Amenities' : 'सुविधा तथा प्राविधिक विवरण'}
               </h3>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70">
-                  <span className="text-slate-500 block mb-1">Listing Type</span>
-                  <span className="font-bold text-slate-900">{property.listing_type.replace('_', ' ')}</span>
+                  <span className="text-slate-500 block mb-1">Property Subtype</span>
+                  <span className="font-bold text-slate-900">{property.property_subtype || 'Rental'}</span>
                 </div>
+
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70">
-                  <span className="text-slate-500 block mb-1">District / Region</span>
-                  <span className="font-bold text-slate-900">{property.district}</span>
-                </div>
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70">
-                  <span className="text-slate-500 block mb-1">Kitta / Parcel ID</span>
-                  <span className="font-mono font-bold text-emerald-800">
-                    {property.kitta_no || 'Verified on Inquiry'}
+                  <span className="text-slate-500 block mb-1">Bedrooms / BHK</span>
+                  <span className="font-bold text-slate-900">
+                    {property.bedrooms ? `${property.bedrooms} BHK (${property.bedrooms} Bedrooms)` : 'N/A'}
                   </span>
                 </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70">
+                  <span className="text-slate-500 block mb-1">Bathrooms</span>
+                  <span className="font-bold text-slate-900">
+                    {property.bathrooms ? `${property.bathrooms} Bathrooms` : 'Not specified'}
+                  </span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70">
+                  <span className="text-slate-500 block mb-1">Furnishing Status</span>
+                  <span className="font-bold text-slate-900">
+                    {property.furnishing
+                      ? `${property.furnishing.charAt(0) + property.furnishing.slice(1).toLowerCase()} Furnished`
+                      : 'Not specified'}
+                  </span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70">
+                  <span className="text-slate-500 block mb-1">Preferred Tenant</span>
+                  <span className="font-bold text-slate-900">{property.preferred_tenant || 'Any Tenant'}</span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70">
+                  <span className="text-slate-500 block mb-1">Floor Information</span>
+                  <span className="font-bold text-slate-900">
+                    {property.floor_no !== null && property.floor_no !== undefined
+                      ? `Floor ${property.floor_no}${property.total_floors ? ` of ${property.total_floors}` : ''}`
+                      : 'Independent Floor'}
+                  </span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70">
+                  <span className="text-slate-500 block mb-1">Dedicated Parking</span>
+                  <span className="font-bold text-slate-900">
+                    {property.parking ? 'Available (Yes)' : 'No Dedicated Parking'}
+                  </span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70">
+                  <span className="text-slate-500 block mb-1">Available From</span>
+                  <span className="font-bold text-emerald-800">
+                    {property.available_from ? `From ${property.available_from}` : 'Ready to Move'}
+                  </span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70">
+                  <span className="text-slate-500 block mb-1">Facing / Orientation</span>
+                  <span className="font-bold text-slate-900">{property.facing || 'East Facing'}</span>
+                </div>
+
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70">
                   <span className="text-slate-500 block mb-1">Road Width</span>
                   <span className="font-bold text-slate-900">{property.road_access || '16 ft Pitched'}</span>
                 </div>
+
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70">
-                  <span className="text-slate-500 block mb-1">Facing</span>
-                  <span className="font-bold text-slate-900">{property.facing || 'East'}</span>
+                  <span className="text-slate-500 block mb-1">Cadastral Kitta No</span>
+                  <span className="font-mono font-bold text-emerald-800">
+                    {property.kitta_no || 'Verified on Inquiry'}
+                  </span>
                 </div>
+
                 <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200">
                   <span className="text-emerald-800 block mb-1 font-semibold">Ownership Verification</span>
                   <span className="font-bold text-emerald-950 flex items-center gap-1">
@@ -652,20 +758,16 @@ export default function PropertyDetailPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-base font-bold text-slate-900">
-                    {lang === 'en' ? 'Cadastral Survey & Location Reference' : 'नापी कित्ता तथा लोकेसन विवरण'}
+                    {lang === 'en' ? 'Location & Neighborhood Reference' : 'लोकेसन तथा वरपरका सुविधाहरू'}
                   </h3>
                   <p className="text-xs text-slate-500">
-                    {property.locality}, {property.district} • Kitta #{property.kitta_no || 'Plot reference provided upon inquiry'}
+                    {property.locality}, {property.district} • Kitta #{property.kitta_no || 'Verified plot reference'}
                   </p>
                 </div>
-                <span className="px-2.5 py-1 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold">
-                  {property.kitta_no ? `Kitta #${property.kitta_no}` : 'Cadastral Plot'}
-                </span>
               </div>
 
               {/* Cadastral & Location Display */}
               <div className="relative h-64 w-full rounded-xl bg-slate-900 overflow-hidden border border-slate-200 flex items-center justify-center p-6 text-center">
-                {/* Topographic grid overlay */}
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:2rem_2rem] opacity-70" />
 
                 <div className="relative z-10 max-w-sm space-y-3">
@@ -742,17 +844,15 @@ export default function PropertyDetailPage() {
                 </a>
                 <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-center flex flex-col items-center justify-center">
                   <span className="text-slate-500 block text-[10px]">Road Width</span>
-                  <span className="font-bold text-slate-900 mt-0.5">
-                    {property.road_access || 'Standard Access'}
-                  </span>
+                  <span className="font-bold text-slate-900 mt-0.5">{property.road_access || 'Standard Access'}</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Right Column (1 Col): Sticky Direct Owner Contact & Unlock Card */}
+          {/* Right Column (1 Col): Direct Owner Contact, Schedule Visit & Savings */}
           <div className="lg:col-span-1 space-y-6 lg:sticky lg:top-24">
-            {/* Primary Landowner Card */}
+            {/* Primary Landlord Contact Card */}
             <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-2.5">
@@ -760,7 +860,7 @@ export default function PropertyDetailPage() {
                     स
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900">Direct Landowner</h3>
+                    <h3 className="text-sm font-bold text-slate-900">Direct Landlord</h3>
                     <span className="text-[11px] text-emerald-700 font-semibold">100% Zero Brokerage</span>
                   </div>
                 </div>
@@ -775,18 +875,16 @@ export default function PropertyDetailPage() {
                 <div className="space-y-4">
                   <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 space-y-1">
                     <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block">
-                      Verified Owner Name
+                      Verified Landlord Name
                     </span>
-                    <span className="text-sm font-bold text-emerald-950 block">
-                      {ownerContact.name}
-                    </span>
+                    <span className="text-sm font-bold text-emerald-950 block">{ownerContact.name}</span>
                   </div>
 
-                  <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
+                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                      Verified Mobile Phone
+                      Direct Mobile Number
                     </span>
-                    <span className="font-mono text-lg font-black text-slate-900 tracking-wider block">
+                    <span className="text-base font-mono font-bold text-slate-900 block select-all">
                       {ownerContact.phone}
                     </span>
                   </div>
@@ -794,10 +892,10 @@ export default function PropertyDetailPage() {
                   <div className="grid grid-cols-2 gap-2 pt-1">
                     <a
                       href={`tel:${ownerContact.phone}`}
-                      className="py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors"
+                      className="py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-xs"
                     >
                       <PhoneCall className="w-4 h-4" />
-                      <span>Call Owner</span>
+                      <span>Call Landlord</span>
                     </a>
 
                     <a
@@ -817,11 +915,11 @@ export default function PropertyDetailPage() {
                   <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/90 space-y-2">
                     <div className="flex items-center justify-between text-xs text-slate-600">
                       <span>Owner Status:</span>
-                      <span className="font-bold text-slate-900">Direct Landowner</span>
+                      <span className="font-bold text-slate-900">Direct Landlord</span>
                     </div>
                     <div className="flex items-center justify-between text-xs text-slate-600">
                       <span>Phone Number:</span>
-                      <span className="font-mono font-bold text-slate-700">+977 9841••••••</span>
+                      <span className="font-mono font-bold text-slate-700">+977 98••••••••</span>
                     </div>
                   </div>
 
@@ -832,7 +930,7 @@ export default function PropertyDetailPage() {
                   >
                     <Unlock className="w-4 h-4" />
                     <span>
-                      {lang === 'en' ? 'Unlock Owner Contact (1 Credit)' : 'जग्गाधनी सम्पर्क खोल्नुहोस् (१ क्रेडिट)'}
+                      {lang === 'en' ? 'Unlock Owner Contact (1 Credit)' : 'घरधनी सम्पर्क खोल्नुहोस् (१ क्रेडिट)'}
                     </span>
                   </button>
 
@@ -841,25 +939,128 @@ export default function PropertyDetailPage() {
                       <Coins className="w-3.5 h-3.5 text-emerald-600" />
                       <span>Balance: {user ? `${user.credits} Credits` : 'Sign in to check'}</span>
                     </span>
-                    <span className="text-emerald-700 font-bold text-[11px]">Free Launch Offer</span>
+                    <span className="text-emerald-700 font-bold text-[11px]">15 Free Unlocks</span>
                   </div>
                 </div>
               )}
 
-              {/* Zero Brokerage Value Callout */}
+              {/* Zero Brokerage Savings Line on Monthly Rent */}
               <div className="pt-3 border-t border-slate-100 space-y-2 text-xs text-slate-600">
                 <div className="flex items-center gap-2 font-semibold text-slate-800">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Save 2% - 3% Middleman Broker Commission</span>
+                  <span>100% Zero Middleman Brokerage</span>
                 </div>
                 <p className="text-[11px] text-slate-500 leading-relaxed">
-                  On this property ({formatPriceNPR(property.price_npr)}), saving 2.5% broker fee saves you{' '}
+                  Traditional brokers in Nepal charge 1 month&apos;s full rent as commission. By connecting directly on Sarvabhoomi, you save{' '}
                   <span className="font-bold text-emerald-800">
-                    {formatPriceNPR(property.price_npr * 0.025)}
+                    Rs. {monthlyRent.toLocaleString('en-IN')}
                   </span>
                   .
                 </p>
               </div>
+            </div>
+
+            {/* Schedule a Visit Card */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+              <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                <Calendar className="w-4 h-4 text-emerald-600" />
+                <h3 className="text-sm font-bold text-slate-900">
+                  {lang === 'en' ? 'Schedule a Property Visit' : 'घर हेर्न समय मिलाउनुहोस्'}
+                </h3>
+              </div>
+
+              {visitRequest ? (
+                /* Visit Request Sent State */
+                <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-emerald-900">
+                      {lang === 'en' ? 'Visit Request Sent to Landlord' : 'घर हेर्ने अनुरोध पठाइयो'}
+                    </span>
+                    <span
+                      className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
+                        visitRequest.status === 'CONFIRMED'
+                          ? 'bg-emerald-600 text-white'
+                          : visitRequest.status === 'DECLINED'
+                          ? 'bg-rose-600 text-white'
+                          : 'bg-amber-100 text-amber-800 border border-amber-300'
+                      }`}
+                    >
+                      {visitRequest.status}
+                    </span>
+                  </div>
+                  <p className="text-xs text-emerald-800 leading-relaxed">
+                    Date: <span className="font-semibold">{visitRequest.visit_date}</span> • Slot:{' '}
+                    <span className="font-semibold">{visitRequest.time_slot}</span>
+                  </p>
+                  <p className="text-[11px] text-emerald-700">
+                    {visitRequest.status === 'PENDING'
+                      ? 'The landlord has received your requested date/time slot. They will confirm or contact you directly.'
+                      : visitRequest.status === 'CONFIRMED'
+                      ? 'The landlord has confirmed your visit slot!'
+                      : 'The landlord is not available for this slot. Please choose another slot.'}
+                  </p>
+                </div>
+              ) : (
+                /* Visit Request Form */
+                <form onSubmit={handleScheduleVisit} className="space-y-3">
+                  {visitSuccessMsg && (
+                    <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">
+                      {visitSuccessMsg}
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                      Preferred Date
+                    </label>
+                    <input
+                      type="date"
+                      min={minDateStr}
+                      value={visitDate}
+                      required
+                      onChange={(e) => setVisitDate(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-emerald-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                      Time Slot
+                    </label>
+                    <select
+                      value={visitTimeSlot}
+                      onChange={(e) => setVisitTimeSlot(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-emerald-600"
+                    >
+                      <option value="Morning (9 AM - 12 PM)">Morning (9 AM - 12 PM)</option>
+                      <option value="Afternoon (12 PM - 3 PM)">Afternoon (12 PM - 3 PM)</option>
+                      <option value="Evening (3 PM - 6 PM)">Evening (3 PM - 6 PM)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                      Note for Landlord (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={visitNote}
+                      onChange={(e) => setVisitNote(e.target.value)}
+                      placeholder="e.g. Coming with family, looking to move next week"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={submittingVisit || !visitDate}
+                    className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>{submittingVisit ? 'Sending...' : 'Request Property Visit'}</span>
+                  </button>
+                </form>
+              )}
             </div>
 
             {/* Verification Guarantee Card */}
@@ -869,58 +1070,32 @@ export default function PropertyDetailPage() {
                 <span>Sarvabhoomi Lalpurja Protocol</span>
               </div>
               <p className="text-[11px] text-emerald-800 leading-relaxed">
-                All land boundaries are cross-verified with official Cadastral map numbers (कित्ता नम्बर) to prevent double-listing and broker fraud.
+                Land and home ownership is verified against Cadastral Kitta records (कित्ता नम्बर) to guarantee zero middleman impersonation.
               </p>
             </div>
           </div>
         </div>
 
-        {/* ============================================================ */}
-        {/* Similar Verified Properties */}
-        {/* ============================================================ */}
+        {/* Similar Verified Rentals in Same District */}
         {similarProperties.length > 0 && (
           <div className="pt-8 border-t border-slate-200 space-y-6">
             <div>
               <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
-                {lang === 'en' ? 'Similar Verified Listings in this Area' : 'यस क्षेत्रका अन्य प्रमाणित सम्पत्तिहरू'}
+                {lang === 'en' ? 'Similar Rentals in this District' : 'यस जिल्लाका अन्य भाडाका घर तथा कोठाहरू'}
               </h2>
               <p className="text-xs text-slate-500">
-                Direct peer-to-peer real estate in {property.district}
+                Direct peer-to-peer rentals in {property.district}
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {similarProperties.map((sim) => (
-                <Link
+                <PropertyCard
                   key={sim.id}
-                  href={`/properties/${sim.id}`}
-                  className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-md hover:border-emerald-300 transition-all group"
-                >
-                  <div className="relative h-40 w-full overflow-hidden bg-slate-100">
-                    <PropertyImage
-                      src={
-                        sim.photos && sim.photos[0]
-                          ? sim.photos[0]
-                          : 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=600&q=80'
-                      }
-                      alt={sim.title}
-                      fill
-                      sizes="(max-width: 768px) 100vw, 33vw"
-                      className="object-cover group-hover:scale-105 transition-transform"
-                    />
-                  </div>
-                  <div className="p-4 space-y-2">
-                    <div className="text-base font-extrabold text-slate-900">
-                      {formatPriceNPR(sim.price_npr, lang)}
-                    </div>
-                    <h4 className="text-xs font-bold text-slate-800 line-clamp-1 group-hover:text-emerald-700">
-                      {sim.title}
-                    </h4>
-                    <p className="text-[11px] text-slate-500 truncate">
-                      {sim.locality}, {sim.district} • {formatArea(sim.area_value, sim.area_unit, lang, { includeSqft: false })}
-                    </p>
-                  </div>
-                </Link>
+                  property={sim}
+                  lang={lang}
+                  onUnlock={() => router.push(`/properties/${sim.id}`)}
+                />
               ))}
             </div>
           </div>
@@ -928,19 +1103,20 @@ export default function PropertyDetailPage() {
       </main>
 
       {/* Contact Unlock Modal */}
-      <ContactUnlockModal
-        isOpen={isUnlockModalOpen}
-        onClose={() => setIsUnlockModalOpen(false)}
-        property={property}
-        currentUser={user}
-        onUnlockSuccess={handleUnlockSuccess}
-        lang={lang}
-      />
+      {property && (
+        <ContactUnlockModal
+          isOpen={isUnlockModalOpen}
+          onClose={() => setIsUnlockModalOpen(false)}
+          property={property}
+          currentUser={user}
+          onUnlockSuccess={handleUnlockSuccess}
+          lang={lang}
+        />
+      )}
 
       {/* Fullscreen Lightbox Modal */}
       {isLightboxOpen && (
         <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col justify-between p-4 sm:p-6 animate-in fade-in duration-200">
-          {/* Top Bar */}
           <div className="flex items-center justify-between text-white max-w-7xl w-full mx-auto">
             <div className="pr-4">
               <h3 className="font-bold text-sm sm:text-base text-white/90 truncate max-w-md">
@@ -960,7 +1136,6 @@ export default function PropertyDetailPage() {
             </button>
           </div>
 
-          {/* Main Image Viewer */}
           <div className="relative flex-1 w-full max-w-7xl mx-auto my-3 flex items-center justify-center overflow-hidden">
             <PropertyImage
               src={photos[activePhotoIdx]}
@@ -974,9 +1149,7 @@ export default function PropertyDetailPage() {
               <>
                 <button
                   type="button"
-                  onClick={() =>
-                    setActivePhotoIdx((prev) => (prev > 0 ? prev - 1 : photos.length - 1))
-                  }
+                  onClick={() => setActivePhotoIdx((prev) => (prev > 0 ? prev - 1 : photos.length - 1))}
                   className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center transition shadow-lg"
                   aria-label="Previous photo"
                 >
@@ -984,9 +1157,7 @@ export default function PropertyDetailPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() =>
-                    setActivePhotoIdx((prev) => (prev < photos.length - 1 ? prev + 1 : 0))
-                  }
+                  onClick={() => setActivePhotoIdx((prev) => (prev < photos.length - 1 ? prev + 1 : 0))}
                   className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center transition shadow-lg"
                   aria-label="Next photo"
                 >
@@ -996,7 +1167,6 @@ export default function PropertyDetailPage() {
             )}
           </div>
 
-          {/* Bottom Thumbnails */}
           {photos.length > 1 && (
             <div className="flex items-center justify-center gap-2 overflow-x-auto py-1 max-w-4xl mx-auto">
               {photos.map((url, idx) => (
