@@ -658,7 +658,21 @@ function DashboardContent() {
                 </Link>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="space-y-6">
+                {myProperties.length > 0 && myProperties.every((p) => p.status === 'PENDING_REVIEW') && (
+                  <div className="p-4 rounded-2xl bg-white/[0.04] border border-gold/40 flex items-center gap-3 shadow-card">
+                    <span className="px-2.5 py-1 rounded-full bg-gold/20 text-gold border border-gold/30 text-[10px] font-black uppercase tracking-wider shrink-0">
+                      {lang === 'en' ? 'Reviewing' : 'समीक्षामा'}
+                    </span>
+                    <p className="text-xs font-bold text-white leading-relaxed">
+                      {lang === 'en'
+                        ? "Under review — we'll notify you when your listing is live to renters."
+                        : 'समीक्षामा छ — विज्ञापन स्वीकृत भएपछि तपाईंलाई सूचित गरिनेछ।'}
+                    </p>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {myProperties.map((prop) => {
                   const monthly = prop.monthly_rent_npr || prop.price_npr;
                   return (
@@ -669,7 +683,7 @@ function DashboardContent() {
                       <div>
                         <div className="relative h-48 w-full bg-black/60">
                           <PropertyImage
-                            src={prop.photos?.[0] || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=600&q=80'}
+                            src={prop.photos?.[0] || null}
                             alt={prop.title}
                             fill
                             sizes="400px"
@@ -733,6 +747,7 @@ function DashboardContent() {
                     </div>
                   );
                 })}
+              </div>
               </div>
             )}
           </div>
@@ -835,9 +850,14 @@ function DashboardContent() {
               </div>
 
               {ownerEnquiries.length === 0 ? (
-                <p className="text-xs text-white/70 py-6 text-center font-medium">
-                  No tenants have unlocked your phone number yet.
-                </p>
+                <div className="text-center py-8 space-y-2">
+                  <Phone className="w-8 h-8 text-white/30 mx-auto mb-1" />
+                  <p className="text-xs text-white/70 font-medium">
+                    {lang === 'en'
+                      ? 'No tenants have unlocked your contact yet. Verified tenants will appear here.'
+                      : 'हालसम्म कुनै भाडावालले सम्पर्क खोल्नुभएको छैन।'}
+                  </p>
+                </div>
               ) : (
                 <div className="divide-y divide-white/10">
                   {ownerEnquiries.map((enq) => (
@@ -964,9 +984,26 @@ function DashboardContent() {
               {loadingWallet ? (
                 <div className="p-8 text-center text-white/70 font-bold">Loading unlocks...</div>
               ) : unlockedContacts.length === 0 ? (
-                <p className="text-xs text-white/70 py-6 text-center font-medium">
-                  You have not unlocked any landlord contacts yet. Browse rentals and click &quot;Contact Owner&quot;.
-                </p>
+                <div className="text-center py-10 space-y-4">
+                  <Phone className="w-10 h-10 text-white/30 mx-auto" />
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-bold text-white">
+                      {lang === 'en' ? 'No Landlord Contacts Unlocked' : 'कुनै घरधनी सम्पर्क अनलक भएको छैन'}
+                    </h4>
+                    <p className="text-xs text-white/70 max-w-sm mx-auto font-medium">
+                      {lang === 'en'
+                        ? 'Browse rental listings and click "Contact Owner" using your free credits to view verified landlord phone numbers.'
+                        : 'भाडाका सूचीहरू हेर्नुहोस् र आफ्नो निःशुल्क क्रेडिट प्रयोग गरी घरधनीको फोन नम्बर खोल्नुहोस्।'}
+                    </p>
+                  </div>
+                  <Link
+                    href="/search"
+                    className="inline-flex items-center gap-2 py-2.5 px-6 rounded-2xl bg-gold hover:bg-gold/90 text-black font-black text-xs shadow-card"
+                  >
+                    <Search className="w-4 h-4" />
+                    <span>{lang === 'en' ? 'Browse Rentals' : 'भाडाका सूची हेर्नुहोस्'}</span>
+                  </Link>
+                </div>
               ) : (
                 <div className="divide-y divide-white/10">
                   {unlockedContacts.map((item) => (
@@ -1025,11 +1062,25 @@ function DashboardContent() {
             </div>
 
             {renterVisitRequests.length === 0 ? (
-              <div className="text-center py-10">
-                <Calendar className="w-10 h-10 text-white/30 mx-auto mb-2" />
-                <p className="text-xs text-white/70 font-medium">
-                  You haven&apos;t scheduled any visits yet. Open any rental property detail page to schedule a visit slot.
-                </p>
+              <div className="text-center py-10 space-y-4">
+                <Calendar className="w-10 h-10 text-white/30 mx-auto" />
+                <div className="space-y-1">
+                  <h4 className="text-sm font-bold text-white">
+                    {lang === 'en' ? 'No Scheduled Visits' : 'कुनै भ्रमण तालिका छैन'}
+                  </h4>
+                  <p className="text-xs text-white/70 max-w-sm mx-auto font-medium">
+                    {lang === 'en'
+                      ? "You haven't scheduled any property visits yet. Open any rental property detail page to pick a morning, afternoon, or evening slot."
+                      : 'तपाईंले कुनै घर हेर्ने समय मिलाउनुभएको छैन। जुनसुकै भाडाको विवरण पेजमा गएर समय छनोट गर्नुहोस्।'}
+                  </p>
+                </div>
+                <Link
+                  href="/search"
+                  className="inline-flex items-center gap-2 py-2.5 px-6 rounded-2xl bg-gold hover:bg-gold/90 text-black font-black text-xs shadow-card"
+                >
+                  <Search className="w-4 h-4" />
+                  <span>{lang === 'en' ? 'Explore Rentals to Visit' : 'भाडाका सूचीहरू खोज्नुहोस्'}</span>
+                </Link>
               </div>
             ) : (
               <div className="divide-y divide-white/10">
@@ -1116,6 +1167,28 @@ function DashboardContent() {
                   <div className="p-3.5 rounded-2xl bg-gold text-black text-xs font-bold flex items-center gap-2 shadow-xs">
                     <CheckCircle2 className="w-4 h-4 text-black shrink-0" />
                     <span>{profileSuccessMsg}</span>
+                  </div>
+                )}
+
+                {!profile?.profile_completed && !editingProfile && (
+                  <div className="p-4 rounded-2xl bg-white/[0.04] border border-gold/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-card">
+                    <div className="space-y-0.5">
+                      <h4 className="text-xs font-bold text-white">
+                        {lang === 'en' ? 'Complete your verified profile' : 'आफ्नो प्रोफाइल विवरण पूरा गर्नुहोस्'}
+                      </h4>
+                      <p className="text-[11px] text-white/70">
+                        {lang === 'en'
+                          ? 'Add your legal name and primary district so landlords and tenants can verify your identity.'
+                          : 'आफ्नो कानुनी नाम र मुख्य जिल्ला थप्नुहोस् ताकि घरधनी र भाडावालहरूले तपाईंको पहिचान पुष्टि गर्न सकून्।'}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={startEditProfile}
+                      className="px-4 py-2 rounded-xl bg-gold hover:bg-gold/90 text-black font-black text-xs shrink-0 shadow-card active:scale-97"
+                    >
+                      {lang === 'en' ? 'Complete Profile' : 'प्रोफाइल भर्नुहोस्'}
+                    </button>
                   </div>
                 )}
 

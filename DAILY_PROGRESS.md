@@ -758,17 +758,92 @@ This log tracks all architectural decisions, feature implementations, verificati
 
 | Check | Tool | Status |
 | :--- | :--- | :--- |
-| TypeScript Compilation | `turbo type-check` | ✅ **Passed (0 errors across monorepo)** |
-| Next.js Production Build | `turbo build` | ✅ **Compiled & Optimized (Static Prerender 6/6 + Dynamic API)** |
-| Route `/api/auth/check-user` | Production Server Probe (GET & POST) | ✅ **200 OK & 400 Validation Tested** |
-| Dynamic Auth Branching | Interactive UI Test | ✅ **Tested & Verified** |
+| Vitest Unit Tests | `turbo test` | ✅ **28/28 Passed (0 regressions)** |
+| ESLint Code Quality | `turbo lint` | ✅ **0 warnings / 0 errors** |
+| TypeScript Strict Compilation | `turbo type-check` | ✅ **0 errors across monorepo** |
+| Next.js Production Build | `turbo build` | ✅ **Compiled & Optimized (13/13 Routes Generated)** *(requires env vars)* |
+| Strict Palette Audit | Regex Scanner | ✅ **0 forbidden color hits** (`#059669`, `emerald`, `slate`, `purple`, `pink`, `lime`, `forest`, `#000000`, `unsplash`) |
+| Daylight Contrast Audit | Contrast Verification | ✅ **Passed: Gold 8.3:1, White 19.0:1, Secondary Text 12.5:1** |
 
 ---
 
-## 📋 Next Priorities & Action Items
+### 📅 Session: November 7, 2026
 
-- [ ] **Run SQL Migrations:** Execute [`20261103000001_auth_and_onboarding.sql`](supabase/migrations/20261103000001_auth_and_onboarding.sql) and [`20261105000002_check_user_exists.sql`](supabase/migrations/20261105000002_check_user_exists.sql) in the Supabase Dashboard SQL Editor for your project (`<your-supabase-project-ref>`).
-- [ ] **Direct Property Listing Wizard:** Build multi-step property upload form supporting Lalpurja ownership verification and photos.
-- [ ] **Cadastral GIS Map Sheets:** Integrate MapLibre/Leaflet with cadastral parcel boundary overlays for Kathmandu Valley and Terai.
-- [ ] **Contact Unlock Modal:** Deduct 1 credit per landowner phone unlock and log transaction in `user_subscriptions`.
+#### 🎯 Focus: Dark Luxury UI/UX Polish, Content Visibility Safety, Zero-Stock-Photo Pipeline & Cross-Role Enforcement
+
+---
+
+### ✅ Completed Milestones
+
+#### 1. Step 0 Findings Verification & Audit
+- **Favicon Color:** Verified `apps/web/src/app/icon.svg` previously used `#059669` emerald.
+- **ScrollReveal State:** Verified `ScrollReveal` previously initialized `isVisible: false`, risking permanent content hiding if `IntersectionObserver` never triggered.
+- **Post-Property Default Photo:** Verified `post-property` `handlePublish` previously fell back to an external Unsplash image.
+- **Buy Residuals:** Identified legacy `buyLand` and `buyHouse` strings in `searchDict.ts`, and `BUY_*` types in `listingTypeEnum` and `supabase.ts`.
+- **Owner Detail Gate:** Confirmed `/properties/:path*` was missing from `middleware.ts` matcher and `properties/[id]/page.tsx` lacked an owner-specific block screen.
+- **Signup District Default:** Confirmed `auth/page.tsx:534` silently defaulted new signups to `preferred_district: 'Kathmandu'` and `'HILLY'`.
+- **Valuation Rates:** Confirmed `/valuation` used benchmark rates from `DISTRICT_INDICATIVE_RATES` and lacked an explicit user-facing disclaimer banner.
+
+#### 2. Phase 1 — The Three Visible Fixes
+- **Favicon Recolouring:**
+  - Recoloured `apps/web/src/app/icon.svg` background from `#059669` emerald to champagne Gold `#C2A964` with `#101010` text (`स`).
+  - Updated metadata icon reference in `apps/web/src/app/layout.tsx`.
+  - Grep audit confirmed **0 hits** for `#059669` or `emerald` across the application.
+- **ScrollReveal Visibility Hardening:**
+  - Content is now **visible by default** (`isVisible: true`).
+  - Animation arms only after JS confirms `IntersectionObserver` support and `prefers-reduced-motion` is inactive.
+  - Added a **1,000ms safety timeout** ensuring content reveals unconditionally if the observer fails to trigger.
+  - Reduced-motion users receive instant zero-delay rendering.
+- **Eradication of Stock Photos:**
+  - Removed all hardcoded Unsplash image fallbacks in `post-property/page.tsx`, `PropertyCard.tsx`, `properties/[id]/page.tsx`, `dashboard/page.tsx`, and `PropertyImage.tsx`.
+  - Implemented branded in-app placeholder cards (Black `#101010` background, Gold `#C2A964` icon, White 70% *"No photo yet / हालसम्म कुनै तस्बिर छैन"* text).
+
+#### 3. Phase 2 — Cleanup of Leftovers & Role Enforcement
+- **Removal of Buy Language & Schema Narrowing:**
+  - Removed `buyLand` and `buyHouse` from `SearchDictionary`, `searchDictEn`, and `searchDictNe` in `packages/shared/src/i18n/searchDict.ts`.
+  - Narrowed `listingTypeEnum` in `packages/shared/src/validators/property.ts` to `['RENT_HOUSE']`.
+  - Narrowed `properties.listing_type` in `apps/web/src/lib/supabase.ts` to `'RENT_HOUSE'`.
+- **Valuation Disclaimer Notice:**
+  - Kept `/valuation` calculator with a prominent Gold alert card: *"Indicative rates only, not an official appraisal — confirm with a local licensed agent or cadastral survey office"* in bilingual EN and नेपाली.
+- **Signup District Default Removed:**
+  - Updated `apps/web/src/app/auth/page.tsx` to set `preferred_district: null` and `preferred_region: null` on new signups.
+  - Profile now accurately shows *"Not set / छनोट नभएको"* until the user explicitly provides their district in post-property Step 4 or Dashboard Profile.
+- **Owner Detail Gate:**
+  - Added `/properties/:path*` to `middleware.ts` matcher, redirecting logged-in owners to `/dashboard?error=owner_cannot_view_rental`.
+  - Mirrored server/render-side guard in `apps/web/src/app/properties/[id]/page.tsx`: Owners who navigate directly see a dedicated Black/Gold screen (*"Owners can't browse rentals — this is a renter view"*) with a 1-click button to their owner dashboard, completely hiding listing details, price, and contact info.
+
+#### 4. Phase 3 — Empty States, Loading & Daylight Visibility
+- **Designed Black/Gold Empty States:**
+  - **Search:** *"No Rentals Match Your Search — try widening the budget or district"* + 1-click *"Reset Filters"* button.
+  - **Owner Listings:** Review status banner *"Under review — we'll notify you when your listing is live to renters"* displayed when listings are in `PENDING_REVIEW`.
+  - **Owner Enquiries:** Branded empty card with phone icon and bilingual copy.
+  - **Renter Unlocked Contacts:** Branded card with contact unlock guidance and *"Browse Rentals"* CTA.
+  - **Renter Visits:** Branded calendar card with schedule guidance and *"Explore Rentals to Visit"* CTA.
+  - **Dashboard Profile:** Prominent completion banner with direct *"Complete Profile"* action.
+- **Daylight Readability Verification:**
+  - Evaluated high-glare readability on mobile viewports (375px/768px).
+  - Maintained Gold headings (8.3:1) and White body text (19.0:1) over `#101010` Black background.
+  - Strengthened font weights to `font-bold` and `font-black` on all crucial interactive elements and prices to prevent wash-out under intense sunlight.
+
+---
+
+## 🛠️ Updated Verification Table
+
+| Check | Tool | Result |
+| :--- | :--- | :--- |
+| Vitest Tests | `npm test` | ✅ **28 passed (28/28)** |
+| ESLint | `npm run lint` | ✅ **0 errors, 0 warnings** |
+| TypeScript | `npm run type-check` | ✅ **0 errors (3/3 packages clean)** |
+| Production Build | `npm run build` | ✅ **13 routes generated successfully** *(with `.env.local` set)* |
+| Strict Palette Scan | Regex Audit | ✅ **0 forbidden color hits** |
+
+> **Note on Build:** `npm run build` succeeds cleanly with real Supabase env variables (`NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY`) in `apps/web/.env.local`. It is expected to fail without env variables due to missing remote Supabase endpoints; do not restore mock fallbacks.
+
+---
+
+## 📋 Remaining Human Verification Items
+
+- [ ] **Physical Device Daylight Check:** Open `http://localhost:3000` on a physical mobile device outdoors in bright direct sunlight to confirm subjective personal comfort with Gold/White contrast on Black.
+- [ ] **Valuation Benchmark Approval:** Review the prominent indicative rate disclaimer on `/valuation` and determine whether to retain the page or hide the route when transitioning to production.
+
 

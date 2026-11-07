@@ -106,6 +106,25 @@ export default function ValuationPage() {
             </div>
           </div>
 
+          {/* Indicative Disclaimer Notice Banner */}
+          <div className="p-4 rounded-2xl bg-white/[0.04] border border-gold/40 flex items-start gap-3 shadow-subtle">
+            <span className="px-2 py-0.5 rounded-lg bg-gold text-black text-[10px] font-black uppercase tracking-wider shrink-0 mt-0.5">
+              Notice
+            </span>
+            <div className="space-y-0.5">
+              <p className="text-xs font-bold text-white leading-relaxed">
+                {lang === 'en'
+                  ? 'Indicative rates only, not an official appraisal — confirm with a local licensed agent or cadastral survey office.'
+                  : 'यी दरहरू सांकेतिक मात्र हुन्, आधिकारिक मूल्याङ्कन होइनन् — कृपया स्थानीय इजाजतप्राप्त एजेन्ट वा मालपोत कार्यालयसँग पुष्टि गर्नुहोस्।'}
+              </p>
+              <p className="text-[11px] text-white/70">
+                {lang === 'en'
+                  ? 'Real estate transaction prices vary based on actual road access, elevation, zoning, and immediate market liquidity.'
+                  : 'वास्तविक कारोबार मूल्य सडकको पहुँच, मोहडा, जग्गाको वर्गीकरण र तत्कालीन बजार तरलता अनुसार फरक हुन सक्छ।'}
+              </p>
+            </div>
+          </div>
+
           {/* Results Summary Box */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-white/10">
             {/* Market Valuation */}

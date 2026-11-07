@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description:
     "Nepal's Zero-Brokerage P2P Property Marketplace & Wealth Tracker. Direct peer-to-peer real estate with verified cadastral boundaries and transparent valuation.",
   icons: {
-    icon: '/favicon.ico',
+    icon: '/icon.svg',
   },
 };
 

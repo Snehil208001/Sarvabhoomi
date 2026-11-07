@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft,
+  ArrowRight,
   MapPin,
   ShieldCheck,
   ShieldAlert,
@@ -388,10 +389,73 @@ export default function PropertyDetailPage() {
     );
   }
 
+  // Owner detail gate: An OWNER who opens a listing directly gets a designed restricted view
+  if (user?.userRole === 'OWNER') {
+    return (
+      <div className="min-h-screen bg-black text-white flex flex-col justify-between">
+        <header className="sticky top-0 z-40 bg-black/95 backdrop-blur-md border-b border-gold/30">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-white/70 hover:text-gold transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4 text-gold" />
+              <span>{lang === 'en' ? 'Back to Dashboard' : 'ड्यासबोर्डमा फर्कनुहोस्'}</span>
+            </Link>
+
+            <button
+              type="button"
+              onClick={() => setLang((l) => (l === 'en' ? 'ne' : 'en'))}
+              className="px-2.5 py-1.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-gold text-xs font-bold transition-colors shadow-subtle"
+              title="Toggle language"
+            >
+              {lang === 'en' ? 'नेपाली' : 'English'}
+            </button>
+          </div>
+        </header>
+
+        <main className="flex-1 flex items-center justify-center p-4">
+          <div className="bg-white/[0.06] rounded-3xl border border-gold/30 p-8 sm:p-10 max-w-lg w-full text-center space-y-5 shadow-card backdrop-blur-md">
+            <div className="w-16 h-16 rounded-2xl bg-white/[0.06] border border-gold/30 flex items-center justify-center mx-auto text-gold shadow-subtle">
+              <ShieldAlert className="w-8 h-8 text-gold" />
+            </div>
+
+            <div className="space-y-2">
+              <span className="px-3 py-1 rounded-full bg-gold/15 text-gold border border-gold/30 text-[10px] font-black uppercase tracking-wider inline-block">
+                {lang === 'en' ? 'Owner Portal Restricted' : 'घरधनी पहुँच सीमित'}
+              </span>
+              <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                {lang === 'en'
+                  ? "Owners can't browse rentals — this is a renter view"
+                  : 'घरधनीहरूले भाडाका विज्ञापन ब्राउज गर्न सक्नुहुन्न — यो भाडामा बस्नेहरूको लागि हो'}
+              </h2>
+            </div>
+
+            <p className="text-xs sm:text-sm text-white/70 leading-relaxed font-medium">
+              {lang === 'en'
+                ? 'Your Sarvabhoomi account is registered as a Property Owner. As an owner, you can post new rental listings and manage tenant visit requests in your dedicated dashboard.'
+                : 'तपाईंको खाता घरधनी (Owner) को रूपमा दर्ता छ। घरधनीको रूपमा तपाईं आफ्ना भाडाका घर-कोठाका विज्ञापन राख्न र ग्राहकहरूको अनुरोध व्यवस्थापन गर्न सक्नुहुन्छ।'}
+            </p>
+
+            <div className="pt-2">
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center justify-center gap-2 py-3 px-8 rounded-2xl bg-gold hover:bg-gold/90 active:scale-97 text-black font-black text-xs sm:text-sm shadow-card transition-all"
+              >
+                <span>{lang === 'en' ? 'Go to Owner Dashboard' : 'घरधनी ड्यासबोर्डमा जानुहोस्'}</span>
+                <ArrowRight className="w-4 h-4 text-black" />
+              </Link>
+            </div>
+          </div>
+        </main>
+
+        <Footer lang={lang} />
+      </div>
+    );
+  }
+
   const photos =
-    property.photos && property.photos.length > 0
-      ? property.photos
-      : ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1200&q=80'];
+    property.photos && property.photos.length > 0 ? property.photos : [];
 
   const monthlyRent = property.monthly_rent_npr || property.price_npr;
   const deposit = property.deposit_npr;
@@ -509,121 +573,137 @@ export default function PropertyDetailPage() {
         </div>
 
         {/* ============================================================ */}
-        {/* Photo Gallery with Ambient Backdrop, Fit Toggle, Lightbox    */}
+        {/* Photo Gallery with Ambient Backdrop or No-Photo Placeholder */}
         {/* ============================================================ */}
-        <div className="space-y-3">
-          <div className="relative h-[360px] sm:h-[460px] md:h-[520px] rounded-3xl overflow-hidden shadow-card border border-gold/30 bg-black">
-            {/* Ambient Blurred Backdrop */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none select-none">
-              <PropertyImage
-                src={photos[activePhotoIdx]}
-                alt=""
-                fill
-                sizes="100vw"
-                className="object-cover blur-3xl opacity-40 scale-125 brightness-75 transition-all duration-500"
-                priority
-              />
-              <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" />
+        {photos.length === 0 ? (
+          <div className="relative h-[240px] sm:h-[320px] rounded-3xl overflow-hidden shadow-card border border-gold/30 bg-white/[0.04] flex flex-col items-center justify-center p-6 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-white/[0.06] border border-gold/30 flex items-center justify-center text-gold mb-3 shadow-card">
+              <Eye className="w-7 h-7 text-gold/60" />
             </div>
-
-            {/* Foreground Display Image */}
-            <div
-              onClick={() => setIsLightboxOpen(true)}
-              className={`relative w-full h-full cursor-zoom-in flex items-center justify-center z-1 transition-all ${
-                imageFitMode === 'contain' ? 'p-3 sm:p-6' : ''
-              }`}
-            >
-              <PropertyImage
-                src={photos[activePhotoIdx]}
-                alt={`${property.title} - Photo ${activePhotoIdx + 1}`}
-                fill
-                sizes="(max-width: 1200px) 100vw, 1200px"
-                className={`${
-                  imageFitMode === 'contain' ? 'object-contain drop-shadow-2xl' : 'object-cover'
-                } transition-all duration-300`}
-                priority
-              />
-            </div>
-
-            {/* Gallery Control Badges */}
-            <div className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none z-10">
-              <span className="pointer-events-auto px-3.5 py-1.5 rounded-xl bg-black/80 border border-gold/30 backdrop-blur-md text-gold text-xs font-mono font-bold shadow-card">
-                Photo {activePhotoIdx + 1} of {photos.length}
-              </span>
-
-              <div className="flex items-center gap-2 pointer-events-auto">
-                <button
-                  type="button"
-                  onClick={() => setImageFitMode((prev) => (prev === 'contain' ? 'cover' : 'contain'))}
-                  className="px-3 py-1.5 rounded-xl bg-black/80 hover:bg-black border border-gold/30 backdrop-blur-md text-gold text-xs font-bold flex items-center gap-1.5 transition-colors shadow-card"
-                >
-                  {imageFitMode === 'contain' ? (
-                    <>
-                      <Maximize2 className="w-3.5 h-3.5 text-gold" />
-                      <span className="hidden sm:inline">Fill Frame</span>
-                    </>
-                  ) : (
-                    <>
-                      <Minimize2 className="w-3.5 h-3.5 text-gold" />
-                      <span className="hidden sm:inline">Fit Whole Image</span>
-                    </>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setIsLightboxOpen(true)}
-                  className="px-3 py-1.5 rounded-xl bg-black/80 hover:bg-black border border-gold/30 backdrop-blur-md text-gold text-xs font-bold flex items-center gap-1.5 transition-colors shadow-card"
-                >
-                  <Eye className="w-3.5 h-3.5 text-gold" />
-                  <span className="hidden sm:inline">Fullscreen</span>
-                </button>
+            <h3 className="text-sm sm:text-base font-bold text-white mb-1">
+              {lang === 'en' ? 'No photos uploaded yet' : 'हालसम्म कुनै तस्बिर छैन'}
+            </h3>
+            <p className="text-xs text-white/70 max-w-sm font-medium">
+              {lang === 'en'
+                ? 'The landlord has not uploaded photos for this rental listing yet. You can schedule a visit to inspect the property in person.'
+                : 'घरधनीले हालसम्म यस भाडाको सम्पत्तिको तस्बिर अपलोड गर्नुभएको छैन। सम्पत्ति प्रत्यक्ष हेर्नको लागि भिजिट तय गर्नुहोस्।'}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="relative h-[360px] sm:h-[460px] md:h-[520px] rounded-3xl overflow-hidden shadow-card border border-gold/30 bg-black">
+              {/* Ambient Blurred Backdrop */}
+              <div className="absolute inset-0 overflow-hidden pointer-events-none select-none">
+                <PropertyImage
+                  src={photos[activePhotoIdx]}
+                  alt=""
+                  fill
+                  sizes="100vw"
+                  className="object-cover blur-3xl opacity-40 scale-125 brightness-75 transition-all duration-500"
+                  priority
+                />
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" />
               </div>
+
+              {/* Foreground Display Image */}
+              <div
+                onClick={() => setIsLightboxOpen(true)}
+                className={`relative w-full h-full cursor-zoom-in flex items-center justify-center z-1 transition-all ${
+                  imageFitMode === 'contain' ? 'p-3 sm:p-6' : ''
+                }`}
+              >
+                <PropertyImage
+                  src={photos[activePhotoIdx]}
+                  alt={`${property.title} - Photo ${activePhotoIdx + 1}`}
+                  fill
+                  sizes="(max-width: 1200px) 100vw, 1200px"
+                  className={`${
+                    imageFitMode === 'contain' ? 'object-contain drop-shadow-2xl' : 'object-cover'
+                  } transition-all duration-300`}
+                  priority
+                />
+              </div>
+
+              {/* Gallery Control Badges */}
+              <div className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none z-10">
+                <span className="pointer-events-auto px-3.5 py-1.5 rounded-xl bg-black/80 border border-gold/30 backdrop-blur-md text-gold text-xs font-mono font-bold shadow-card">
+                  Photo {activePhotoIdx + 1} of {photos.length}
+                </span>
+
+                <div className="flex items-center gap-2 pointer-events-auto">
+                  <button
+                    type="button"
+                    onClick={() => setImageFitMode((prev) => (prev === 'contain' ? 'cover' : 'contain'))}
+                    className="px-3 py-1.5 rounded-xl bg-black/80 hover:bg-black border border-gold/30 backdrop-blur-md text-gold text-xs font-bold flex items-center gap-1.5 transition-colors shadow-card"
+                  >
+                    {imageFitMode === 'contain' ? (
+                      <>
+                        <Maximize2 className="w-3.5 h-3.5 text-gold" />
+                        <span className="hidden sm:inline">Fill Frame</span>
+                      </>
+                    ) : (
+                      <>
+                        <Minimize2 className="w-3.5 h-3.5 text-gold" />
+                        <span className="hidden sm:inline">Fit Whole Image</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsLightboxOpen(true)}
+                    className="px-3 py-1.5 rounded-xl bg-black/80 hover:bg-black border border-gold/30 backdrop-blur-md text-gold text-xs font-bold flex items-center gap-1.5 transition-colors shadow-card"
+                  >
+                    <Eye className="w-3.5 h-3.5 text-gold" />
+                    <span className="hidden sm:inline">Fullscreen</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Previous / Next Arrows */}
+              {photos.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setActivePhotoIdx((prev) => (prev > 0 ? prev - 1 : photos.length - 1))}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/80 hover:bg-black border border-gold/30 backdrop-blur-md text-gold flex items-center justify-center transition shadow-card z-10"
+                    aria-label="Previous photo"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActivePhotoIdx((prev) => (prev < photos.length - 1 ? prev + 1 : 0))}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/80 hover:bg-black border border-gold/30 backdrop-blur-md text-gold flex items-center justify-center transition shadow-card z-10"
+                    aria-label="Next photo"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </>
+              )}
             </div>
 
-            {/* Previous / Next Arrows */}
+            {/* Thumbnails row */}
             {photos.length > 1 && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setActivePhotoIdx((prev) => (prev > 0 ? prev - 1 : photos.length - 1))}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/80 hover:bg-black border border-gold/30 backdrop-blur-md text-gold flex items-center justify-center transition shadow-card z-10"
-                  aria-label="Previous photo"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActivePhotoIdx((prev) => (prev < photos.length - 1 ? prev + 1 : 0))}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/80 hover:bg-black border border-gold/30 backdrop-blur-md text-gold flex items-center justify-center transition shadow-card z-10"
-                  aria-label="Next photo"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </>
+              <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                {photos.map((url, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setActivePhotoIdx(idx)}
+                    className={`relative w-20 h-16 rounded-2xl overflow-hidden border-2 shrink-0 transition-all ${
+                      activePhotoIdx === idx
+                        ? 'border-gold shadow-card ring-2 ring-gold/50'
+                        : 'border-white/10 opacity-50 hover:opacity-100'
+                    }`}
+                  >
+                    <PropertyImage src={url} alt={`Thumbnail ${idx + 1}`} fill sizes="80px" className="object-cover" />
+                  </button>
+                ))}
+              </div>
             )}
           </div>
-
-          {/* Thumbnails row */}
-          {photos.length > 1 && (
-            <div className="flex items-center gap-2 overflow-x-auto pb-1">
-              {photos.map((url, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => setActivePhotoIdx(idx)}
-                  className={`relative w-20 h-16 rounded-2xl overflow-hidden border-2 shrink-0 transition-all ${
-                    activePhotoIdx === idx
-                      ? 'border-gold shadow-card ring-2 ring-gold/50'
-                      : 'border-white/10 opacity-50 hover:opacity-100'
-                  }`}
-                >
-                  <PropertyImage src={url} alt={`Thumbnail ${idx + 1}`} fill sizes="80px" className="object-cover" />
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        )}
 
         {/* ============================================================ */}
         {/* Two-Column Rental Details & Actions                          */}
@@ -1154,7 +1234,7 @@ export default function PropertyDetailPage() {
       )}
 
       {/* Fullscreen Lightbox Modal */}
-      {isLightboxOpen && (
+      {isLightboxOpen && photos.length > 0 && (
         <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col justify-between p-4 sm:p-6 animate-in fade-in duration-200">
           <div className="flex items-center justify-between text-white max-w-7xl w-full mx-auto">
             <div className="pr-4">

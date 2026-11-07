@@ -318,11 +318,6 @@ export default function PostPropertyPage() {
       title.trim() ||
       `${subtype} for Rent in ${locality}, ${district}`;
 
-    const defaultPhotos =
-      photos.length > 0
-        ? photos
-        : ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1200&q=80'];
-
     const propertyPayload = {
       owner_id: userId,
       title: defaultTitle,
@@ -355,7 +350,7 @@ export default function PostPropertyPage() {
       admin_verified: false,
       lalpurja_verified: false,
       kitta_no: kittaNo.trim() || null,
-      photos: defaultPhotos,
+      photos,
       status, // PENDING_REVIEW per NoBroker review requirement
       views_count: 0,
       updated_at: new Date().toISOString(),

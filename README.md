@@ -65,7 +65,7 @@ Sarvabhoomi/
 │   │   └── 20261106000009_lazy_profile_completion.sql
 │   ├── fix_storage_bucket.sql             # Storage bucket & RLS policies setup
 │   ├── init_sarvabhoomi.sql               # Single-script bootstrap for fresh DB
-│   └── seed_properties.sql                # 12 active realistic seed listings
+│   └── seed_properties.sql                # 6 active rentals + 3 paused listings
 └── .github/
     └── workflows/
         └── ci.yml                         # Automated lint, type-check, and build CI
@@ -138,7 +138,7 @@ Run the consolidated database setup script in your Supabase SQL Editor:
 - Open your Supabase Dashboard: `https://supabase.com/dashboard/project/_/sql`
 - Copy the entire contents of [`supabase/complete_setup.sql`](supabase/complete_setup.sql) and paste it into the SQL Editor.
 - Click **Run**. This idempotently creates or updates all tables (`profiles`, `properties`, `property_favourites`, `contact_unlocks`, `property_visit_requests`, `user_subscriptions`, `app_config`), applies all RLS policies, creates the `property-photos` storage bucket, grants permissions, and forces PostgREST schema cache reload (`NOTIFY pgrst, 'reload schema'`).
-- (Optional) Execute [`supabase/seed_properties.sql`](supabase/seed_properties.sql) to populate 12 active seed listings across Kathmandu, Lalitpur, and Bhaktapur.
+- (Optional) Execute [`supabase/seed_properties.sql`](supabase/seed_properties.sql) to populate 6 active rentals + 3 paused listings across Kathmandu, Lalitpur, and Bhaktapur.
 
 ---
 

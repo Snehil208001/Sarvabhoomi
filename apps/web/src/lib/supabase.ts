@@ -42,8 +42,8 @@ export type Database = {
           full_name: string | null;
           user_role: 'RENTER' | 'OWNER' | null;
           user_intent: 'BUYER' | 'OWNER' | 'INVESTOR_NRN' | 'AGENT_BROKER' | null;
-          preferred_region: 'HILLY' | 'TERAI';
-          preferred_district: string;
+          preferred_region: 'HILLY' | 'TERAI' | null;
+          preferred_district: string | null;
           preferred_lang: 'en' | 'ne';
           role: 'USER' | 'ADMIN';
           is_onboarded: boolean;
@@ -57,8 +57,8 @@ export type Database = {
           full_name?: string | null;
           user_role?: 'RENTER' | 'OWNER' | null;
           user_intent?: 'BUYER' | 'OWNER' | 'INVESTOR_NRN' | 'AGENT_BROKER' | null;
-          preferred_region?: 'HILLY' | 'TERAI';
-          preferred_district?: string;
+          preferred_region?: 'HILLY' | 'TERAI' | null;
+          preferred_district?: string | null;
           preferred_lang?: 'en' | 'ne';
           role?: 'USER' | 'ADMIN';
           is_onboarded?: boolean;
@@ -72,8 +72,8 @@ export type Database = {
           full_name?: string | null;
           user_role?: 'RENTER' | 'OWNER' | null;
           user_intent?: 'BUYER' | 'OWNER' | 'INVESTOR_NRN' | 'AGENT_BROKER' | null;
-          preferred_region?: 'HILLY' | 'TERAI';
-          preferred_district?: string;
+          preferred_region?: 'HILLY' | 'TERAI' | null;
+          preferred_district?: string | null;
           preferred_lang?: 'en' | 'ne';
           role?: 'USER' | 'ADMIN';
           is_onboarded?: boolean;
@@ -119,7 +119,7 @@ export type Database = {
           owner_id: string;
           title: string;
           description: string | null;
-          listing_type: 'BUY_LAND' | 'BUY_HOUSE' | 'RENT_HOUSE' | 'COMMERCIAL';
+          listing_type: 'RENT_HOUSE';
           price_npr: number;
           monthly_rent_npr: number | null;
           deposit_npr: number | null;
@@ -158,7 +158,7 @@ export type Database = {
           owner_id: string;
           title: string;
           description?: string | null;
-          listing_type: 'BUY_LAND' | 'BUY_HOUSE' | 'RENT_HOUSE' | 'COMMERCIAL';
+          listing_type: 'RENT_HOUSE';
           price_npr: number;
           monthly_rent_npr?: number | null;
           deposit_npr?: number | null;
@@ -197,7 +197,7 @@ export type Database = {
           owner_id?: string;
           title?: string;
           description?: string | null;
-          listing_type?: 'BUY_LAND' | 'BUY_HOUSE' | 'RENT_HOUSE' | 'COMMERCIAL';
+          listing_type?: 'RENT_HOUSE';
           price_npr?: number;
           monthly_rent_npr?: number | null;
           deposit_npr?: number | null;

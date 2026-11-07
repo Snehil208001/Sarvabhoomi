@@ -62,11 +62,19 @@ export async function middleware(request: NextRequest) {
       url.searchParams.set('error', 'owner_cannot_search');
       return NextResponse.redirect(url, { status: 307 });
     }
+
+    // Cross-role guardrail 3: OWNER cannot view /properties/:path*
+    if (userRole === 'OWNER' && pathname.startsWith('/properties/')) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/dashboard';
+      url.searchParams.set('error', 'owner_cannot_view_rental');
+      return NextResponse.redirect(url, { status: 307 });
+    }
   }
 
   return response;
 }
 
 export const config = {
-  matcher: ['/post-property/:path*', '/search/:path*'],
+  matcher: ['/post-property/:path*', '/search/:path*', '/properties/:path*'],
 };

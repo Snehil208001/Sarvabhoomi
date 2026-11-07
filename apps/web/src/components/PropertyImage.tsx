@@ -26,11 +26,11 @@ export function PropertyImage({
   if (!src || hasError) {
     return (
       <div
-        className={`w-full h-full flex flex-col items-center justify-center bg-white/[0.04] text-white/60 select-none ${className}`}
+        className={`w-full h-full min-h-[120px] flex flex-col items-center justify-center bg-white/[0.04] text-white/70 select-none p-3 ${className}`}
       >
         <Building2 className={`mb-1.5 ${fallbackIconClassName}`} />
         <span className="text-[11px] font-bold tracking-tight text-white/70">
-          Photo Unavailable
+          No photo yet
         </span>
       </div>
     );

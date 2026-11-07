@@ -128,10 +128,16 @@ export function ScrollReveal({
   delayMs?: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
+  // Visible by default for SSR and no-JS fallback
+  const [isVisible, setIsVisible] = useState(true);
+  const [isObserved, setIsObserved] = useState(false);
 
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (
+      typeof window === 'undefined' ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
+      !('IntersectionObserver' in window)
+    ) {
       setIsVisible(true);
       return;
     }
@@ -141,6 +147,10 @@ export function ScrollReveal({
       setIsVisible(true);
       return;
     }
+
+    // Arm the scroll reveal animation now that observer is confirmed running
+    setIsVisible(false);
+    setIsObserved(true);
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -154,17 +164,24 @@ export function ScrollReveal({
 
     observer.observe(currentRef);
 
+    // Safety timeout: reveal everything after at most 1,000ms regardless of observer
+    const safetyTimer = setTimeout(() => {
+      setIsVisible(true);
+      observer.disconnect();
+    }, Math.max(1000, delayMs + 600));
+
     return () => {
       observer.disconnect();
+      clearTimeout(safetyTimer);
     };
-  }, []);
+  }, [delayMs]);
 
   return (
     <div
       ref={ref}
       style={{
-        transitionDuration: '400ms',
-        transitionDelay: `${delayMs}ms`,
+        transitionDuration: isObserved ? '400ms' : '0ms',
+        transitionDelay: isObserved ? `${delayMs}ms` : '0ms',
         transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)',
       }}
       className={`transition-all transform ${

@@ -1,7 +1,5 @@
 export interface SearchDictionary {
   allProperties: string;
-  buyLand: string;
-  buyHouse: string;
   rentHouse: string;
   commercial: string;
   searchPlaceholder: string;
@@ -29,8 +27,6 @@ export interface SearchDictionary {
 
 export const searchDictEn: SearchDictionary = {
   allProperties: 'All Properties',
-  buyLand: 'Buy Land (Ghaderi)',
-  buyHouse: 'Buy House / Villa',
   rentHouse: 'Rentals',
   commercial: 'Commercial',
   searchPlaceholder: 'Search by locality, municipality, landmark...',
@@ -58,8 +54,6 @@ export const searchDictEn: SearchDictionary = {
 
 export const searchDictNe: SearchDictionary = {
   allProperties: 'सबै सम्पत्ति',
-  buyLand: 'जग्गा / घडेरी',
-  buyHouse: 'घर / भिल्ला',
   rentHouse: 'भाडामा',
   commercial: 'व्यावसायिक',
   searchPlaceholder: 'स्थान, टोल, नगरपालिका वा चिनारी खोज्नुहोस्...',

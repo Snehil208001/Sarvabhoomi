@@ -48,9 +48,7 @@ export function PropertyCard({
   const [poppingHeart, setPoppingHeart] = useState(false);
 
   const photoUrl =
-    property.photos && property.photos.length > 0
-      ? property.photos[0]
-      : 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80';
+    property.photos && property.photos.length > 0 ? property.photos[0] : null;
 
   const monthlyRent = property.monthly_rent_npr || property.price_npr;
   const subtypeLabel = property.property_subtype || (property.bedrooms ? `${property.bedrooms} BHK Flat` : 'Rental');

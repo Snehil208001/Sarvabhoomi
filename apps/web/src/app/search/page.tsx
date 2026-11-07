@@ -635,12 +635,12 @@ function SearchContent() {
                 </div>
                 <div>
                   <h3 className="text-lg font-black text-white">
-                    {lang === 'en' ? 'No Rental Listings Found' : 'कुनै भाडाको सूची फेला परेन'}
+                    {lang === 'en' ? 'No Rentals Match Your Search' : 'कुनै भाडाको सूची फेला परेन'}
                   </h3>
                   <p className="text-xs sm:text-sm text-white/70 mt-1.5 leading-relaxed font-medium">
                     {lang === 'en'
-                      ? 'Try loosening your rent budget, choosing another district, or resetting the filters.'
-                      : 'कृपया फरक बजेट वा जिल्ला छनोट गर्नुहोस्।'}
+                      ? 'No rentals match — try widening the budget or district, or reset your filters.'
+                      : 'कुनै भाडाको घर वा कोठा फेला परेन — कृपया बजेट वा जिल्ला परिवर्तन गर्नुहोस् वा फिल्टर रिसेट गर्नुहोस्।'}
                   </p>
                 </div>
                 <button
@@ -648,7 +648,7 @@ function SearchContent() {
                   onClick={handleResetFilters}
                   className="py-3 px-6 rounded-2xl bg-gold hover:bg-gold/90 text-black font-black text-xs shadow-subtle transition-all active:scale-97"
                 >
-                  {lang === 'en' ? 'View All Rentals' : 'सबै भाडाका सूची हेर्नुहोस्'}
+                  {lang === 'en' ? 'Reset Filters' : 'फिल्टरहरू रिसेट गर्नुहोस्'}
                 </button>
               </div>
             ) : (

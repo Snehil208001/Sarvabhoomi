@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const listingTypeEnum = z.enum(['BUY_LAND', 'BUY_HOUSE', 'RENT_HOUSE', 'COMMERCIAL']);
+export const listingTypeEnum = z.enum(['RENT_HOUSE']);
 export type ListingType = z.infer<typeof listingTypeEnum>;
 
 export const propertySubtypeEnum = z.enum(['HOUSE', 'FLAT', 'ROOM', 'SHOP']);
