@@ -45,16 +45,16 @@ export function OtpStep({
     <div className="space-y-6">
       {/* Header */}
       <div className="space-y-1 text-center">
-        <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+        <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
           {dict.otp.title}
         </h2>
-        <p className="text-xs sm:text-sm text-slate-600 max-w-sm mx-auto">
+        <p className="text-xs sm:text-sm text-white/70 max-w-sm mx-auto font-medium">
           {dict.otp.subtitle(phoneLocal)}
         </p>
         <button
           type="button"
           onClick={onChangePhone}
-          className="text-xs font-bold text-emerald-700 hover:text-emerald-800 underline inline-flex items-center gap-1 mt-1"
+          className="text-xs font-bold text-gold hover:underline inline-flex items-center gap-1 mt-1"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>{dict.otp.changePhone}</span>
@@ -64,7 +64,7 @@ export function OtpStep({
       {/* Form */}
       <form onSubmit={onVerifyOtp} className="space-y-6">
         <div>
-          <label className="block text-xs font-bold text-slate-700 text-center mb-3">
+          <label className="block text-xs font-bold text-white text-center mb-3">
             {dict.otp.otpLabel}
           </label>
           <div className="flex justify-center items-center gap-2 sm:gap-3" onPaste={onOtpPaste}>
@@ -81,21 +81,21 @@ export function OtpStep({
                 value={digit}
                 onChange={(e) => onOtpDigitChange(idx, e.target.value)}
                 onKeyDown={(e) => onOtpKeyDown(idx, e)}
-                className={`w-11 h-12 sm:w-12 sm:h-14 text-center text-lg sm:text-xl font-bold font-mono rounded-xl border bg-slate-50 text-slate-900 transition-all focus:outline-none focus:bg-white focus:ring-2 ${
+                className={`w-11 h-12 sm:w-12 sm:h-14 text-center text-lg sm:text-xl font-black font-mono rounded-2xl border-2 bg-black/60 text-white transition-all focus:outline-none focus:ring-1 focus:ring-gold ${
                   digit
-                    ? 'border-emerald-600 bg-emerald-50/40 text-emerald-900'
-                    : 'border-slate-300'
+                    ? 'border-gold bg-black/80 text-gold'
+                    : 'border-white/20'
                 } ${
                   otpError
-                    ? 'border-rose-400 focus:border-rose-600 focus:ring-rose-100'
-                    : 'focus:border-emerald-600 focus:ring-emerald-100'
+                    ? 'border-gold/60 focus:border-gold'
+                    : 'focus:border-gold'
                 }`}
               />
             ))}
           </div>
 
           {otpError && (
-            <p className="mt-2.5 text-xs text-rose-600 text-center flex items-center justify-center gap-1 font-medium">
+            <p className="mt-2.5 text-xs text-gold text-center flex items-center justify-center gap-1 font-semibold">
               <AlertCircle className="w-3.5 h-3.5 shrink-0" />
               <span>{otpError}</span>
             </p>
@@ -106,11 +106,11 @@ export function OtpStep({
         <button
           type="submit"
           disabled={isSubmitting || !isOtpComplete}
-          className="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 text-sm min-h-touch"
+          className="w-full bg-gold hover:bg-gold/90 active:scale-97 disabled:opacity-50 disabled:cursor-not-allowed text-black font-black py-3.5 px-4 rounded-2xl shadow-card transition-all flex items-center justify-center gap-2 text-sm min-h-touch"
         >
           {isSubmitting ? (
             <>
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
               <span>{dict.otp.verifying}</span>
             </>
           ) : (
@@ -122,8 +122,8 @@ export function OtpStep({
         </button>
 
         {/* Resend Code Area */}
-        <div className="text-center pt-2 border-t border-slate-100">
-          <p className="text-xs text-slate-500 mb-1">
+        <div className="text-center pt-2 border-t border-white/10">
+          <p className="text-xs text-white/70 mb-1 font-medium">
             {dict.otp.resendPrompt}
           </p>
           {canResend ? (
@@ -131,13 +131,13 @@ export function OtpStep({
               type="button"
               onClick={onResendOtp}
               disabled={isSubmitting}
-              className="text-xs font-bold text-emerald-700 hover:text-emerald-800 underline inline-flex items-center gap-1"
+              className="text-xs font-bold text-gold hover:underline inline-flex items-center gap-1"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>{dict.otp.resendButton}</span>
             </button>
           ) : (
-            <span className="text-xs font-mono font-medium text-slate-400">
+            <span className="text-xs font-mono font-bold text-white/60">
               {dict.otp.resendInSeconds(resendTimer)}
             </span>
           )}
@@ -146,3 +146,4 @@ export function OtpStep({
     </div>
   );
 }
+

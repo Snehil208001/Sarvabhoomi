@@ -586,24 +586,24 @@ function AuthContent() {
   const currentStepIdx = getStepIndex(step);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between font-sans selection:bg-emerald-600 selection:text-white">
+    <div className="min-h-screen bg-black text-white flex flex-col justify-between font-sans selection:bg-gold selection:text-black">
       {/* Top Header */}
-      <header className="border-b border-slate-200 bg-white/95 backdrop-blur-md sticky top-0 z-40 shadow-xs">
+      <header className="border-b border-gold/30 bg-black/95 backdrop-blur-md sticky top-0 z-40 shadow-card">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-18 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-3 sm:gap-4">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-emerald-600 flex items-center justify-center font-bold text-white text-xl sm:text-2xl shadow-xs ring-4 ring-emerald-50 select-none">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gold flex items-center justify-center font-black text-black text-xl sm:text-2xl shadow-card select-none">
               स
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-extrabold tracking-tight text-slate-900 text-base sm:text-lg">
+                <span className="font-black tracking-tight text-white text-base sm:text-lg">
                   {dict.brand.name}
                 </span>
-                <span className="hidden md:inline-flex px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200">
+                <span className="hidden md:inline-flex px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider rounded-full bg-gold/20 text-gold border border-gold/30">
                   0% Brokerage
                 </span>
               </div>
-              <p className="text-xs text-slate-500 hidden sm:block line-clamp-1 max-w-lg">
+              <p className="text-xs text-white/70 hidden sm:block line-clamp-1 max-w-lg font-medium">
                 {dict.brand.tagline}
               </p>
             </div>
@@ -613,10 +613,10 @@ function AuthContent() {
           <button
             type="button"
             onClick={handleToggleLang}
-            className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 hover:text-slate-900 transition-all shadow-xs active:scale-95"
+            className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-xs font-bold text-white transition-all shadow-subtle active:scale-97"
             aria-label="Toggle Interface Language"
           >
-            <Globe2 className="w-4 h-4 text-emerald-600" />
+            <Globe2 className="w-4 h-4 text-gold" />
             <span className="tracking-wide">
               {lang === 'en' ? 'नेपाली (NE)' : 'English (EN)'}
             </span>
@@ -626,13 +626,13 @@ function AuthContent() {
 
       {/* Main Container */}
       <main className="flex-1 max-w-2xl w-full mx-auto px-4 py-6 sm:py-10 flex flex-col justify-center">
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-lg shadow-slate-200/50 overflow-hidden">
+        <div className="bg-white/[0.06] border border-gold/30 rounded-3xl shadow-card overflow-hidden">
           {/* Top Progress Bar */}
-          <div className="border-b border-slate-100 bg-slate-50/80 p-4 sm:px-6">
+          <div className="border-b border-white/10 bg-black/40 p-4 sm:px-6">
             <div className="flex items-center justify-between relative">
-              <div className="absolute top-1/2 left-6 right-6 -translate-y-1/2 h-0.5 bg-slate-200 -z-0" />
+              <div className="absolute top-1/2 left-6 right-6 -translate-y-1/2 h-0.5 bg-white/10 -z-0" />
               <div
-                className="absolute top-1/2 left-6 -translate-y-1/2 h-0.5 bg-emerald-600 transition-all duration-500 -z-0"
+                className="absolute top-1/2 left-6 -translate-y-1/2 h-0.5 bg-gold transition-all duration-500 -z-0"
                 style={{
                   width: `${(Math.min(currentStepIdx, activeSteps.length - 1) / Math.max(activeSteps.length - 1, 1)) * 100}%`,
                 }}
@@ -643,25 +643,25 @@ function AuthContent() {
                 const isActive = idx === currentStepIdx;
 
                 return (
-                  <div key={s.id} className="flex flex-col items-center gap-1 relative z-10">
+                  <div key={s.id} className="flex flex-col items-center gap-1.5 relative z-10">
                     <div
-                      className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all ${
                         isActive
-                          ? 'bg-emerald-600 text-white ring-4 ring-emerald-100 shadow-xs'
+                          ? 'bg-gold text-black ring-4 ring-gold/20 shadow-card scale-110'
                           : isCompleted
-                          ? 'bg-emerald-600 text-white'
-                          : 'bg-white text-slate-400 border border-slate-200'
+                          ? 'bg-gold/20 text-gold border border-gold/40'
+                          : 'bg-white/5 text-white/40 border border-white/10'
                       }`}
                     >
                       {isCompleted ? <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" /> : s.num}
                     </div>
                     <span
-                      className={`text-[10px] sm:text-[11px] font-medium tracking-tight ${
+                      className={`text-[10px] sm:text-[11px] tracking-tight font-bold ${
                         isActive
-                          ? 'text-emerald-700 font-bold'
+                          ? 'text-gold font-black'
                           : isCompleted
-                          ? 'text-slate-700 font-semibold'
-                          : 'text-slate-400'
+                          ? 'text-white/80'
+                          : 'text-white/40'
                       }`}
                     >
                       {lang === 'en' ? s.labelEn : s.labelNe}
@@ -675,22 +675,22 @@ function AuthContent() {
           {/* Feedback Notices */}
           {notice && (
             <div
-              className={`p-3.5 mx-6 mt-6 rounded-xl text-xs flex items-start gap-2.5 border ${
+              className={`p-4 mx-6 mt-6 rounded-2xl text-xs flex items-start gap-2.5 border ${
                 notice.type === 'error'
-                  ? 'bg-rose-50 border-rose-200 text-rose-700'
+                  ? 'bg-white/5 border-gold/40 text-white'
                   : notice.type === 'success'
-                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                  : 'bg-slate-50 border-slate-200 text-slate-700'
+                  ? 'bg-gold text-black border-gold'
+                  : 'bg-white/5 border-white/10 text-white'
               }`}
             >
               {notice.type === 'error' ? (
-                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                <AlertCircle className="w-4 h-4 text-gold shrink-0 mt-0.5" />
               ) : notice.type === 'success' ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <CheckCircle2 className="w-4 h-4 text-black shrink-0 mt-0.5" />
               ) : (
-                <Sparkles className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <Sparkles className="w-4 h-4 text-gold shrink-0 mt-0.5" />
               )}
-              <div className="flex-1 leading-relaxed font-medium">{notice.message}</div>
+              <div className="flex-1 leading-relaxed font-semibold">{notice.message}</div>
             </div>
           )}
 
@@ -760,10 +760,10 @@ function AuthContent() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white py-6">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+      <footer className="border-t border-gold/30 bg-black py-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-white/70 font-medium">
           <p>© 2026 Sarvabhoomi Capital & Investment Pvt. Ltd. All rights reserved.</p>
-          <div className="flex items-center gap-4 text-emerald-800 font-semibold">
+          <div className="flex items-center gap-4 text-gold font-bold">
             <span>0% Broker Commission</span>
             <span>•</span>
             <span>Direct P2P Rentals</span>
@@ -780,8 +780,8 @@ export default function AuthPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-          <div className="w-8 h-8 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin" />
+        <div className="min-h-screen bg-black flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full border-2 border-gold border-t-transparent animate-spin" />
         </div>
       }
     >

@@ -10,8 +10,6 @@ import {
   PlusCircle,
   Menu,
   X,
-  ShieldCheck,
-  TrendingUp,
   Search,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -106,80 +104,80 @@ export function Navbar({ lang = 'en', onToggleLang, currentUser }: NavbarProps) 
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
+    <header className="sticky top-0 z-50 bg-black/95 backdrop-blur-md border-b border-gold/30 shadow-subtle">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 sm:h-20 flex items-center justify-between gap-3 sm:gap-6">
         {/* Left: Brand Identity */}
         <Link href="/" className="flex items-center gap-2.5 sm:gap-3 shrink-0 group min-h-touch">
-          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-emerald-600 flex items-center justify-center font-bold text-white text-xl sm:text-2xl shadow-xs ring-4 ring-emerald-50 select-none group-hover:bg-emerald-700 transition-colors">
+          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gold flex items-center justify-center font-black text-black text-xl sm:text-2xl shadow-subtle select-none group-hover:scale-105 transition-transform duration-200">
             स
           </div>
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
-              <span className="font-extrabold tracking-tight text-slate-900 text-base sm:text-lg whitespace-nowrap">
+              <span className="font-extrabold tracking-tight text-white text-base sm:text-lg whitespace-nowrap">
                 Sarvabhoomi
               </span>
-              <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 whitespace-nowrap">
+              <span className="px-2 py-0.5 text-[10px] font-black uppercase tracking-wider rounded-md bg-gold/10 text-gold border border-gold/30 whitespace-nowrap">
                 0% Brokerage
               </span>
             </div>
-            <p className="text-[11px] text-slate-500 hidden sm:block whitespace-nowrap">
-              {lang === 'en' ? 'Direct P2P Real Estate' : 'शून्य-दलाली घरजग्गा बजार'}
+            <p className="text-[11px] text-white/70 hidden sm:block whitespace-nowrap font-medium">
+              {lang === 'en' ? 'Direct P2P Rental Network' : 'शून्य-दलाली घरजग्गा बजार'}
             </p>
           </div>
         </Link>
 
         {/* Center: Concise Navigation Links (Desktop) */}
-        <nav className="hidden xl:flex items-center gap-7 text-sm font-medium text-slate-600 shrink-0">
-          <Link href="/search" className="hover:text-emerald-700 transition-colors whitespace-nowrap min-h-touch flex items-center">
+        <nav className="hidden xl:flex items-center gap-7 text-sm font-semibold text-white/70 shrink-0">
+          <Link href="/search" className="hover:text-gold transition-colors whitespace-nowrap min-h-touch flex items-center">
             {lang === 'en' ? 'Search Rentals' : 'कोठा र घर भाडामा खोज्नुहोस्'}
           </Link>
-          <Link href="/#how-it-works" className="hover:text-emerald-700 transition-colors whitespace-nowrap min-h-touch flex items-center">
+          <Link href="/#how-it-works" className="hover:text-gold transition-colors whitespace-nowrap min-h-touch flex items-center">
             {lang === 'en' ? 'Why 0% Brokerage' : 'शून्य दलाली'}
           </Link>
-          <Link href="/#faqs" className="hover:text-emerald-700 transition-colors whitespace-nowrap min-h-touch flex items-center">
+          <Link href="/#faqs" className="hover:text-gold transition-colors whitespace-nowrap min-h-touch flex items-center">
             {lang === 'en' ? 'FAQs' : 'प्रश्नोत्तर'}
           </Link>
         </nav>
 
         {/* Right: Actions, Auth & Language Switcher */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {/* Post Free Rental CTA: Owners or Guests Only (Never shown to Renters) */}
+          {/* Post Free Rental CTA: Gold Button with Black Text (Contrast: 8.3:1) */}
           {user?.userRole !== 'RENTER' ? (
             <Link
               href={user ? '/post-property' : '/auth?mode=signup'}
-              className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl border border-emerald-600 bg-emerald-50/90 hover:bg-emerald-600 text-emerald-800 hover:text-white text-xs sm:text-sm font-bold transition-all shadow-xs active:scale-95 whitespace-nowrap min-h-touch"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gold hover:bg-gold/90 text-black text-xs sm:text-sm font-black transition-all shadow-subtle hover:-translate-y-0.5 active:scale-97 whitespace-nowrap min-h-touch"
             >
-              <PlusCircle className="w-4 h-4 text-emerald-600 group-hover:text-white" />
-              <span>{lang === 'en' ? 'Post Free Rental' : 'घर/कोठा भाडामा राख्नुहोस्'}</span>
+              <PlusCircle className="w-4 h-4 text-black stroke-[2.5]" />
+              <span>{lang === 'en' ? 'Post Free Property' : 'घर/कोठा भाडामा राख्नुहोस्'}</span>
             </Link>
           ) : (
             <Link
               href="/search"
-              className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl border border-emerald-600 bg-emerald-50/90 hover:bg-emerald-600 text-emerald-800 hover:text-white text-xs sm:text-sm font-bold transition-all shadow-xs active:scale-95 whitespace-nowrap min-h-touch"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gold hover:bg-gold/90 text-black text-xs sm:text-sm font-black transition-all shadow-subtle hover:-translate-y-0.5 active:scale-97 whitespace-nowrap min-h-touch"
             >
-              <Search className="w-4 h-4 text-emerald-600 group-hover:text-white" />
+              <Search className="w-4 h-4 text-black stroke-[2.5]" />
               <span>{lang === 'en' ? 'Find Rentals' : 'भाडामा खोज्नुहोस्'}</span>
             </Link>
           )}
 
-          {/* Authentication Action: User Chip or Single Sign In CTA */}
+          {/* Authentication Action: Outlined Gold Verified Member pill or Sign In CTA */}
           {user ? (
             <div className="flex items-center gap-1.5 sm:gap-2">
               <Link
                 href="/dashboard"
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100 text-xs sm:text-sm font-bold transition-all shadow-xs whitespace-nowrap min-h-touch"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-gold/30 text-white hover:bg-white/10 text-xs sm:text-sm font-bold transition-all whitespace-nowrap min-h-touch"
                 title="Go to Dashboard Console"
               >
-                <User className="w-4 h-4 text-emerald-700" />
+                <User className="w-4 h-4 text-gold" />
                 <span className="hidden md:inline font-semibold truncate max-w-[110px]">{user.fullName}</span>
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-bold">
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-gold text-black text-[10px] font-black">
                   {user.credits} C
                 </span>
               </Link>
               <button
                 type="button"
                 onClick={handleSignOut}
-                className="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors text-xs font-semibold min-h-touch min-w-touch flex items-center justify-center"
+                className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-colors text-xs font-semibold min-h-touch min-w-touch flex items-center justify-center"
                 title={lang === 'en' ? 'Log Out' : 'लगआउट'}
               >
                 <LogOut className="w-4 h-4" />
@@ -188,23 +186,23 @@ export function Navbar({ lang = 'en', onToggleLang, currentUser }: NavbarProps) 
           ) : (
             <Link
               href="/auth"
-              className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs sm:text-sm font-bold transition-all shadow-xs hover:shadow-sm active:scale-95 whitespace-nowrap min-h-touch"
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 active:scale-97 border border-white/10 text-white text-xs sm:text-sm font-bold transition-all shadow-subtle whitespace-nowrap min-h-touch"
               title={lang === 'en' ? 'Log in or Create an Account' : 'लगइन वा नयाँ खाता'}
             >
-              <User className="w-4 h-4" />
+              <User className="w-4 h-4 text-gold" />
               <span>{lang === 'en' ? 'Sign In' : 'साइन इन'}</span>
             </Link>
           )}
 
-          {/* Bilingual Switcher */}
+          {/* Bilingual Switcher: Outlined Gold Pill */}
           {onToggleLang && (
             <button
               type="button"
               onClick={onToggleLang}
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-2xs min-h-touch"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gold/30 bg-white/5 hover:bg-white/10 text-gold text-xs font-bold transition-all min-h-touch"
               title={lang === 'en' ? 'नेपालीमा स्विच गर्नुहोस्' : 'Switch to English'}
             >
-              <Globe2 className="w-4 h-4 text-emerald-600" />
+              <Globe2 className="w-4 h-4 text-gold" />
               <span>{lang === 'en' ? 'नेपाली' : 'EN'}</span>
             </button>
           )}
@@ -213,35 +211,35 @@ export function Navbar({ lang = 'en', onToggleLang, currentUser }: NavbarProps) 
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="xl:hidden p-2 text-slate-600 hover:text-slate-900 rounded-xl border border-slate-200 min-h-touch min-w-touch flex items-center justify-center"
+            className="xl:hidden p-2 text-white hover:bg-white/10 rounded-xl border border-white/10 min-h-touch min-w-touch flex items-center justify-center"
             aria-label="Toggle navigation menu"
           >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {mobileMenuOpen ? <X className="w-5 h-5 text-gold" /> : <Menu className="w-5 h-5 text-white" />}
           </button>
         </div>
       </div>
 
       {/* Mobile Drawer Navigation */}
       {mobileMenuOpen && (
-        <div className="xl:hidden border-t border-slate-200 bg-white px-4 py-4 space-y-3">
+        <div className="xl:hidden border-t border-gold/30 bg-black px-4 py-4 space-y-3">
           <Link
             href="/search"
             onClick={() => setMobileMenuOpen(false)}
-            className="block py-2 text-sm font-semibold text-slate-700 hover:text-emerald-700"
+            className="block py-2 text-sm font-semibold text-white/90 hover:text-gold"
           >
             {lang === 'en' ? 'Search Rentals' : 'कोठा र घर भाडामा खोज्नुहोस्'}
           </Link>
           <Link
             href="/#how-it-works"
             onClick={() => setMobileMenuOpen(false)}
-            className="block py-2 text-sm font-semibold text-slate-700 hover:text-emerald-700"
+            className="block py-2 text-sm font-semibold text-white/90 hover:text-gold"
           >
             {lang === 'en' ? 'Why 0% Brokerage' : 'शून्य दलाली'}
           </Link>
           <Link
             href="/#faqs"
             onClick={() => setMobileMenuOpen(false)}
-            className="block py-2 text-sm font-semibold text-slate-700 hover:text-emerald-700"
+            className="block py-2 text-sm font-semibold text-white/90 hover:text-gold"
           >
             {lang === 'en' ? 'FAQs' : 'प्रश्नोत्तर'}
           </Link>
@@ -249,16 +247,16 @@ export function Navbar({ lang = 'en', onToggleLang, currentUser }: NavbarProps) 
             <Link
               href={user ? '/post-property' : '/auth?mode=signup'}
               onClick={() => setMobileMenuOpen(false)}
-              className="block py-2 text-sm font-bold text-emerald-700"
+              className="block py-2 text-sm font-bold text-black bg-gold px-3 rounded-lg"
             >
-              {lang === 'en' ? 'Post Free Rental' : 'घर/कोठा भाडामा राख्नुहोस्'}
+              {lang === 'en' ? 'Post Free Property' : 'घर/कोठा भाडामा राख्नुहोस्'}
             </Link>
           )}
           {user && (
             <Link
               href="/dashboard"
               onClick={() => setMobileMenuOpen(false)}
-              className="block py-2 text-sm font-bold text-emerald-700"
+              className="block py-2 text-sm font-bold text-gold"
             >
               {lang === 'en' ? 'My Dashboard Console' : 'ड्यासबोर्ड कन्सोल'}
             </Link>
@@ -268,4 +266,3 @@ export function Navbar({ lang = 'en', onToggleLang, currentUser }: NavbarProps) 
     </header>
   );
 }
-

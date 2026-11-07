@@ -11,8 +11,8 @@ export default function DashboardShortlistRedirect() {
   }, [router]);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center font-sans">
-      <div className="w-12 h-12 rounded-xl bg-emerald-600 text-white font-bold flex items-center justify-center text-xl animate-pulse">
+    <div className="min-h-screen bg-black flex items-center justify-center font-sans">
+      <div className="w-12 h-12 rounded-2xl bg-gold text-black font-black flex items-center justify-center text-xl animate-pulse shadow-card">
         स
       </div>
     </div>

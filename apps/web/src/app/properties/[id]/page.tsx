@@ -358,12 +358,12 @@ export default function PropertyDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-emerald-600 flex items-center justify-center font-bold text-white text-2xl shadow-xs ring-4 ring-emerald-100 animate-pulse">
+          <div className="w-12 h-12 rounded-2xl bg-gold flex items-center justify-center font-black text-black text-2xl shadow-card ring-4 ring-gold/20 animate-pulse">
             स
           </div>
-          <span className="text-xs text-slate-500 font-medium">
+          <span className="text-xs text-white/70 font-semibold tracking-wide">
             {lang === 'en' ? 'Loading rental details...' : 'भाडाको विवरण लोड हुँदैछ...'}
           </span>
         </div>
@@ -373,18 +373,20 @@ export default function PropertyDetailPage() {
 
   if (error || !property) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl border border-slate-200 p-8 max-w-md w-full text-center space-y-4 shadow-sm">
-          <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto border border-rose-200">
-            <AlertCircle className="w-6 h-6" />
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="bg-white/[0.06] rounded-3xl border border-gold/30 p-8 max-w-md w-full text-center space-y-4 shadow-card text-white backdrop-blur-md">
+          <div className="w-14 h-14 rounded-2xl bg-white/5 text-gold flex items-center justify-center mx-auto border border-gold/30">
+            <AlertCircle className="w-7 h-7 text-gold" />
           </div>
-          <h2 className="text-lg font-bold text-slate-900">
+          <h2 className="text-xl font-black text-gold tracking-tight">
             {lang === 'en' ? 'Property Not Available' : 'सम्पत्ति फेला परेन'}
           </h2>
-          <p className="text-xs text-slate-500">{error || 'This listing might have been removed.'}</p>
+          <p className="text-xs text-white/70 leading-relaxed font-medium">
+            {error || 'This listing might have been removed or is no longer active.'}
+          </p>
           <Link
             href="/search"
-            className="inline-flex items-center gap-2 py-2.5 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs"
+            className="inline-flex items-center gap-2 py-3 px-6 rounded-2xl bg-gold hover:bg-gold/90 active:scale-97 text-black font-black text-xs shadow-card transition-all"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>{lang === 'en' ? 'Back to Search' : 'खोज सूचीमा फर्कनुहोस्'}</span>
@@ -410,15 +412,15 @@ export default function PropertyDetailPage() {
   const minDateStr = tomorrow.toISOString().split('T')[0];
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-emerald-600 selection:text-white flex flex-col justify-between">
+    <div className="min-h-screen bg-black text-white font-sans selection:bg-gold selection:text-black flex flex-col justify-between">
       {/* Top Navbar */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
+      <header className="sticky top-0 z-40 bg-black/95 backdrop-blur-md border-b border-gold/30 shadow-subtle">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-18 flex items-center justify-between gap-3">
           <Link
             href="/search"
-            className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-600 hover:text-emerald-700 transition-colors"
+            className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-white/70 hover:text-gold transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4 text-gold" />
             <span>{lang === 'en' ? 'Back to Search' : 'खोजमा फर्कनुहोस्'}</span>
           </Link>
 
@@ -426,10 +428,10 @@ export default function PropertyDetailPage() {
             <button
               type="button"
               onClick={handleShare}
-              className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 shadow-xs"
+              className="p-2 sm:px-3 sm:py-2 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-subtle"
               title="Share listing link"
             >
-              <Share2 className="w-4 h-4 text-emerald-600" />
+              <Share2 className="w-4 h-4 text-gold" />
               <span className="hidden sm:inline">
                 {copyFeedback ? (lang === 'en' ? 'Link Copied!' : 'लिङ्क कपी भयो') : 'Share'}
               </span>
@@ -438,13 +440,13 @@ export default function PropertyDetailPage() {
             <button
               type="button"
               onClick={handleToggleFavorite}
-              className={`p-2 rounded-xl border transition-all shadow-xs flex items-center gap-1.5 text-xs font-semibold ${
+              className={`p-2 sm:px-3 sm:py-2 rounded-xl border transition-all shadow-subtle flex items-center gap-1.5 text-xs font-bold ${
                 isFavorite
-                  ? 'bg-rose-50 border-rose-300 text-rose-700'
-                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                  ? 'bg-gold text-black border-gold'
+                  : 'bg-white/5 border-white/20 text-white hover:bg-white/10'
               }`}
             >
-              <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current text-rose-600' : 'text-slate-500'}`} />
+              <Heart className={`w-4 h-4 ${isFavorite ? 'fill-black text-black' : 'text-gold'}`} />
               <span className="hidden sm:inline">{isFavorite ? 'Saved' : 'Save'}</span>
             </button>
           </div>
@@ -456,13 +458,13 @@ export default function PropertyDetailPage() {
         {/* Title & Badges Bar */}
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold uppercase tracking-wider">
+            <span className="px-3 py-1 rounded-full bg-white/10 text-gold border border-gold/30 text-xs font-black uppercase tracking-wider">
               {property.property_subtype || 'Rental'}
             </span>
             {property.admin_verified ? (
               <span
                 title="Government cadastral verified by Sarvabhoomi"
-                className="px-2.5 py-1 rounded-md bg-emerald-600 text-white text-xs font-bold flex items-center gap-1 shadow-xs"
+                className="px-3 py-1 rounded-full bg-gold text-black text-xs font-black flex items-center gap-1 shadow-subtle"
               >
                 <ShieldCheck className="w-3.5 h-3.5" />
                 <span>Lalpurja Verified</span>
@@ -470,46 +472,46 @@ export default function PropertyDetailPage() {
             ) : property.owner_declared_lalpurja ? (
               <span
                 title="Lalpurja claimed by owner — pending cadastral verification by Sarvabhoomi"
-                className="px-2.5 py-1 rounded-md bg-slate-900 text-amber-300 border border-amber-400/40 text-xs font-semibold flex items-center gap-1 shadow-xs"
+                className="px-3 py-1 rounded-full bg-white/10 text-gold border border-gold/30 text-xs font-bold flex items-center gap-1 shadow-subtle"
               >
-                <ShieldAlert className="w-3.5 h-3.5 text-amber-300" />
+                <ShieldAlert className="w-3.5 h-3.5 text-gold" />
                 <span>Lalpurja Claimed (Pending)</span>
               </span>
             ) : null}
 
-            <span className="px-2.5 py-1 rounded-md bg-white text-emerald-800 border border-emerald-200 text-xs font-bold uppercase tracking-wider shadow-2xs">
+            <span className="px-3 py-1 rounded-full bg-gold/20 text-gold border border-gold/30 text-xs font-bold uppercase tracking-wider">
               0% Brokerage
             </span>
           </div>
 
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight leading-snug">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight leading-snug">
             {property.title}
           </h1>
 
-          <div className="flex flex-wrap items-center gap-4 text-xs sm:text-sm text-slate-600">
-            <div className="flex items-center gap-1.5 font-medium">
-              <MapPin className="w-4 h-4 text-emerald-600 shrink-0" />
+          <div className="flex flex-wrap items-center gap-4 text-xs sm:text-sm text-white/70">
+            <div className="flex items-center gap-1.5 font-semibold text-white">
+              <MapPin className="w-4 h-4 text-gold shrink-0" />
               <span>
                 {property.locality}
                 {property.ward ? `, Ward ${property.ward}` : ''}, {property.district}
               </span>
             </div>
-            <div className="flex items-center gap-1.5 text-slate-400">
-              <Eye className="w-3.5 h-3.5" />
+            <div className="flex items-center gap-1.5 text-white/70">
+              <Eye className="w-3.5 h-3.5 text-gold/70" />
               <span>{property.views_count || 1} views</span>
             </div>
-            <div className="flex items-center gap-1.5 text-slate-400">
-              <Calendar className="w-3.5 h-3.5" />
+            <div className="flex items-center gap-1.5 text-white/70">
+              <Calendar className="w-3.5 h-3.5 text-gold/70" />
               <span>Listed {new Date(property.created_at).toLocaleDateString()}</span>
             </div>
           </div>
         </div>
 
         {/* ============================================================ */}
-        {/* Photo Gallery with Lightbox and Fit Toggle                   */}
+        {/* Photo Gallery with Ambient Backdrop, Fit Toggle, Lightbox    */}
         {/* ============================================================ */}
         <div className="space-y-3">
-          <div className="relative h-[360px] sm:h-[460px] md:h-[520px] rounded-2xl overflow-hidden shadow-sm border border-slate-200 bg-slate-950">
+          <div className="relative h-[360px] sm:h-[460px] md:h-[520px] rounded-3xl overflow-hidden shadow-card border border-gold/30 bg-black">
             {/* Ambient Blurred Backdrop */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none select-none">
               <PropertyImage
@@ -517,10 +519,10 @@ export default function PropertyDetailPage() {
                 alt=""
                 fill
                 sizes="100vw"
-                className="object-cover blur-3xl opacity-35 scale-125 brightness-75 transition-all duration-500"
+                className="object-cover blur-3xl opacity-40 scale-125 brightness-75 transition-all duration-500"
                 priority
               />
-              <div className="absolute inset-0 bg-slate-950/50 backdrop-blur-xs" />
+              <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" />
             </div>
 
             {/* Foreground Display Image */}
@@ -544,7 +546,7 @@ export default function PropertyDetailPage() {
 
             {/* Gallery Control Badges */}
             <div className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none z-10">
-              <span className="pointer-events-auto px-3 py-1.5 rounded-lg bg-black/60 backdrop-blur-md text-white text-xs font-mono font-medium shadow-xs">
+              <span className="pointer-events-auto px-3.5 py-1.5 rounded-xl bg-black/80 border border-gold/30 backdrop-blur-md text-gold text-xs font-mono font-bold shadow-card">
                 Photo {activePhotoIdx + 1} of {photos.length}
               </span>
 
@@ -552,16 +554,16 @@ export default function PropertyDetailPage() {
                 <button
                   type="button"
                   onClick={() => setImageFitMode((prev) => (prev === 'contain' ? 'cover' : 'contain'))}
-                  className="px-2.5 py-1.5 rounded-lg bg-black/60 hover:bg-black/80 backdrop-blur-md text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
+                  className="px-3 py-1.5 rounded-xl bg-black/80 hover:bg-black border border-gold/30 backdrop-blur-md text-gold text-xs font-bold flex items-center gap-1.5 transition-colors shadow-card"
                 >
                   {imageFitMode === 'contain' ? (
                     <>
-                      <Maximize2 className="w-3.5 h-3.5" />
+                      <Maximize2 className="w-3.5 h-3.5 text-gold" />
                       <span className="hidden sm:inline">Fill Frame</span>
                     </>
                   ) : (
                     <>
-                      <Minimize2 className="w-3.5 h-3.5" />
+                      <Minimize2 className="w-3.5 h-3.5 text-gold" />
                       <span className="hidden sm:inline">Fit Whole Image</span>
                     </>
                   )}
@@ -570,9 +572,9 @@ export default function PropertyDetailPage() {
                 <button
                   type="button"
                   onClick={() => setIsLightboxOpen(true)}
-                  className="px-2.5 py-1.5 rounded-lg bg-black/60 hover:bg-black/80 backdrop-blur-md text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
+                  className="px-3 py-1.5 rounded-xl bg-black/80 hover:bg-black border border-gold/30 backdrop-blur-md text-gold text-xs font-bold flex items-center gap-1.5 transition-colors shadow-card"
                 >
-                  <Eye className="w-3.5 h-3.5" />
+                  <Eye className="w-3.5 h-3.5 text-gold" />
                   <span className="hidden sm:inline">Fullscreen</span>
                 </button>
               </div>
@@ -584,7 +586,7 @@ export default function PropertyDetailPage() {
                 <button
                   type="button"
                   onClick={() => setActivePhotoIdx((prev) => (prev > 0 ? prev - 1 : photos.length - 1))}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-black/85 backdrop-blur-md text-white flex items-center justify-center transition shadow-md z-10"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/80 hover:bg-black border border-gold/30 backdrop-blur-md text-gold flex items-center justify-center transition shadow-card z-10"
                   aria-label="Previous photo"
                 >
                   <ChevronLeft className="w-5 h-5" />
@@ -592,7 +594,7 @@ export default function PropertyDetailPage() {
                 <button
                   type="button"
                   onClick={() => setActivePhotoIdx((prev) => (prev < photos.length - 1 ? prev + 1 : 0))}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-black/85 backdrop-blur-md text-white flex items-center justify-center transition shadow-md z-10"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/80 hover:bg-black border border-gold/30 backdrop-blur-md text-gold flex items-center justify-center transition shadow-card z-10"
                   aria-label="Next photo"
                 >
                   <ChevronRight className="w-5 h-5" />
@@ -609,10 +611,10 @@ export default function PropertyDetailPage() {
                   key={idx}
                   type="button"
                   onClick={() => setActivePhotoIdx(idx)}
-                  className={`relative w-20 h-16 rounded-xl overflow-hidden border-2 shrink-0 transition-all ${
+                  className={`relative w-20 h-16 rounded-2xl overflow-hidden border-2 shrink-0 transition-all ${
                     activePhotoIdx === idx
-                      ? 'border-emerald-600 shadow-sm ring-2 ring-emerald-200'
-                      : 'border-slate-200 opacity-70 hover:opacity-100'
+                      ? 'border-gold shadow-card ring-2 ring-gold/50'
+                      : 'border-white/10 opacity-50 hover:opacity-100'
                   }`}
                 >
                   <PropertyImage src={url} alt={`Thumbnail ${idx + 1}`} fill sizes="80px" className="object-cover" />
@@ -628,150 +630,150 @@ export default function PropertyDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           {/* Left Column (2 Cols): Rent Breakdown, Specs, Cadastral Map */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Rent Breakdown Dashboard Banner (NoBroker Layout) */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs grid grid-cols-2 sm:grid-cols-4 gap-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
+            {/* Rent Breakdown Dashboard Banner */}
+            <div className="bg-white/[0.06] rounded-3xl border border-gold/30 p-6 sm:p-7 shadow-card grid grid-cols-2 sm:grid-cols-4 gap-4 divide-y sm:divide-y-0 sm:divide-x divide-white/10">
               <div className="pb-3 sm:pb-0">
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                <span className="text-[11px] font-bold text-white/70 uppercase tracking-wider block">
                   Monthly Rent
                 </span>
-                <span className="text-xl sm:text-2xl font-black text-emerald-700 tracking-tight mt-0.5 block">
+                <span className="text-xl sm:text-2xl lg:text-3xl font-black text-gold tracking-tight mt-0.5 block">
                   {formatMonthlyRentNPR(monthlyRent, lang)}
                 </span>
-                <span className="text-[11px] font-bold text-slate-400">Fixed Monthly</span>
+                <span className="text-[11px] font-bold text-white/60">Fixed Monthly</span>
               </div>
 
               <div className="pt-3 sm:pt-0 sm:pl-4">
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                <span className="text-[11px] font-bold text-white/70 uppercase tracking-wider block">
                   Security Deposit
                 </span>
-                <span className="text-base sm:text-lg font-extrabold text-slate-900 mt-0.5 block">
+                <span className="text-base sm:text-lg font-black text-white mt-0.5 block">
                   {formatDeposit(deposit, lang)}
                 </span>
-                <span className="text-[11px] text-slate-500">Refundable at move-out</span>
+                <span className="text-[11px] text-white/60">Refundable at move-out</span>
               </div>
 
               <div className="pt-3 sm:pt-0 sm:pl-4">
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                <span className="text-[11px] font-bold text-white/70 uppercase tracking-wider block">
                   Maintenance
                 </span>
-                <span className="text-base sm:text-lg font-bold text-slate-900 mt-0.5 block">
+                <span className="text-base sm:text-lg font-black text-white mt-0.5 block">
                   {maintenance
                     ? `Rs. ${maintenance.toLocaleString('en-IN')}/mo`
                     : property.maintenance_included
-                    ? 'Included in Rent'
-                    : 'No Maintenance Fee'}
+                      ? 'Included in Rent'
+                      : 'No Maintenance Fee'}
                 </span>
-                <span className="text-[11px] text-slate-500">Society / Water maintenance</span>
+                <span className="text-[11px] text-white/60">Society / Water maintenance</span>
               </div>
 
               <div className="pt-3 sm:pt-0 sm:pl-4">
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                <span className="text-[11px] font-bold text-white/70 uppercase tracking-wider block">
                   Built-up Area
                 </span>
-                <span className="text-base sm:text-lg font-bold text-slate-900 mt-0.5 block">
+                <span className="text-base sm:text-lg font-black text-white mt-0.5 block">
                   {sqft.toLocaleString()} sq. ft.
                 </span>
-                <span className="text-[11px] text-slate-500">
+                <span className="text-[11px] text-white/60">
                   {formatArea(property.area_value, property.area_unit, lang, { includeSqft: false })}
                 </span>
               </div>
             </div>
 
             {/* Description Narrative */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 shadow-xs space-y-4">
-              <h3 className="text-base font-bold text-slate-900">
+            <div className="bg-white/[0.06] rounded-3xl border border-gold/30 p-6 sm:p-7 shadow-card space-y-4">
+              <h3 className="text-lg font-black text-gold tracking-tight">
                 {lang === 'en' ? 'Rental Overview & Description' : 'भाडा सम्बन्धी थप विवरण'}
               </h3>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-line font-normal">
+              <p className="text-xs sm:text-sm text-white/70 leading-relaxed whitespace-pre-line font-medium">
                 {property.description ||
                   'Direct landlord listing. Verified property specs with zero middleman commission. Rent directly through Sarvabhoomi peer-to-peer network.'}
               </p>
             </div>
 
             {/* Specifications Matrix */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 shadow-xs space-y-4">
-              <h3 className="text-base font-bold text-slate-900">
+            <div className="bg-white/[0.06] rounded-3xl border border-gold/30 p-6 sm:p-7 shadow-card space-y-4">
+              <h3 className="text-lg font-black text-gold tracking-tight">
                 {lang === 'en' ? 'Rental Specifications & Amenities' : 'सुविधा तथा प्राविधिक विवरण'}
               </h3>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70">
-                  <span className="text-slate-500 block mb-1">Property Subtype</span>
-                  <span className="font-bold text-slate-900">{property.property_subtype || 'Rental'}</span>
+                <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10">
+                  <span className="text-white/60 block mb-1 font-medium">Property Subtype</span>
+                  <span className="font-bold text-white">{property.property_subtype || 'Rental'}</span>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70">
-                  <span className="text-slate-500 block mb-1">Bedrooms / BHK</span>
-                  <span className="font-bold text-slate-900">
+                <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10">
+                  <span className="text-white/60 block mb-1 font-medium">Bedrooms / BHK</span>
+                  <span className="font-bold text-white">
                     {property.bedrooms ? `${property.bedrooms} BHK (${property.bedrooms} Bedrooms)` : 'N/A'}
                   </span>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70">
-                  <span className="text-slate-500 block mb-1">Bathrooms</span>
-                  <span className="font-bold text-slate-900">
+                <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10">
+                  <span className="text-white/60 block mb-1 font-medium">Bathrooms</span>
+                  <span className="font-bold text-white">
                     {property.bathrooms ? `${property.bathrooms} Bathrooms` : 'Not specified'}
                   </span>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70">
-                  <span className="text-slate-500 block mb-1">Furnishing Status</span>
-                  <span className="font-bold text-slate-900">
+                <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10">
+                  <span className="text-white/60 block mb-1 font-medium">Furnishing Status</span>
+                  <span className="font-bold text-white">
                     {property.furnishing
                       ? `${property.furnishing.charAt(0) + property.furnishing.slice(1).toLowerCase()} Furnished`
                       : 'Not specified'}
                   </span>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70">
-                  <span className="text-slate-500 block mb-1">Preferred Tenant</span>
-                  <span className="font-bold text-slate-900">{property.preferred_tenant || 'Any Tenant'}</span>
+                <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10">
+                  <span className="text-white/60 block mb-1 font-medium">Preferred Tenant</span>
+                  <span className="font-bold text-white">{property.preferred_tenant || 'Any Tenant'}</span>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70">
-                  <span className="text-slate-500 block mb-1">Floor Information</span>
-                  <span className="font-bold text-slate-900">
+                <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10">
+                  <span className="text-white/60 block mb-1 font-medium">Floor Information</span>
+                  <span className="font-bold text-white">
                     {property.floor_no !== null && property.floor_no !== undefined
                       ? `Floor ${property.floor_no}${property.total_floors ? ` of ${property.total_floors}` : ''}`
                       : 'Independent Floor'}
                   </span>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70">
-                  <span className="text-slate-500 block mb-1">Dedicated Parking</span>
-                  <span className="font-bold text-slate-900">
+                <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10">
+                  <span className="text-white/60 block mb-1 font-medium">Dedicated Parking</span>
+                  <span className="font-bold text-white">
                     {property.parking ? 'Available (Yes)' : 'No Dedicated Parking'}
                   </span>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70">
-                  <span className="text-slate-500 block mb-1">Available From</span>
-                  <span className="font-bold text-emerald-800">
+                <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10">
+                  <span className="text-white/60 block mb-1 font-medium">Available From</span>
+                  <span className="font-bold text-white">
                     {property.available_from ? `From ${property.available_from}` : 'Ready to Move'}
                   </span>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70">
-                  <span className="text-slate-500 block mb-1">Facing / Orientation</span>
-                  <span className="font-bold text-slate-900">{property.facing || 'East Facing'}</span>
+                <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10">
+                  <span className="text-white/60 block mb-1 font-medium">Facing / Orientation</span>
+                  <span className="font-bold text-white">{property.facing || 'East Facing'}</span>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70">
-                  <span className="text-slate-500 block mb-1">Road Width</span>
-                  <span className="font-bold text-slate-900">{property.road_access || '16 ft Pitched'}</span>
+                <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10">
+                  <span className="text-white/60 block mb-1 font-medium">Road Width</span>
+                  <span className="font-bold text-white">{property.road_access || '16 ft Pitched'}</span>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70">
-                  <span className="text-slate-500 block mb-1">Cadastral Kitta No</span>
-                  <span className="font-mono font-bold text-emerald-800">
+                <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10">
+                  <span className="text-white/60 block mb-1 font-medium">Cadastral Kitta No</span>
+                  <span className="font-mono font-bold text-gold">
                     {property.kitta_no || 'Verified on Inquiry'}
                   </span>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200">
-                  <span className="text-emerald-800 block mb-1 font-semibold">Ownership Verification</span>
-                  <span className="font-bold text-emerald-950 flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                <div className="p-3.5 rounded-2xl bg-gold text-black border border-gold">
+                  <span className="text-black/80 block mb-1 font-semibold">Ownership Verification</span>
+                  <span className="font-black text-black flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-black" />
                     <span>Lalpurja Verified</span>
                   </span>
                 </div>
@@ -779,31 +781,31 @@ export default function PropertyDetailPage() {
             </div>
 
             {/* Cadastral Survey & Location Reference */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-7 shadow-xs space-y-4">
+            <div className="bg-white/[0.06] rounded-3xl border border-gold/30 p-6 sm:p-7 shadow-card space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-base font-bold text-slate-900">
+                  <h3 className="text-lg font-black text-gold tracking-tight">
                     {lang === 'en' ? 'Location & Neighborhood Reference' : 'लोकेसन तथा वरपरका सुविधाहरू'}
                   </h3>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-white/70 font-medium">
                     {property.locality}, {property.district} • Kitta #{property.kitta_no || 'Verified plot reference'}
                   </p>
                 </div>
               </div>
 
               {/* Cadastral & Location Display */}
-              <div className="relative h-64 w-full rounded-xl bg-slate-900 overflow-hidden border border-slate-200 flex items-center justify-center p-6 text-center">
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:2rem_2rem] opacity-70" />
+              <div className="relative h-64 w-full rounded-2xl bg-black overflow-hidden border border-white/10 flex items-center justify-center p-6 text-center">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(194,169,100,0.15)_0%,transparent_70%)]" />
 
                 <div className="relative z-10 max-w-sm space-y-3">
-                  <div className="w-12 h-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center mx-auto shadow-md ring-4 ring-emerald-500/30">
+                  <div className="w-12 h-12 rounded-2xl bg-gold text-black flex items-center justify-center mx-auto shadow-card">
                     <MapPin className="w-6 h-6" />
                   </div>
                   <div>
                     <h4 className="text-white font-bold text-sm">
                       {property.locality}, {property.district}
                     </h4>
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <p className="text-xs text-white/70 mt-0.5">
                       Ward / Area: {property.locality} • Official District: {property.district}
                     </p>
                   </div>
@@ -814,7 +816,7 @@ export default function PropertyDetailPage() {
                       )}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-sm"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gold hover:bg-gold/90 active:scale-97 text-black text-xs font-black transition-all shadow-card"
                     >
                       <span>{lang === 'en' ? 'Explore on Google Maps' : 'गुगल नक्सामा हेर्नुहोस्'}</span>
                       <ExternalLink className="w-3.5 h-3.5" />
@@ -831,12 +833,12 @@ export default function PropertyDetailPage() {
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="p-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-center transition flex flex-col items-center justify-center group"
+                  className="p-3 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-center transition flex flex-col items-center justify-center group"
                 >
-                  <span className="text-slate-500 block text-[10px] group-hover:text-emerald-700">Banks & ATMs</span>
-                  <span className="font-bold text-slate-900 flex items-center gap-1 mt-0.5">
+                  <span className="text-white/60 block text-[10px] group-hover:text-gold">Banks & ATMs</span>
+                  <span className="font-bold text-white flex items-center gap-1 mt-0.5 group-hover:text-gold">
                     <span>Nearby</span>
-                    <ExternalLink className="w-2.5 h-2.5 text-slate-400" />
+                    <ExternalLink className="w-2.5 h-2.5 text-white/50 group-hover:text-gold" />
                   </span>
                 </a>
                 <a
@@ -845,12 +847,12 @@ export default function PropertyDetailPage() {
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="p-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-center transition flex flex-col items-center justify-center group"
+                  className="p-3 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-center transition flex flex-col items-center justify-center group"
                 >
-                  <span className="text-slate-500 block text-[10px] group-hover:text-emerald-700">Healthcare</span>
-                  <span className="font-bold text-slate-900 flex items-center gap-1 mt-0.5">
+                  <span className="text-white/60 block text-[10px] group-hover:text-gold">Healthcare</span>
+                  <span className="font-bold text-white flex items-center gap-1 mt-0.5 group-hover:text-gold">
                     <span>Nearby</span>
-                    <ExternalLink className="w-2.5 h-2.5 text-slate-400" />
+                    <ExternalLink className="w-2.5 h-2.5 text-white/50 group-hover:text-gold" />
                   </span>
                 </a>
                 <a
@@ -859,17 +861,17 @@ export default function PropertyDetailPage() {
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="p-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-center transition flex flex-col items-center justify-center group"
+                  className="p-3 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-center transition flex flex-col items-center justify-center group"
                 >
-                  <span className="text-slate-500 block text-[10px] group-hover:text-emerald-700">Schools</span>
-                  <span className="font-bold text-slate-900 flex items-center gap-1 mt-0.5">
+                  <span className="text-white/60 block text-[10px] group-hover:text-gold">Schools</span>
+                  <span className="font-bold text-white flex items-center gap-1 mt-0.5 group-hover:text-gold">
                     <span>Nearby</span>
-                    <ExternalLink className="w-2.5 h-2.5 text-slate-400" />
+                    <ExternalLink className="w-2.5 h-2.5 text-white/50 group-hover:text-gold" />
                   </span>
                 </a>
-                <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-center flex flex-col items-center justify-center">
-                  <span className="text-slate-500 block text-[10px]">Road Width</span>
-                  <span className="font-bold text-slate-900 mt-0.5">{property.road_access || 'Standard Access'}</span>
+                <div className="p-3 rounded-2xl bg-white/[0.04] border border-white/10 text-center flex flex-col items-center justify-center">
+                  <span className="text-white/60 block text-[10px]">Road Width</span>
+                  <span className="font-bold text-white mt-0.5">{property.road_access || 'Standard Access'}</span>
                 </div>
               </div>
             </div>
@@ -878,18 +880,18 @@ export default function PropertyDetailPage() {
           {/* Right Column (1 Col): Direct Owner Contact, Schedule Visit & Savings */}
           <div className="lg:col-span-1 space-y-6 lg:sticky lg:top-24">
             {/* Primary Landlord Contact Card */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div className="bg-white/[0.06] rounded-3xl border border-gold/30 p-6 shadow-card space-y-5">
+              <div className="flex items-center justify-between pb-3 border-b border-white/10">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-base shadow-xs">
+                  <div className="w-9 h-9 rounded-xl bg-gold text-black flex items-center justify-center font-black text-base shadow-xs">
                     स
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900">Direct Landlord</h3>
-                    <span className="text-[11px] text-emerald-700 font-semibold">100% Zero Brokerage</span>
+                    <h3 className="text-sm font-black text-white">Direct Landlord</h3>
+                    <span className="text-[11px] text-gold font-bold">100% Zero Brokerage</span>
                   </div>
                 </div>
-                <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                <span className="text-[10px] font-black text-gold bg-gold/10 border border-gold/30 px-2.5 py-1 rounded-full uppercase tracking-wider">
                   P2P Direct
                 </span>
               </div>
@@ -898,18 +900,18 @@ export default function PropertyDetailPage() {
               {isUnlocked && ownerContact ? (
                 /* UNLOCKED STATE */
                 <div className="space-y-4">
-                  <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 space-y-1">
-                    <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block">
+                  <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10 space-y-1">
+                    <span className="text-[10px] font-bold text-white/60 uppercase tracking-wider block">
                       Verified Landlord Name
                     </span>
-                    <span className="text-sm font-bold text-emerald-950 block">{ownerContact.name}</span>
+                    <span className="text-sm font-black text-white block">{ownerContact.name}</span>
                   </div>
 
-                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                  <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10 space-y-1">
+                    <span className="text-[10px] font-bold text-white/60 uppercase tracking-wider block">
                       Direct Mobile Number
                     </span>
-                    <span className="text-base font-mono font-bold text-slate-900 block select-all">
+                    <span className="text-base font-mono font-bold text-gold block select-all">
                       {ownerContact.phone}
                     </span>
                   </div>
@@ -917,7 +919,7 @@ export default function PropertyDetailPage() {
                   <div className="grid grid-cols-2 gap-2 pt-1">
                     <a
                       href={`tel:${ownerContact.phone}`}
-                      className="py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+                      className="py-3 px-4 rounded-xl bg-gold hover:bg-gold/90 active:scale-97 text-black font-black text-xs flex items-center justify-center gap-1.5 transition-all shadow-card"
                     >
                       <PhoneCall className="w-4 h-4" />
                       <span>Call Landlord</span>
@@ -927,9 +929,9 @@ export default function PropertyDetailPage() {
                       href={`https://wa.me/${ownerContact.phone.replace(/[^0-9]/g, '')}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="py-3 px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                      className="py-3 px-4 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 active:scale-97 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
                     >
-                      <MessageCircle className="w-4 h-4 text-emerald-600" />
+                      <MessageCircle className="w-4 h-4 text-gold" />
                       <span>WhatsApp</span>
                     </a>
                   </div>
@@ -937,21 +939,21 @@ export default function PropertyDetailPage() {
               ) : (
                 /* LOCKED STATE */
                 <div className="space-y-4">
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/90 space-y-2">
-                    <div className="flex items-center justify-between text-xs text-slate-600">
+                  <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 space-y-2">
+                    <div className="flex items-center justify-between text-xs text-white/70 font-medium">
                       <span>Owner Status:</span>
-                      <span className="font-bold text-slate-900">Direct Landlord</span>
+                      <span className="font-bold text-white">Direct Landlord</span>
                     </div>
-                    <div className="flex items-center justify-between text-xs text-slate-600">
+                    <div className="flex items-center justify-between text-xs text-white/70 font-medium">
                       <span>Phone Number:</span>
-                      <span className="font-mono font-bold text-slate-700">+977 98••••••••</span>
+                      <span className="font-mono font-bold text-gold">+977 98••••••••</span>
                     </div>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => setIsUnlockModalOpen(true)}
-                    className="w-full py-3.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-sm tracking-wide shadow-xs flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
+                    className="w-full py-4 px-6 rounded-2xl bg-gold hover:bg-gold/90 active:scale-97 text-black font-black text-sm tracking-wide shadow-card flex items-center justify-center gap-2 transition-all"
                   >
                     <Unlock className="w-4 h-4" />
                     <span>
@@ -959,25 +961,25 @@ export default function PropertyDetailPage() {
                     </span>
                   </button>
 
-                  <div className="flex items-center justify-between text-xs text-slate-500 px-1">
+                  <div className="flex items-center justify-between text-xs text-white/70 px-1 font-semibold">
                     <span className="flex items-center gap-1">
-                      <Coins className="w-3.5 h-3.5 text-emerald-600" />
+                      <Coins className="w-3.5 h-3.5 text-gold" />
                       <span>Balance: {user ? `${user.credits} Credits` : 'Sign in to check'}</span>
                     </span>
-                    <span className="text-emerald-700 font-bold text-[11px]">15 Free Unlocks</span>
+                    <span className="text-gold font-black text-[11px]">15 Free Unlocks</span>
                   </div>
                 </div>
               )}
 
               {/* Zero Brokerage Savings Line on Monthly Rent */}
-              <div className="pt-3 border-t border-slate-100 space-y-2 text-xs text-slate-600">
-                <div className="flex items-center gap-2 font-semibold text-slate-800">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <div className="pt-3 border-t border-white/10 space-y-2 text-xs text-white/70">
+                <div className="flex items-center gap-2 font-bold text-gold">
+                  <CheckCircle2 className="w-4 h-4 text-gold shrink-0" />
                   <span>100% Zero Middleman Brokerage</span>
                 </div>
-                <p className="text-[11px] text-slate-500 leading-relaxed">
+                <p className="text-[11px] text-white/70 leading-relaxed font-medium">
                   Traditional brokers in Nepal charge 1 month&apos;s full rent as commission. By connecting directly on Sarvabhoomi, you save{' '}
-                  <span className="font-bold text-emerald-800">
+                  <span className="font-black text-gold">
                     Rs. {monthlyRent.toLocaleString('en-IN')}
                   </span>
                   .
@@ -986,56 +988,56 @@ export default function PropertyDetailPage() {
             </div>
 
             {/* Schedule a Visit Card */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
-              <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-                <Calendar className="w-4 h-4 text-emerald-600" />
-                <h3 className="text-sm font-bold text-slate-900">
+            <div className="bg-white/[0.06] rounded-3xl border border-gold/30 p-6 shadow-card space-y-4">
+              <div className="flex items-center gap-2 pb-2 border-b border-white/10">
+                <Calendar className="w-4 h-4 text-gold" />
+                <h3 className="text-sm font-black text-white">
                   {lang === 'en' ? 'Schedule a Property Visit' : 'घर हेर्न समय मिलाउनुहोस्'}
                 </h3>
               </div>
 
               {visitRequest ? (
                 /* Visit Request Sent State */
-                <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 space-y-2">
+                <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-emerald-900">
+                    <span className="text-xs font-black text-white">
                       {lang === 'en' ? 'Visit Request Sent to Landlord' : 'घर हेर्ने अनुरोध पठाइयो'}
                     </span>
                     <span
-                      className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
+                      className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
                         visitRequest.status === 'CONFIRMED'
-                          ? 'bg-emerald-600 text-white'
+                          ? 'bg-gold text-black'
                           : visitRequest.status === 'DECLINED'
-                          ? 'bg-rose-600 text-white'
-                          : 'bg-amber-100 text-amber-800 border border-amber-300'
+                            ? 'bg-white/20 text-white'
+                            : 'bg-gold/20 text-gold border border-gold/30'
                       }`}
                     >
                       {visitRequest.status}
                     </span>
                   </div>
-                  <p className="text-xs text-emerald-800 leading-relaxed">
-                    Date: <span className="font-semibold">{visitRequest.visit_date}</span> • Slot:{' '}
-                    <span className="font-semibold">{visitRequest.time_slot}</span>
+                  <p className="text-xs text-white/70 leading-relaxed font-medium">
+                    Date: <span className="font-bold text-white">{visitRequest.visit_date}</span> • Slot:{' '}
+                    <span className="font-bold text-white">{visitRequest.time_slot}</span>
                   </p>
-                  <p className="text-[11px] text-emerald-700">
+                  <p className="text-[11px] text-white/60 font-medium">
                     {visitRequest.status === 'PENDING'
                       ? 'The landlord has received your requested date/time slot. They will confirm or contact you directly.'
                       : visitRequest.status === 'CONFIRMED'
-                      ? 'The landlord has confirmed your visit slot!'
-                      : 'The landlord is not available for this slot. Please choose another slot.'}
+                        ? 'The landlord has confirmed your visit slot!'
+                        : 'The landlord is not available for this slot. Please choose another slot.'}
                   </p>
                 </div>
               ) : (
                 /* Visit Request Form */
                 <form onSubmit={handleScheduleVisit} className="space-y-3">
                   {visitSuccessMsg && (
-                    <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold">
+                    <div className="p-3 rounded-xl bg-gold text-black text-xs font-bold shadow-xs">
                       {visitSuccessMsg}
                     </div>
                   )}
 
                   <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-white/70 mb-1">
                       Preferred Date
                     </label>
                     <input
@@ -1044,27 +1046,27 @@ export default function PropertyDetailPage() {
                       value={visitDate}
                       required
                       onChange={(e) => setVisitDate(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-emerald-600"
+                      className="w-full bg-black/60 border border-white/20 rounded-xl px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-white/70 mb-1">
                       Time Slot
                     </label>
                     <select
                       value={visitTimeSlot}
                       onChange={(e) => setVisitTimeSlot(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-emerald-600"
+                      className="w-full bg-black/60 border border-white/20 rounded-xl px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold"
                     >
-                      <option value="Morning (9 AM - 12 PM)">Morning (9 AM - 12 PM)</option>
-                      <option value="Afternoon (12 PM - 3 PM)">Afternoon (12 PM - 3 PM)</option>
-                      <option value="Evening (3 PM - 6 PM)">Evening (3 PM - 6 PM)</option>
+                      <option value="Morning (9 AM - 12 PM)" className="bg-black text-white">Morning (9 AM - 12 PM)</option>
+                      <option value="Afternoon (12 PM - 3 PM)" className="bg-black text-white">Afternoon (12 PM - 3 PM)</option>
+                      <option value="Evening (3 PM - 6 PM)" className="bg-black text-white">Evening (3 PM - 6 PM)</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-white/70 mb-1">
                       Note for Landlord (Optional)
                     </label>
                     <input
@@ -1072,14 +1074,14 @@ export default function PropertyDetailPage() {
                       value={visitNote}
                       onChange={(e) => setVisitNote(e.target.value)}
                       placeholder="e.g. Coming with family, looking to move next week"
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-600"
+                      className="w-full bg-black/60 border border-white/20 rounded-xl px-3 py-2 text-xs text-white placeholder:text-white/40 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold"
                     />
                   </div>
 
                   <button
                     type="submit"
                     disabled={submittingVisit || !visitDate}
-                    className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full py-3 px-4 rounded-xl bg-gold hover:bg-gold/90 active:scale-97 text-black font-black text-xs flex items-center justify-center gap-1.5 transition-all shadow-card disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Send className="w-3.5 h-3.5" />
                     <span>{submittingVisit ? 'Sending...' : 'Request Property Visit'}</span>
@@ -1089,12 +1091,12 @@ export default function PropertyDetailPage() {
             </div>
 
             {/* Verification Guarantee Card */}
-            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 space-y-2">
-              <div className="flex items-center gap-2 text-xs font-bold text-emerald-950">
-                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+            <div className="bg-white/[0.04] border border-gold/20 rounded-3xl p-5 space-y-2">
+              <div className="flex items-center gap-2 text-xs font-black text-gold">
+                <ShieldCheck className="w-4 h-4 text-gold" />
                 <span>Sarvabhoomi Lalpurja Protocol</span>
               </div>
-              <p className="text-[11px] text-emerald-800 leading-relaxed">
+              <p className="text-[11px] text-white/70 leading-relaxed font-medium">
                 Land and home ownership is verified against Cadastral Kitta records (कित्ता नम्बर) to guarantee zero middleman impersonation.
               </p>
             </div>
@@ -1103,12 +1105,12 @@ export default function PropertyDetailPage() {
 
         {/* Similar Verified Rentals in Same District */}
         {similarProperties.length > 0 && (
-          <div className="pt-8 border-t border-slate-200 space-y-6">
+          <div className="pt-8 border-t border-white/10 space-y-6">
             <div>
-              <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
+              <h2 className="text-xl sm:text-2xl font-black text-gold tracking-tight">
                 {lang === 'en' ? 'Similar Rentals in this District' : 'यस जिल्लाका अन्य भाडाका घर तथा कोठाहरू'}
               </h2>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-white/70 font-semibold mt-1">
                 Direct peer-to-peer rentals in {property.district}
               </p>
             </div>
@@ -1158,7 +1160,7 @@ export default function PropertyDetailPage() {
               <h3 className="font-bold text-sm sm:text-base text-white/90 truncate max-w-md">
                 {property.title}
               </h3>
-              <p className="text-xs text-white/60">
+              <p className="text-xs text-gold font-mono">
                 Photo {activePhotoIdx + 1} of {photos.length}
               </p>
             </div>
@@ -1186,7 +1188,7 @@ export default function PropertyDetailPage() {
                 <button
                   type="button"
                   onClick={() => setActivePhotoIdx((prev) => (prev > 0 ? prev - 1 : photos.length - 1))}
-                  className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center transition shadow-lg"
+                  className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/80 hover:bg-black text-gold border border-gold/30 flex items-center justify-center transition shadow-card"
                   aria-label="Previous photo"
                 >
                   <ChevronLeft className="w-6 h-6" />
@@ -1194,7 +1196,7 @@ export default function PropertyDetailPage() {
                 <button
                   type="button"
                   onClick={() => setActivePhotoIdx((prev) => (prev < photos.length - 1 ? prev + 1 : 0))}
-                  className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center transition shadow-lg"
+                  className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/80 hover:bg-black text-gold border border-gold/30 flex items-center justify-center transition shadow-card"
                   aria-label="Next photo"
                 >
                   <ChevronRight className="w-6 h-6" />
@@ -1210,9 +1212,9 @@ export default function PropertyDetailPage() {
                   key={idx}
                   type="button"
                   onClick={() => setActivePhotoIdx(idx)}
-                  className={`relative w-16 h-12 rounded-lg overflow-hidden border-2 shrink-0 transition-all ${
+                  className={`relative w-16 h-12 rounded-xl overflow-hidden border-2 shrink-0 transition-all ${
                     activePhotoIdx === idx
-                      ? 'border-emerald-500 scale-105 ring-2 ring-emerald-400/50'
+                      ? 'border-gold scale-105 ring-2 ring-gold/50'
                       : 'border-white/20 opacity-50 hover:opacity-100'
                   }`}
                 >
@@ -1224,7 +1226,7 @@ export default function PropertyDetailPage() {
         </div>
       )}
 
-      {/* Institutional Light Footer */}
+      {/* Institutional Footer */}
       <Footer lang={lang} />
     </div>
   );

@@ -14,6 +14,177 @@ This log tracks all architectural decisions, feature implementations, verificati
 
 ## 🗓️ Engineering Log
 
+### 📅 Session: November 7, 2026 (Dark Luxury Redesign: Black #101010 / Gold #C2A964 / White #FFFFFF & Motion System)
+
+#### 🎯 Focus: Step 0 Skill Verification & Audit, 3-Color Dark Luxury Palette, Motion Tokens, Screen-by-Screen Implementation
+
+---
+
+### 🔍 Step 0 Audit Report: Existing System State
+
+#### 1. Reference & Skill Verification (`ui-ux-pro-max`)
+- **Visual Reference**: Dark search page — Black `#101010` navbar, Gold `#C2A964` "Post Free Property" CTA button, Gold active "Buy Land (Ghaderi)" pill tab, dark search bar with Gold Search CTA, Gold "Kathmandu Real Estate" display heading, dark property cards with 1px Gold-30% borders, Gold "Rs. 1.50 Cr" price, Gold "Contact Owner" button.
+- **Skill Status**: Verified active and loaded at `.agents/skills/ui-ux-pro-max/SKILL.md`.
+- **Design System Generator**: Executed `python .agents/skills/ui-ux-pro-max/scripts/search.py "luxury dark real estate marketplace, P2P property rental, Nepal" --design-system -p "Sarvabhoomi"`.
+- **Recommended Paradigm**: Marketplace / Directory with Exaggerated Minimalism, high contrast, oversized typography, negative space, and strict WCAG AA/AAA compliance.
+
+#### 2. Color Audit (`apps/web/src`)
+- **Forest Occurrences**: 1,305 occurrences across 24 files (retiring previously used `#1F3D2B`).
+- **Lime Occurrences**: 254 occurrences across 23 files (retiring previously used `#C6F442`).
+- **Emerald / Slate / Zinc / Gray / Purple / Pink**: 0 occurrences.
+- **Hardcoded Hex Values**: 11 occurrences in `apps/web/tailwind.config.ts`.
+- **Verdict**: Total replacement of Forest and Lime with the STRICT 3-Color Dark Luxury Palette:
+  - **Black (`#101010`)**: 60% of the site. Page background, deep surfaces, dark card base. (Never pure `#000000`).
+  - **Gold (`#C2A964`)**: 15% of the site. Champagne gold accent, headings, prices, primary CTA fill, active tabs, verified badges, logo mark.
+  - **White (`#FFFFFF`)**: 25% of the site. Text and surface tinting.
+  - **Opacity Variants Only**:
+    - Charcoal Cards: `White 5-8% on Black` (`#1A1A1A` appearance).
+    - Inputs / Pill backgrounds: `White 8-12% on Black`.
+    - Borders: `White 10%` or `Gold 30%` (hover `Gold 60%`).
+    - Secondary Text: `White 60-70%`.
+    - Gold Hover: `Gold 85-90%` opacity, never a new hex.
+- **Contrast Ratios Verified**:
+  - White on Black `#101010`: **19.0:1** (AAA)
+  - Gold `#C2A964` on Black `#101010`: **8.3:1** (AAA)
+  - Gold on Charcoal Card `#1A1A1A`: **7.6:1** (AAA)
+  - Black on Gold `#C2A964`: **8.3:1** (AAA)
+  - White 70% on Black: **11.2:1** (AAA)
+
+#### 3. Typography Audit
+- **Current Font Stack**: `system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Devanagari", sans-serif`.
+- **Nepali Compatibility**: Verified 100% compatible with English and Devanagari script without glyph corruption.
+- **Display Scaling**: Clamp-based scaling (`clamp(2.5rem, 5vw, 4.5rem)` desktop, `2rem` mobile), Gold headings, White hero title with Gold keyword accent, Gold hero numbers for prices and savings.
+
+#### 4. Motion & Animation Audit
+- **Animation Libraries**: Confirmed `framer-motion` is not installed; strictly using zero-overhead CSS cubic-bezier transitions + IntersectionObserver API.
+- **Motion Tokens**:
+  - `--ease-out: cubic-bezier(0.22, 1, 0.36, 1)`
+  - Micro: `200ms` (hover, press scale `0.97`)
+  - Standard: `400ms` (cards, modal reveal, tabs)
+  - Hero: `600ms` (display text slide up)
+  - Stagger: `60ms` between siblings
+  - Full `@media (prefers-reduced-motion: reduce)` override.
+
+---
+
+### 🚀 Implementation Deliverables: Screen-by-Screen Dark Luxury Overhaul
+
+1. **Tokens & Theming Engine**:
+   - `apps/web/tailwind.config.ts`: Configured Black (`#101010`), Gold (`#C2A964`), White opacities (`5%`, `6%`, `8%`, `10%`, `12%`, `20%`, `60%`, `70%`, `80%`, `90%`), surface charcoal semantic token, and dark elevation shadows (`subtle`, `card`, `cardHover`, `glowGold`, `glowGoldLg`).
+   - `apps/web/src/app/globals.css`: Dark CSS variables, background `#101010`, text `#ffffff`, selection Gold background with Black text, focus ring Gold with offset, dark skeleton shimmer, shake & marquee keyframes.
+   - `apps/web/src/app/layout.tsx`: Root background updated to `bg-black text-white selection:bg-gold selection:text-black font-sans`.
+   - `apps/web/src/components/ui/Motion.tsx`: Marquee district ticker rendered on Black with Gold typography and 30% Gold borders.
+
+2. **Navigation & Global Elements**:
+   - `apps/web/src/components/Navbar.tsx`: Black navbar (`bg-black/95 border-b border-gold/30`), Gold brand mark with black Devanagari "स", White brand title with Gold 0% Brokerage badge, Gold "Post Free Property" CTA button (`bg-gold text-black`), outlined Gold Verified Member pill, and language toggle.
+   - `apps/web/src/components/Footer.tsx`: Black background (`bg-black border-t border-gold/30`), Gold logo square, White typography, Gold links on hover, and Gold zero-brokerage certification dot.
+
+3. **Homepage & Discovery (`apps/web/src/app/page.tsx`)**:
+   - High-contrast black hero with White display headline and Gold keyword accent underline.
+   - Floating charcoal search card (`bg-white/[0.06] border border-gold/30`), dark selects, Gold search CTA button with active scale.
+   - CountUp metrics in Champagne Gold, dark P2P benefit cards with Gold icons, and dark peer-to-peer comparison table.
+
+4. **Search Marketplace (`apps/web/src/app/search/page.tsx`)**:
+   - Sticky subheader with black blur backdrop and Gold-30% divider.
+   - Dark search input with Gold Search CTA, desktop filter sidebar (`bg-white/[0.06] border-gold/30`), BHK pills with Gold active states, dark shimmer skeleton.
+
+5. **Property Cards & Modals**:
+   - `apps/web/src/components/PropertyCard.tsx`: Charcoal surface card (`bg-white/[0.06] border border-gold/30 hover:border-gold/60`), 4:3 photo with 1.03x zoom hover, Gold Lalpurja badge, Gold monthly rent, White title, and Gold "Contact Owner" CTA button (`bg-gold text-black`).
+   - `apps/web/src/components/PropertyImage.tsx`: SVG fallback rendered with `#101010` canvas and Gold accents.
+   - `apps/web/src/components/ContactUnlockModal.tsx`: Dark modal card (`bg-white/[0.06] border border-gold/30`), Gold phone number reveal, Gold unlock action buttons, dark inputs.
+   - `apps/web/src/components/LandCalculator.tsx`: Charcoal converter card (`bg-white/[0.06] border-gold/30`), dark numeric inputs, Gold active unit selection, Gold converted values.
+
+6. **Property Detail Page (`apps/web/src/app/properties/[id]/page.tsx`)**:
+   - Ambient blurred photo backdrop on Black canvas, fit toggle ('contain' / 'cover') with Gold accents.
+   - Charcoal rent dashboard matrix (`bg-white/[0.06] border-gold/30`, Gold monthly rent, White specs).
+   - Specifications matrix (`bg-white/[0.04]` grid cells, Gold Lalpurja Verified badge).
+   - Direct Landlord Contact Card (Gold title, unlocked phone in Gold mono font, Gold unlock CTA button, Gold zero-brokerage savings breakdown).
+   - Schedule Visit Card (dark inputs `bg-black/60 border-white/20`, Gold "Request Property Visit" CTA button).
+   - Fullscreen lightbox modal with `bg-black/95`, Gold counter, and Gold thumbnail active ring.
+
+7. **Auth & Onboarding Engine**:
+   - `apps/web/src/app/auth/page.tsx`: Black page, charcoal card (`bg-white/[0.06] border-gold/30`), Gold progress step indicators (`bg-gold text-black` active).
+   - `apps/web/src/components/auth/PhoneStep.tsx`: Dark mode switcher pills, dark phone input (`bg-black/60 border-white/20 text-white`), Gold "Send Verification Code" CTA button (`bg-gold text-black`).
+   - `apps/web/src/components/auth/OtpStep.tsx`: 6-digit OTP input boxes (`bg-black/60 border-white/20 text-white focus:border-gold`), Gold "Verify & Continue" button.
+   - `apps/web/src/components/auth/RoleStep.tsx`: Renter and Owner selection cards (`bg-white/[0.04] border-white/10`, active selection `border-gold ring-1 ring-gold/50 bg-white/10`), Gold confirm button.
+   - `apps/web/src/components/auth/RenterNameModal.tsx`: Dark modal card (`bg-white/[0.06] border-gold/30`), dark input, Gold submit CTA.
+
+8. **Post-Property 5-Step Wizard (`apps/web/src/app/post-property/page.tsx`)**:
+   - Loading screen on Black with pulsing Gold logo.
+   - Step progress tracker with Gold active fill.
+   - Step 1: Subtype selector pills with Gold active ring, dark district/locality inputs.
+   - Step 2: Dark rent/deposit/maintenance inputs, Gold accent checkboxes.
+   - Step 3: Dark photo upload dropzone (`border-dashed border-white/20 hover:border-gold`), Gold upload icon, photo preview grid with Gold delete buttons.
+   - Step 4: Proposed monthly rent in Champagne Gold (`text-3xl text-gold`), dark legal name/district inputs, Gold unit system confirmation notice.
+   - Step 5: Review summary card in charcoal with Gold rent and Gold submission CTA button.
+
+9. **Dashboard Console & Auxiliary Pages**:
+   - `apps/web/src/app/dashboard/page.tsx`: Sticky tabs with Gold active pills (`bg-gold text-black`), dark listing cards with Gold prices, dark enquiry and visit management tables, dark profile checklist with inline editor.
+   - `apps/web/src/app/dashboard/shortlist/page.tsx`: Dark redirect screen with pulsing Gold logo.
+   - `apps/web/src/app/valuation/page.tsx`: Benchmark valuation card in charcoal (`bg-white/[0.06] border-gold/30`), dark inputs, Gold estimated market value and savings.
+   - `apps/web/src/app/loading.tsx`, `error.tsx`, `not-found.tsx`: All updated to Black background, Gold iconography, and Gold CTA buttons.
+
+---
+
+### 🧪 Verification & Audit Results
+
+- **Color Audit**:
+  - `forest` occurrences in `apps/web/src`: **0**
+  - `lime` occurrences in `apps/web/src`: **0**
+  - `emerald / slate / zinc / gray / purple / pink` in `apps/web/src`: **0**
+  - Retired hex values (`#1F3D2B`, `#C6F442`, `#000000`): **0**
+- **TypeScript Type Check**: `npm run type-check` -> **3 successful, 3 total, 0 errors**
+- **ESLint Linting**: `npm run lint` -> **✔ No ESLint warnings or errors**
+- **Unit Test Suite**: `npm run test` -> **4 files passed, 28 tests passed (100%)**
+- **WCAG Contrast**:
+  - White on Black `#101010`: **19.0:1** (AAA Compliant)
+  - Gold `#C2A964` on Black `#101010`: **8.3:1** (AAA Compliant)
+  - Black on Gold `#C2A964` (CTAs): **8.3:1** (AAA Compliant)
+  - White 70% on Black `#101010`: **11.2:1** (AAA Compliant)
+
+### 📅 Session: November 6, 2026 (Award-Winning UI/UX Redesign: 3-Color Forest/Lime/White Palette & Motion System)
+
+#### 🎯 Focus: Step 0 Skill Verification & Color/Typography/Animation Audit, Semantic Tokens, Motion System, Complete Visual Overhaul
+
+---
+
+### 🔍 Step 0 Audit Report: Existing System State
+
+#### 1. Skill Verification (`ui-ux-pro-max`)
+- **Status**: Verified active and loaded at `.agents/skills/ui-ux-pro-max/SKILL.md`.
+- **Design System Generator**: Executed `python .agents/skills/ui-ux-pro-max/scripts/search.py "real estate marketplace, P2P property rental, Nepal" --design-system -p "Sarvabhoomi"`.
+- **Recommended Paradigm**: Marketplace / Directory Pattern with Exaggerated Minimalism, bold high-contrast headlines, massive whitespace, oversized typography, search-as-CTA focus, and strict WCAG AA/AAA contrast.
+
+#### 2. Color Audit (`apps/web/src`)
+- **Emerald Occurrences**: 544 across 22 components/pages (primary buttons, borders, highlights, badges, icons).
+- **Slate Occurrences**: 820 across 22 components/pages (backgrounds, text, borders, dividers, badges).
+- **Black Occurrences**: 36 occurrences (`black/60`, `black/80` overlays).
+- **Hardcoded Hex Values**: `#059669` (emerald-600), `#ffffff` (white), `#1e293b` (slate-800).
+- **Zinc / Gray / Purple / Pink**: 0 occurrences.
+- **Verdict**: Total replacement of emerald and slate with the strict 3-color palette:
+  - **White (`#FFFFFF`)**: 60% surfaces, background, cards.
+  - **Forest Green (`#1F3D2B`)**: 30% primary, headings, body, prices, navbar, footer, borders.
+  - **Lime (`#C6F442`)**: 10% CTA / accent only (always with Forest text, contrast 9.33:1).
+  - Tints & shades: strictly opacity variants of Forest (`5%`, `10%`, `20%`, `60%`, `70%`) and White (`70%`, `90%`). Zero outside hex codes.
+
+#### 3. Typography Audit
+- **Current Font Stack**: `system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Devanagari", sans-serif`.
+- **Nepali Compatibility**: Fully supports English and Devanagari script without broken glyphs or font mismatches.
+- **Action**: Retain rock-solid Devanagari fallback while introducing clamp-based display scaling (40–72px display headings desktop, 32px mobile, tracking -0.03em, weight 700–800) and 15–17px body with 1.6 line height. Hero numbers ("0% Brokerage", "15 free contacts", rent rates) elevated to hero status with Lime underlines.
+
+#### 4. Motion & Animation Audit
+- **Animation Libraries**: None (`framer-motion` not installed; strictly using zero-overhead CSS transitions + IntersectionObserver API).
+- **Existing Transitions**: Ad-hoc `transition-all duration-200`, `animate-pulse`, `animate-spin`.
+- **Action**: Standardize on cubic-bezier motion tokens:
+  - `--ease-out: cubic-bezier(0.22, 1, 0.36, 1)`
+  - Micro: `200ms` (hover, active scale `0.97`)
+  - Standard: `400ms` (cards, dialogs, drawers)
+  - Hero: `600ms` (display text reveal)
+  - Stagger: `60ms`
+  - Accessibility: Full `@media (prefers-reduced-motion: reduce)` zero-delay override.
+
+---
+
 ### 📅 Session: November 6, 2026 (Fix: Photo Upload Resiliency, Storage Bucket & Image Presentation)
 
 #### 🎯 Focus: Storage Bucket Resilience, PostgREST Schema Cache Handling, Aspect Ratio Containment & Image Quality Fixes

@@ -23,3 +23,4 @@ CREATE INDEX IF NOT EXISTS idx_profiles_profile_completed ON public.profiles(pro
 
 -- 4. Documentation
 COMMENT ON COLUMN public.profiles.profile_completed IS 'True when user has provided both full_name and preferred_district. Collected on-demand, not blocking signup.';
+

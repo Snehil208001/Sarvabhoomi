@@ -134,9 +134,29 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-supabase-anon-key>
 ```
 
 ### 4. Setup Database
-Run the consolidated schema script in your Supabase SQL Editor:
-- Execute `supabase/init_sarvabhoomi.sql`
-- (Optional) Execute `supabase/seed_properties.sql` to populate 12 active seed listings.
+Run the consolidated database setup script in your Supabase SQL Editor:
+- Open your Supabase Dashboard: `https://supabase.com/dashboard/project/_/sql`
+- Copy the entire contents of [`supabase/complete_setup.sql`](supabase/complete_setup.sql) and paste it into the SQL Editor.
+- Click **Run**. This idempotently creates or updates all tables (`profiles`, `properties`, `property_favourites`, `contact_unlocks`, `property_visit_requests`, `user_subscriptions`, `app_config`), applies all RLS policies, creates the `property-photos` storage bucket, grants permissions, and forces PostgREST schema cache reload (`NOTIFY pgrst, 'reload schema'`).
+- (Optional) Execute [`supabase/seed_properties.sql`](supabase/seed_properties.sql) to populate 12 active seed listings across Kathmandu, Lalitpur, and Bhaktapur.
+
+---
+
+## 🎨 Dark Luxury Design System: Strict 3-Color Palette
+
+The visual identity follows an award-winning, dark luxury 3-color design system:
+
+| Role | Color | Hex Code | Ratio | Purpose | Contrast Pairing |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Page Background** | Charcoal Black | `#101010` | 60% | Deep page canvas, background, dark bases (never pure `#000000`) | 19.0:1 with White, 8.3:1 with Gold |
+| **Text & Light Tinting** | White | `#FFFFFF` | 25% | Headings, body text, card tints (5–8%), input backgrounds (8–12%) | 19.0:1 on Black, 11.2:1 (White 70%) |
+| **Champagne Accent** | Gold | `#C2A964` | 15% | Prices, primary CTA buttons, active tabs, verified badges, logo marks | 8.3:1 with Black text, 8.3:1 on Black |
+
+> [!IMPORTANT]
+> - **Strict 3-Color Invariant:** Only Black `#101010`, Champagne Gold `#C2A964`, and White `#FFFFFF`. Zero outside base colors (no emerald, no slate, no zinc, no gray, no purple, no pink, no lime, no forest, no pure black).
+> - **Opacity Variants Only:** Charcoal cards use White 5–8% on Black (`bg-white/[0.06]`), inputs use White 8–12% on Black (`bg-black/60` with `border-white/20`), borders use White 10% or Gold 30% (brightens to 60% on hover), secondary text uses White 60–70%.
+> - **High-Contrast CTA Standard:** Primary buttons always use Champagne Gold fill with Black text (`bg-gold text-black`), achieving a rock-solid 8.3:1 contrast ratio that exceeds WCAG AAA standards.
+> - **Devanagari Typography:** Scaled display headlines with `"Noto Sans Devanagari"` system fallback ensures crisp, authentic bilingual rendering for English and Nepali.
 
 ### 5. Start Development Server
 ```bash

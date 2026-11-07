@@ -107,3 +107,4 @@ describe('Cadastral Unit System Derived from District', () => {
     expect(getRegionForDistrict('Parsa')).toBe('TERAI');
   });
 });
+

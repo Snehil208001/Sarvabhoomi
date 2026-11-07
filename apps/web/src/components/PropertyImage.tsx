@@ -11,13 +11,13 @@ interface PropertyImageProps extends Omit<ImageProps, 'src' | 'onError'> {
 }
 
 const DEFAULT_FALLBACK_SVG =
-  'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300" fill="%23f1f5f9"><rect width="400" height="300" fill="%23f1f5f9"/><path d="M160 170l30-40 40 50 25-30 45 60H100z" fill="%23cbd5e1"/><circle cx="150" cy="90" r="20" fill="%2394a3b8"/><text x="50%" y="85%" font-family="sans-serif" font-size="12" font-weight="bold" fill="%2364748b" text-anchor="middle">Sarvabhoomi Cadastral Asset</text></svg>';
+  'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300" fill="%23101010"><rect width="400" height="300" fill="%23101010"/><path d="M160 170l30-40 40 50 25-30 45 60H100z" fill="rgba(194,169,100,0.2)"/><circle cx="150" cy="90" r="20" fill="rgba(194,169,100,0.3)"/><text x="50%" y="85%" font-family="sans-serif" font-size="12" font-weight="bold" fill="rgba(194,169,100,0.6)" text-anchor="middle">Sarvabhoomi Cadastral Asset</text></svg>';
 
 export function PropertyImage({
   src,
   alt,
   className = '',
-  fallbackIconClassName = 'w-10 h-10 text-slate-300',
+  fallbackIconClassName = 'w-10 h-10 text-gold/40',
   ...rest
 }: PropertyImageProps) {
   const [hasError, setHasError] = useState(false);
@@ -26,10 +26,10 @@ export function PropertyImage({
   if (!src || hasError) {
     return (
       <div
-        className={`w-full h-full flex flex-col items-center justify-center bg-slate-100 text-slate-400 select-none ${className}`}
+        className={`w-full h-full flex flex-col items-center justify-center bg-white/[0.04] text-white/60 select-none ${className}`}
       >
         <Building2 className={`mb-1.5 ${fallbackIconClassName}`} />
-        <span className="text-[11px] font-medium tracking-tight text-slate-400">
+        <span className="text-[11px] font-bold tracking-tight text-white/70">
           Photo Unavailable
         </span>
       </div>
