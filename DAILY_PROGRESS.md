@@ -1002,5 +1002,50 @@ This log tracks all architectural decisions, feature implementations, verificati
 - `GET /sitemap.xml` — 200 OK
 - `GET /logo/logo-mark.png` — 200 OK (Embossed gold coin mark)
 
+---
+
+## 📱 Mobile Bug Reproduction & Audit (Step 0)
+
+### 1. Viewport Overflow & Header Cut-Off Audit
+We executed a headless Chrome DevTools Protocol (CDP) measurement run across all routes at 360px, 375px, 390px, 768px, and 1440px on the local production build (`npm run start`):
+
+| Page | 360px (Diff) | 375px (Diff) | 390px (Diff) | 768px (Diff) | 1440px (Diff) | Root Cause Element |
+| :--- | :---: | :---: | :---: | :---: | :---: | :--- |
+| **`/`** | 696px (+336px) | 696px (+321px) | 696px (+306px) | 772px (+4px) | 1425px (0px) | `header > div > div.flex.items-center.gap-2` (width 408px–445px) |
+| **`/search`** | 696px (+336px) | 696px (+321px) | 696px (+306px) | 772px (+4px) | 1425px (0px) | `header` actions + 2-col card grid (`md:grid-cols-2`) |
+| **`/valuation`** | 696px (+336px) | 696px (+321px) | 696px (+306px) | 772px (+4px) | 1425px (0px) | `header` actions |
+| **`/dashboard`** | 696px (+336px) | 696px (+321px) | 696px (+306px) | 772px (+4px) | 1425px (0px) | `header` actions |
+| **`/post-property`**| 696px (+336px) | 696px (+321px) | 696px (+306px) | 772px (+4px) | 1425px (0px) | `header` actions |
+| **`/auth`** | 360px (0px) | 375px (0px) | 390px (0px) | 768px (0px) | 1440px (0px) | *No overflow* (Custom auth header without multi-button action bar) |
+
+#### Exact Root Causes Identified:
+- **(a) Horizontal Overflow on Every Page at ≤768px:**  
+  In `apps/web/src/components/Navbar.tsx:151`, the right action container (`div.flex.items-center.gap-2.sm:gap-3.shrink-0`) renders "Post Free Property" (~164px), "Sign In" (~95px), "नेपाली" toggle (~85px), and the hamburger button (44px) simultaneously in the top bar. Along with the brand identity on the left (200px+) and margins, the header minimum width is 696px–772px. At 768px, `772px - 768px = 4px overflow`; at 360px, `696px - 360px = 336px overflow`.
+- **(b) Hamburger Button Cut Off at Right Edge at 768px:**  
+  Because the top-bar actions exceed 768px, the hamburger button's right edge is at `772px` (4px past the viewport edge), partially clipping its right border and icon. At 360px–390px, it is pushed completely off-screen (right = 696px).
+- **(c) Opened Mobile Menu Items Clipped on Left:**  
+  When `mobileMenuOpen` is toggled, the drawer div (`header .xl:hidden.border-t`) renders inside `<header>`, but because `<header>` is horizontally scrolled/shifted to accommodate the 696px–772px top bar, the left edge of the menu drawer is misaligned with the viewport, clipping link labels on the left edge.
+- **(d) `/search` 2-Column Cards + Squeezed Location + Price Wrapping at 768px:**  
+  In `apps/web/src/app/search/page.tsx:622`, the listings grid is set to `grid-cols-1 md:grid-cols-2 lg:grid-cols-3`. Because Tailwind's `md:` breakpoint triggers at `min-width: 768px`, the listings switch to 2 columns on 768px tablet/mobile viewports. Each card is restricted to ~350px width, causing location text to truncate awkwardly and prices (e.g. `Rs. 85,000/month`) to wrap vertically across multiple lines. In addition, the filter sidebar has `hidden lg:block` (line 417), meaning filters are completely missing and unreachable on viewports ≤1023px.
+
+### 2. Text Bugs & Code Origins Audit
+- **"Semi_furnished Furnished" / "Fully_furnished Furnished":**  
+  - *Origin:* `apps/web/src/components/PropertyCard.tsx:44` and `apps/web/src/app/properties/[id]/page.tsx:645`.
+  - *Code:* `${property.furnishing.charAt(0) + property.furnishing.slice(1).toLowerCase()} Furnished`.
+  - *Root Cause:* If database contains enum value `'SEMI_FURNISHED'` or `'FULLY_FURNISHED'`, capitalized slice results in `'Semi_furnished'` + `' Furnished'` = `'Semi_furnished Furnished'`. For `'UNFURNISHED'`, it renders `'Unfurnished Furnished'`.
+- **"1views" on Property Detail Page:**  
+  - *Origin:* `apps/web/src/app/properties/[id]/page.tsx:573`.
+  - *Code:* `<span>{property.views_count || 1} views</span>`.
+  - *Root Cause:* Hardcoded plural `"views"` regardless of whether the count is 1 or more, with missing singular handling (`"1 view"` vs `"2 views"`).
+- **Hero Counters at 0 on Page Load:**  
+  - *Origin:* `apps/web/src/components/ui/Motion.tsx:56`.
+  - *Code:* `const [displayValue, setDisplayValue] = useState(0);` inside `CountUp`.
+  - *Root Cause:* Starts at `0`. If `IntersectionObserver` threshold is not crossed immediately (or in headless/mobile viewports before scroll), it stays at `0` permanently with no safety timeout fallback (unlike `ScrollReveal` which had a safety timeout).
+- **`/search` Flashing "Showing 0 of 0 verified rentals":**  
+  - *Origin:* `apps/web/src/app/search/page.tsx:596`.
+  - *Code:* `<p ...>{lang === 'en' ? 'Showing ' + properties.length + ' of ' + totalCount + ' verified rentals • 0% Brokerage' : ...}</p>`.
+  - *Root Cause:* Rendered unconditionally while `loading === true` before Supabase data resolves, flashing `0 of 0` directly above the loading shimmer skeletons.
+
+
 
 
