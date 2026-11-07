@@ -212,3 +212,4 @@ After Vercel finishes building, visit the live deployment URL and test these cor
 - ❌ **DO NOT** set `SUPABASE_SERVICE_ROLE_KEY` in Vercel environment variables. The client application only requires the public `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 - ❌ **DO NOT** run `complete_setup.sql` as-is in production. It contains legacy permissive public policies.
 - ❌ **DO NOT** leave the `property-photos` storage bucket with `TO public` write or delete permissions.
+

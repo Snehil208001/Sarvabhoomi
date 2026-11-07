@@ -975,4 +975,32 @@ This log tracks all architectural decisions, feature implementations, verificati
 - [ ] **Physical Device Daylight Check:** Open `http://localhost:3000` on a physical mobile device outdoors in bright direct sunlight to confirm subjective personal comfort with Gold/White contrast on Black.
 - [ ] **Valuation Benchmark Approval:** Review the prominent indicative rate disclaimer on `/valuation` and determine whether to retain the page or hide the route when transitioning to production.
 
+---
+
+## 🚀 Milestone: Vercel Production Deployment (Live)
+
+- **Platform:** Vercel (Next.js 14 App Router, Turborepo monorepo)
+- **Production URL:** [https://sarvabhoomi.vercel.app](https://sarvabhoomi.vercel.app)
+- **Deployment Hash / Target:** `https://sarvabhoomi-4yt653vta-snehil208001s-projects.vercel.app` (`READY`)
+- **Inspector Dashboard:** `https://vercel.com/snehil208001s-projects/sarvabhoomi/ELiAY2u9Kx7uLa8QLQn3xnahAgba`
+
+### Settings Configured
+1. **Root Directory:** `apps/web` (with `sourceFilesOutsideRootDirectory: true` for `@sarvabhoomi/shared`).
+2. **Framework Preset:** `Next.js`
+3. **Optimized Uploads (`.vercelignore`):** Excluded `.turbo/`, `.agents/`, and local temporary files, reducing upload payload from 31.4MB (680 files) to 3.1MB (127 files).
+4. **Environment Variables Configured:**
+   - `NEXT_PUBLIC_SUPABASE_URL` (Encrypted / set for Production, Preview, Development)
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` (Encrypted / set for Production, Preview, Development)
+   - `NEXT_PUBLIC_SITE_URL` (Encrypted / set to `https://sarvabhoomi.vercel.app`)
+
+### Live Health Verification (All 200 OK)
+- `GET /` — 200 OK (3D embossed gold coin splash screen + luxury dark theme `#101010`)
+- `GET /search` — 200 OK (Rentals search filters + zero-brokerage cards)
+- `GET /auth` — 200 OK (OTP phone auth flow)
+- `GET /valuation` — 200 OK (Indicative valuation calculator with gold disclaimer)
+- `GET /robots.txt` — 200 OK
+- `GET /sitemap.xml` — 200 OK
+- `GET /logo/logo-mark.png` — 200 OK (Embossed gold coin mark)
+
+
 
