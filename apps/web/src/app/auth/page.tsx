@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useId, useRef, Suspense } from 'react';
+import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Globe2, Sparkles, Check, AlertCircle, CheckCircle2 } from 'lucide-react';
 import {
@@ -591,8 +592,15 @@ function AuthContent() {
       <header className="border-b border-gold/30 bg-black/95 backdrop-blur-md sticky top-0 z-40 shadow-card">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-18 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-3 sm:gap-4">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gold flex items-center justify-center font-black text-black text-xl sm:text-2xl shadow-card select-none">
-              स
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full overflow-hidden shrink-0 ring-1 ring-gold/40 shadow-card">
+              <Image
+                src="/logo/logo-mark.png"
+                alt="Sarvabhoomi Official Seal"
+                width={44}
+                height={44}
+                priority
+                className="w-full h-full object-contain"
+              />
             </div>
             <div>
               <div className="flex items-center gap-2">

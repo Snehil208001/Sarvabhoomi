@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
@@ -402,8 +403,14 @@ export default function PostPropertyPage() {
   if (loadingUser) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="w-12 h-12 rounded-2xl bg-gold flex items-center justify-center font-black text-black text-2xl animate-pulse shadow-card">
-          स
+        <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 ring-1 ring-gold/40 animate-pulse shadow-card">
+          <Image
+            src="/logo/logo-mark.png"
+            alt="Sarvabhoomi"
+            width={48}
+            height={48}
+            className="w-full h-full object-contain"
+          />
         </div>
       </div>
     );
@@ -420,8 +427,14 @@ export default function PostPropertyPage() {
           </Link>
 
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gold text-black flex items-center justify-center font-black text-sm shadow-xs">
-              स
+            <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 ring-1 ring-gold/40 shadow-xs">
+              <Image
+                src="/logo/logo-mark.png"
+                alt="Sarvabhoomi"
+                width={32}
+                height={32}
+                className="w-full h-full object-contain"
+              />
             </div>
             <span className="font-black text-white text-sm tracking-tight">Post Free Rental Listing</span>
             <span className="px-2.5 py-0.5 text-[10px] font-black rounded-full bg-gold/20 text-gold border border-gold/30 uppercase tracking-wider">

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, Suspense } from 'react';
+import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -442,8 +443,14 @@ function DashboardContent() {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-gold flex items-center justify-center font-black text-black text-2xl shadow-card animate-pulse">
-            स
+          <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 ring-1 ring-gold/40 shadow-card animate-pulse">
+            <Image
+              src="/logo/logo-mark.png"
+              alt="Sarvabhoomi"
+              width={48}
+              height={48}
+              className="w-full h-full object-contain"
+            />
           </div>
           <span className="text-xs text-gold font-bold tracking-wide">Loading Dashboard...</span>
         </div>

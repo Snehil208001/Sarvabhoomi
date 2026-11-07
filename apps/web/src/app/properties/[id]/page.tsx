@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft,
@@ -353,8 +354,14 @@ export default function PropertyDetailPage() {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-gold flex items-center justify-center font-black text-black text-2xl shadow-card ring-4 ring-gold/20 animate-pulse">
-            स
+          <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 ring-2 ring-gold/40 shadow-card animate-pulse">
+            <Image
+              src="/logo/logo-mark.png"
+              alt="Sarvabhoomi"
+              width={48}
+              height={48}
+              className="w-full h-full object-contain"
+            />
           </div>
           <span className="text-xs text-white/70 font-semibold tracking-wide">
             {lang === 'en' ? 'Loading rental details...' : 'भाडाको विवरण लोड हुँदैछ...'}
@@ -964,8 +971,14 @@ export default function PropertyDetailPage() {
             <div className="bg-white/[0.06] rounded-3xl border border-gold/30 p-6 shadow-card space-y-5">
               <div className="flex items-center justify-between pb-3 border-b border-white/10">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-gold text-black flex items-center justify-center font-black text-base shadow-xs">
-                    स
+                  <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 ring-1 ring-gold/40 shadow-xs">
+                    <Image
+                      src="/logo/logo-mark.png"
+                      alt="Direct Landlord"
+                      width={36}
+                      height={36}
+                      className="w-full h-full object-contain"
+                    />
                   </div>
                   <div>
                     <h3 className="text-sm font-black text-white">Direct Landlord</h3>
