@@ -41,6 +41,7 @@ function SearchContent() {
   // Listings data & state
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   // User interactions
   const [favouriteIds, setFavouriteIds] = useState<Set<string>>(new Set());
@@ -224,14 +225,17 @@ function SearchContent() {
 
         if (qErr) {
           console.error('Error fetching rentals:', qErr);
+          setFetchError(qErr.message || 'Error fetching properties');
           setProperties([]);
           setTotalCount(0);
         } else {
           setProperties((data as Property[]) || []);
           setTotalCount(count || 0);
+          setFetchError(null);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Fetch exception:', err);
+        setFetchError(err?.message || 'Network error');
       } finally {
         setLoading(false);
       }
@@ -367,7 +371,7 @@ function SearchContent() {
                   ? 'Search by locality, ward, or landmark (e.g., Baluwatar, Pulchowk, Lakeside)...'
                   : 'टोल, वडा वा चोकको नाम खोज्नुहोस्...'
               }
-              className="w-full bg-black/60 border border-white/20 rounded-2xl pl-11 pr-28 py-3 text-xs sm:text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/30"
+              className="w-full bg-black/60 border border-white/20 rounded-2xl pl-11 pr-28 py-3 text-base sm:text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/30 min-h-touch"
             />
             <Search className="w-4 h-4 text-gold absolute left-4 top-1/2 -translate-y-1/2" />
             <button
@@ -591,11 +595,28 @@ function SearchContent() {
                     ? 'Rental Properties in Nepal'
                     : 'नेपालमा घर तथा कोठा भाडा'}
                 </h1>
-                <p className="text-xs sm:text-sm text-white/70 mt-1 font-medium">
-                  {lang === 'en'
-                    ? `Showing ${properties.length} of ${totalCount} verified rentals • 0% Brokerage`
-                    : `${totalCount} मध्ये ${properties.length} प्रमाणित भाडा सूचीहरू • ०% दलाली`}
-                </p>
+                {loading ? (
+                  <div className="h-4 w-48 sm:w-64 bg-white/10 rounded animate-pulse mt-2" />
+                ) : fetchError ? (
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-xs sm:text-sm text-gold font-bold">
+                      {lang === 'en' ? 'Unable to load rentals.' : 'भाडा सम्पत्ति लोड गर्न सकिएन।'}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => fetchProperties(currentPage)}
+                      className="text-xs text-white underline hover:text-gold"
+                    >
+                      {lang === 'en' ? 'Retry' : 'पुनः प्रयास'}
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-xs sm:text-sm text-white/70 mt-1 font-medium">
+                    {lang === 'en'
+                      ? `Showing ${properties.length} of ${totalCount} verified rentals • 0% Brokerage`
+                      : `${totalCount} मध्ये ${properties.length} प्रमाणित भाडा सूचीहरू • ०% दलाली`}
+                  </p>
+                )}
               </div>
 
               {(selectedDistrict !== 'ALL' ||
@@ -619,7 +640,7 @@ function SearchContent() {
 
             {/* Loading Shimmer Skeleton */}
             {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {[1, 2, 3, 4, 5, 6].map((idx) => (
                   <div
                     key={idx}
@@ -654,7 +675,7 @@ function SearchContent() {
             ) : (
               <>
                 {/* Cards Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                   {properties.map((prop, idx) => (
                     <ScrollReveal key={prop.id} delayMs={idx * 40}>
                       <PropertyCard
@@ -703,49 +724,225 @@ function SearchContent() {
         </div>
       </main>
 
-      {/* Mobile Filters Modal */}
+      {/* Mobile Filters Bottom Sheet */}
       {mobileFiltersOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex justify-end">
-          <div className="w-full max-w-xs bg-black border-l border-gold/30 h-full p-6 overflow-y-auto space-y-6 text-white">
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
-              <h3 className="font-black text-base text-gold">
-                {lang === 'en' ? 'Filters' : 'फिल्टरहरू'}
-              </h3>
+        <div className="fixed inset-0 z-50 flex items-end justify-center">
+          {/* Backdrop with tap-to-dismiss */}
+          <div
+            onClick={() => setMobileFiltersOpen(false)}
+            className="fixed inset-0 bg-black/80 backdrop-blur-xs transition-opacity"
+            aria-hidden="true"
+          />
+
+          {/* Bottom Sheet Container */}
+          <div className="relative w-full max-w-lg bg-black/95 border-t border-gold/40 rounded-t-3xl max-h-[85vh] flex flex-col z-10 shadow-card pb-[max(1rem,env(safe-area-inset-bottom))]">
+            {/* Sheet Handle */}
+            <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mt-3 mb-1" />
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-3 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal className="w-4 h-4 text-gold stroke-[2.5]" />
+                <h3 className="font-black text-base text-gold uppercase tracking-wider">
+                  {lang === 'en' ? 'Rental Filters' : 'भाडा फिल्टरहरू'}
+                </h3>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleResetFilters}
+                  className="text-xs text-white/70 hover:text-gold font-bold flex items-center gap-1 min-h-touch"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>{lang === 'en' ? 'Reset' : 'रिसेट'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMobileFiltersOpen(false)}
+                  className="p-2 text-white/70 hover:text-white rounded-xl min-h-touch min-w-touch flex items-center justify-center"
+                  aria-label="Close filters"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable Filters Body */}
+            <div className="overflow-y-auto px-6 py-4 space-y-5 flex-1">
+              {/* 1. District */}
+              <div>
+                <label className="block text-xs font-black text-white/90 mb-2 uppercase tracking-wider">
+                  {lang === 'en' ? 'District' : 'जिल्ला'}
+                </label>
+                <select
+                  value={selectedDistrict}
+                  onChange={(e) => setSelectedDistrict(e.target.value)}
+                  className="w-full bg-black/60 border border-white/20 rounded-xl px-3.5 py-2.5 text-xs font-bold text-white focus:outline-none focus:border-gold min-h-touch"
+                >
+                  <option value="ALL" className="bg-black text-white">
+                    {lang === 'en' ? 'All Districts' : 'सबै जिल्ला'}
+                  </option>
+                  {ALL_NEPAL_DISTRICTS.map((d) => (
+                    <option key={d.nameEn} value={d.nameEn} className="bg-black text-white">
+                      {lang === 'ne' ? d.nameNe : d.nameEn}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 2. Monthly Rent */}
+              <div>
+                <label className="block text-xs font-black text-white/90 mb-2 uppercase tracking-wider">
+                  {lang === 'en' ? 'Monthly Rent' : 'मासिक भाडा दर'}
+                </label>
+                <div className="grid grid-cols-2 gap-2 text-xs font-semibold text-white/70">
+                  {(
+                    [
+                      { key: 'ALL', labelEn: 'Any Budget', labelNe: 'कुनै पनि बजेट' },
+                      { key: 'UNDER_10K', labelEn: 'Under Rs. 10k', labelNe: '१० हजार मुनि' },
+                      { key: '10K_25K', labelEn: 'Rs. 10k – 25k', labelNe: '१० हजार – २५ हजार' },
+                      { key: '25K_50K', labelEn: 'Rs. 25k – 50k', labelNe: '२५ हजार – ५० हजार' },
+                      { key: '50K_1L', labelEn: 'Rs. 50k – 1 Lakh', labelNe: '५० हजार – १ लाख' },
+                      { key: 'ABOVE_1L', labelEn: 'Above 1 Lakh', labelNe: '१ लाख माथि' },
+                    ] as const
+                  ).map((preset) => (
+                    <button
+                      key={preset.key}
+                      type="button"
+                      onClick={() => setRentPreset(preset.key)}
+                      className={`p-2.5 rounded-xl border text-left text-xs font-bold transition-all min-h-touch flex items-center ${
+                        rentPreset === preset.key
+                          ? 'border-gold bg-gold/15 text-gold'
+                          : 'border-white/10 bg-white/[0.03] text-white/70'
+                      }`}
+                    >
+                      {lang === 'en' ? preset.labelEn : preset.labelNe}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 3. BHK / Bedrooms */}
+              <div>
+                <label className="block text-xs font-black text-white/90 mb-2 uppercase tracking-wider">
+                  {lang === 'en' ? 'BHK / Bedrooms' : 'कोठा संख्या (BHK)'}
+                </label>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {(
+                    [
+                      { val: 'ALL' as const, label: lang === 'en' ? 'All' : 'सबै' },
+                      { val: 1 as const, label: '1 BHK' },
+                      { val: 2 as const, label: '2 BHK' },
+                      { val: 3 as const, label: '3 BHK' },
+                      { val: 4 as const, label: '4+ BHK' },
+                    ]
+                  ).map((bhk) => (
+                    <button
+                      key={String(bhk.val)}
+                      type="button"
+                      onClick={() => setBhkFilter(bhk.val)}
+                      className={`py-2 rounded-xl text-xs font-black transition-all min-h-touch ${
+                        bhkFilter === bhk.val
+                          ? 'bg-gold text-black shadow-subtle'
+                          : 'bg-white/5 border border-white/10 text-white/70'
+                      }`}
+                    >
+                      {bhk.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 4. Property Subtype */}
+              <div>
+                <label className="block text-xs font-black text-white/90 mb-2 uppercase tracking-wider">
+                  {lang === 'en' ? 'Property Subtype' : 'सम्पत्तिको प्रकार'}
+                </label>
+                <div className="grid grid-cols-2 gap-2 text-xs font-semibold text-white/70">
+                  {(
+                    [
+                      { key: 'ALL' as const, labelEn: 'All Subtypes', labelNe: 'सबै प्रकार' },
+                      { key: 'ROOM' as const, labelEn: 'Single Room (कोठा)', labelNe: 'एकल कोठा' },
+                      { key: 'FLAT' as const, labelEn: 'Flat / Apartment (फ्ल्याट)', labelNe: 'फ्ल्याट / अपार्टमेन्ट' },
+                      { key: 'HOUSE' as const, labelEn: 'Full House (घर)', labelNe: 'घर' },
+                    ]
+                  ).map((sub) => (
+                    <button
+                      key={sub.key}
+                      type="button"
+                      onClick={() => setSubtypeFilter(sub.key)}
+                      className={`p-2.5 rounded-xl border text-left text-xs font-bold transition-all min-h-touch flex items-center ${
+                        subtypeFilter === sub.key
+                          ? 'border-gold bg-gold/15 text-gold'
+                          : 'border-white/10 bg-white/[0.03] text-white/70'
+                      }`}
+                    >
+                      {lang === 'en' ? sub.labelEn : sub.labelNe}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 5. Furnishing & Tenant Preference */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-black text-white/90 mb-1.5 uppercase tracking-wider">
+                    {lang === 'en' ? 'Furnishing' : 'फर्निसिङ'}
+                  </label>
+                  <select
+                    value={furnishingFilter}
+                    onChange={(e) => setFurnishingFilter(e.target.value as Furnishing | 'ALL')}
+                    className="w-full bg-black/60 border border-white/20 rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-gold min-h-touch"
+                  >
+                    <option value="ALL" className="bg-black text-white">{lang === 'en' ? 'All' : 'सबै'}</option>
+                    <option value="FULLY_FURNISHED" className="bg-black text-white">{lang === 'en' ? 'Fully Furnished' : 'पूर्ण फर्निसिङ'}</option>
+                    <option value="SEMI_FURNISHED" className="bg-black text-white">{lang === 'en' ? 'Semi-Furnished' : 'आंशिक फर्निसिङ'}</option>
+                    <option value="UNFURNISHED" className="bg-black text-white">{lang === 'en' ? 'Unfurnished' : 'फर्निसिङ नभएको'}</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black text-white/90 mb-1.5 uppercase tracking-wider">
+                    {lang === 'en' ? 'Tenant' : 'भाडामा बस्ने'}
+                  </label>
+                  <select
+                    value={tenantFilter}
+                    onChange={(e) => setTenantFilter(e.target.value as PreferredTenant | 'ALL')}
+                    className="w-full bg-black/60 border border-white/20 rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-gold min-h-touch"
+                  >
+                    <option value="ALL" className="bg-black text-white">{lang === 'en' ? 'Any' : 'सबै'}</option>
+                    <option value="FAMILY" className="bg-black text-white">{lang === 'en' ? 'Family' : 'परिवार'}</option>
+                    <option value="BACHELOR" className="bg-black text-white">{lang === 'en' ? 'Professionals / Bachelors' : 'पेसाकर्मी'}</option>
+                    <option value="ANY" className="bg-black text-white">{lang === 'en' ? 'No Preference' : 'कुनै प्राथमिकता छैन'}</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* 6. Lalpurja Verified Toggle */}
+              <label className="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.04] border border-white/10 cursor-pointer min-h-touch">
+                <input
+                  type="checkbox"
+                  checked={lalpurjaOnly}
+                  onChange={(e) => setLalpurjaOnly(e.target.checked)}
+                  className="rounded accent-gold w-4 h-4"
+                />
+                <span className="flex items-center gap-1.5 text-xs font-bold text-white">
+                  <ShieldCheck className="w-4 h-4 text-gold stroke-[2.5]" />
+                  <span>{lang === 'en' ? 'Verified Lalpurja Only' : 'लालपुर्जा प्रमाणित मात्र'}</span>
+                </span>
+              </label>
+            </div>
+
+            {/* Pinned Bottom Apply Button */}
+            <div className="px-6 pt-3 border-t border-white/10">
               <button
                 type="button"
                 onClick={() => setMobileFiltersOpen(false)}
-                className="p-2 text-white/70 hover:text-white rounded-xl"
+                className="w-full py-3.5 rounded-2xl bg-gold hover:bg-gold/90 active:scale-97 text-black font-black text-xs uppercase tracking-wider shadow-subtle min-h-touch flex items-center justify-center"
               >
-                <X className="w-5 h-5" />
+                {lang === 'en' ? 'Apply Filters & View Results' : 'फिल्टर लागू गर्नुहोस्'}
               </button>
             </div>
-
-            {/* Mobile Filters Body */}
-            <div>
-              <label className="block text-xs font-black text-white/90 mb-2">
-                {lang === 'en' ? 'District' : 'जिल्ला'}
-              </label>
-              <select
-                value={selectedDistrict}
-                onChange={(e) => setSelectedDistrict(e.target.value)}
-                className="w-full bg-black/60 border border-white/20 rounded-xl px-3 py-2 text-xs font-bold text-white"
-              >
-                <option value="ALL" className="bg-black text-white">{lang === 'en' ? 'All Districts' : 'सबै जिल्ला'}</option>
-                {ALL_NEPAL_DISTRICTS.map((d) => (
-                  <option key={d.nameEn} value={d.nameEn} className="bg-black text-white">
-                    {lang === 'ne' ? d.nameNe : d.nameEn}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setMobileFiltersOpen(false)}
-              className="w-full py-3 rounded-2xl bg-gold hover:bg-gold/90 text-black font-black text-xs uppercase tracking-wider"
-            >
-              {lang === 'en' ? 'Apply Filters' : 'लागू गर्नुहोस्'}
-            </button>
           </div>
         </div>
       )}

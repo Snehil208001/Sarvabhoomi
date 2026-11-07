@@ -109,7 +109,7 @@ export function PhoneStep({
               placeholder="98XXXXXXXX"
               maxLength={10}
               autoFocus
-              className={`w-full bg-black/60 border rounded-2xl pl-16 pr-10 py-3.5 text-sm font-mono font-bold text-white tracking-wider transition-all placeholder:text-white/40 focus:outline-none min-h-touch ${
+              className={`w-full bg-black/60 border rounded-2xl pl-16 pr-10 py-3.5 text-base font-mono font-bold text-white tracking-wider transition-all placeholder:text-white/40 focus:outline-none min-h-touch ${
                 phoneError
                   ? 'border-gold/60 focus:border-gold focus:ring-1 focus:ring-gold'
                   : 'border-white/20 focus:border-gold focus:ring-1 focus:ring-gold'

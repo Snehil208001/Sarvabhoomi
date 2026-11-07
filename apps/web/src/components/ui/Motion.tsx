@@ -24,8 +24,8 @@ export function DistrictTicker() {
   ];
 
   return (
-    <div className="w-full bg-black text-gold border-y border-gold/30 overflow-hidden py-2 select-none">
-      <div className="animate-marquee flex items-center whitespace-nowrap text-xs font-bold tracking-wider">
+    <div className="w-full max-w-full bg-black text-gold border-y border-gold/30 overflow-hidden py-2 select-none">
+      <div className="animate-marquee flex items-center whitespace-nowrap text-xs font-bold tracking-wider w-max">
         {[...districts, ...districts].map((d, i) => (
           <span key={i} className="inline-flex items-center mx-4">
             <span className="text-gold/50 mr-4 font-mono">✦</span>
@@ -39,8 +39,9 @@ export function DistrictTicker() {
 
 /**
  * CountUp Number Component
- * - Counts up to target when scrolled into view
- * - Graceful fallback to target directly for reduced-motion or SSR
+ * - Content is visible by default with target number (prevents showing 0 on slow/unobserved viewports)
+ * - Animates upward smoothly when scrolled into view
+ * - Graceful fallback to target directly for reduced-motion, SSR, or failed observer
  */
 export function CountUp({
   target,
@@ -53,7 +54,8 @@ export function CountUp({
   suffix?: string;
   durationMs?: number;
 }) {
-  const [displayValue, setDisplayValue] = useState(0);
+  // Visible by default with the real target number
+  const [displayValue, setDisplayValue] = useState(target);
   const ref = useRef<HTMLSpanElement>(null);
   const [hasStarted, setHasStarted] = useState(false);
 
@@ -70,11 +72,23 @@ export function CountUp({
       return;
     }
 
+    // Safety timeout: Ensure target value is displayed unconditionally after 1000ms
+    const safetyTimeout = setTimeout(() => {
+      setDisplayValue(target);
+    }, 1000);
+
+    if (target === 0) {
+      setDisplayValue(0);
+      return () => clearTimeout(safetyTimeout);
+    }
+
+    // Animate up from 0 when observed
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !hasStarted) {
           setHasStarted(true);
           observer.disconnect();
+          clearTimeout(safetyTimeout);
 
           const startTime = performance.now();
           const step = (currentTime: number) => {
@@ -94,13 +108,14 @@ export function CountUp({
           requestAnimationFrame(step);
         }
       },
-      { threshold: 0.15 }
+      { threshold: 0.1 }
     );
 
     observer.observe(currentRef);
 
     return () => {
       observer.disconnect();
+      clearTimeout(safetyTimeout);
     };
   }, [target, durationMs, hasStarted]);
 

@@ -155,4 +155,38 @@ export function formatDeposit(deposit: number | null | undefined, lang: 'en' | '
   return `${prefix}${deposit.toLocaleString('en-IN')}`;
 }
 
+/**
+ * Formats Furnishing status into clean human-readable label
+ * Always one word for state, no duplication (e.g. 'Semi-Furnished', not 'Semi_furnished Furnished')
+ */
+export function formatFurnishing(furnishing: string | null | undefined, lang: 'en' | 'ne' = 'en'): string {
+  if (!furnishing) {
+    return lang === 'en' ? 'Unspecified' : 'उल्लेख नभएको';
+  }
+  const normalized = furnishing.trim().toUpperCase();
+  if (normalized.startsWith('FULL')) {
+    return lang === 'en' ? 'Fully-Furnished' : 'पूर्ण फर्निसिङ';
+  }
+  if (normalized.startsWith('SEMI')) {
+    return lang === 'en' ? 'Semi-Furnished' : 'आंशिक फर्निसिङ';
+  }
+  if (normalized.startsWith('UN')) {
+    return lang === 'en' ? 'Unfurnished' : 'फर्निसिङ नभएको';
+  }
+  return lang === 'en' ? 'Unfurnished' : 'फर्निसिङ नभएको';
+}
+
+/**
+ * Formats Views Count with correct singular/plural and space
+ * e.g. "1 view" / "2 views" or "१ पटक हेरिएको" / "२ पटक हेरिएको"
+ */
+export function formatViewsCount(count: number | null | undefined, lang: 'en' | 'ne' = 'en'): string {
+  const views = typeof count === 'number' && !isNaN(count) && count >= 0 ? count : 1;
+  if (lang === 'ne') {
+    return `${views} पटक हेरिएको`;
+  }
+  return views === 1 ? '1 view' : `${views.toLocaleString('en-IN')} views`;
+}
+
+
 

@@ -33,6 +33,8 @@ import {
   formatMonthlyRentNPR,
   formatDeposit,
   formatArea,
+  formatFurnishing,
+  formatViewsCount,
 } from '@sarvabhoomi/shared';
 import { supabase } from '@/lib/supabase';
 import { ContactUnlockModal } from '@/components/ContactUnlockModal';
@@ -80,6 +82,24 @@ export default function PropertyDetailPage() {
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
   const [imageFitMode, setImageFitMode] = useState<'contain' | 'cover'>('contain');
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.touches[0].clientX);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX === null) return;
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 45 && photos.length > 1) {
+      if (diff > 0) {
+        setActivePhotoIdx((prev) => (prev < photos.length - 1 ? prev + 1 : 0));
+      } else {
+        setActivePhotoIdx((prev) => (prev > 0 ? prev - 1 : photos.length - 1));
+      }
+    }
+    setTouchStartX(null);
+  };
 
   // Modal state
   const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false);
@@ -526,7 +546,7 @@ export default function PropertyDetailPage() {
       </header>
 
       {/* Main Container */}
-      <main className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8 flex-1">
+      <main className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8 flex-1 pb-28 lg:pb-8">
         {/* Title & Badges Bar */}
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -570,7 +590,7 @@ export default function PropertyDetailPage() {
             </div>
             <div className="flex items-center gap-1.5 text-white/70">
               <Eye className="w-3.5 h-3.5 text-gold/70" />
-              <span>{property.views_count || 1} views</span>
+              <span>{formatViewsCount(property.views_count, lang)}</span>
             </div>
             <div className="flex items-center gap-1.5 text-white/70">
               <Calendar className="w-3.5 h-3.5 text-gold/70" />
@@ -598,7 +618,11 @@ export default function PropertyDetailPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            <div className="relative h-[360px] sm:h-[460px] md:h-[520px] rounded-3xl overflow-hidden shadow-card border border-gold/30 bg-black">
+            <div
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+              className="relative h-[300px] sm:h-[420px] md:h-[500px] rounded-3xl overflow-hidden shadow-card border border-gold/30 bg-black select-none"
+            >
               {/* Ambient Blurred Backdrop */}
               <div className="absolute inset-0 overflow-hidden pointer-events-none select-none">
                 <PropertyImage
@@ -689,6 +713,23 @@ export default function PropertyDetailPage() {
                 </>
               )}
             </div>
+
+            {/* Mobile Dot Indicators */}
+            {photos.length > 1 && (
+              <div className="flex items-center justify-center gap-1.5 py-1 sm:hidden">
+                {photos.map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setActivePhotoIdx(idx)}
+                    className={`h-1.5 rounded-full transition-all ${
+                      activePhotoIdx === idx ? 'w-5 bg-gold' : 'w-1.5 bg-white/30'
+                    }`}
+                    aria-label={`Go to photo ${idx + 1}`}
+                  />
+                ))}
+              </div>
+            )}
 
             {/* Thumbnails row */}
             {photos.length > 1 && (
@@ -807,9 +848,7 @@ export default function PropertyDetailPage() {
                 <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10">
                   <span className="text-white/60 block mb-1 font-medium">Furnishing Status</span>
                   <span className="font-bold text-white">
-                    {property.furnishing
-                      ? `${property.furnishing.charAt(0) + property.furnishing.slice(1).toLowerCase()} Furnished`
-                      : 'Not specified'}
+                    {formatFurnishing(property.furnishing, lang)}
                   </span>
                 </div>
 
@@ -1082,7 +1121,7 @@ export default function PropertyDetailPage() {
             </div>
 
             {/* Schedule a Visit Card */}
-            <div className="bg-white/[0.06] rounded-3xl border border-gold/30 p-6 shadow-card space-y-4">
+            <div id="visit-section" className="bg-white/[0.06] rounded-3xl border border-gold/30 p-6 shadow-card space-y-4">
               <div className="flex items-center gap-2 pb-2 border-b border-white/10">
                 <Calendar className="w-4 h-4 text-gold" />
                 <h3 className="text-sm font-black text-white">
@@ -1319,6 +1358,50 @@ export default function PropertyDetailPage() {
           )}
         </div>
       )}
+
+      {/* Mobile Sticky Bottom Action Bar (<= 1024px) */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-black/95 backdrop-blur-md border-t border-gold/30 p-3 sm:p-4 lg:hidden shadow-card flex items-center justify-between gap-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="min-w-0">
+          <div className="text-base sm:text-lg font-black text-gold truncate">
+            {formatMonthlyRentNPR(monthlyRent, lang)}
+          </div>
+          <div className="text-[10px] text-white/60 truncate font-medium">
+            Deposit: {formatDeposit(property.deposit_npr, lang)}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {isUnlocked && ownerContact ? (
+            <a
+              href={`tel:${ownerContact.phone}`}
+              className="px-4 py-2.5 rounded-xl bg-gold text-black font-black text-xs flex items-center gap-1.5 shadow-subtle min-h-touch active:scale-95"
+            >
+              <PhoneCall className="w-3.5 h-3.5" />
+              <span>Call</span>
+            </a>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsUnlockModalOpen(true)}
+              className="px-4 py-2.5 rounded-xl bg-gold text-black font-black text-xs flex items-center gap-1.5 shadow-subtle min-h-touch active:scale-95"
+            >
+              <Unlock className="w-3.5 h-3.5" />
+              <span>Contact Landlord</span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              const el = document.getElementById('visit-section');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+              else window.scrollTo({ top: document.body.scrollHeight / 2, behavior: 'smooth' });
+            }}
+            className="px-3 py-2.5 rounded-xl bg-white/10 border border-white/20 text-white font-bold text-xs flex items-center gap-1.5 min-h-touch active:scale-95"
+          >
+            <Calendar className="w-3.5 h-3.5 text-gold" />
+            <span className="hidden xs:inline">Visit</span>
+          </button>
+        </div>
+      </div>
 
       {/* Institutional Footer */}
       <Footer lang={lang} />

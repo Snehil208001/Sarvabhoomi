@@ -312,25 +312,31 @@ export default function HomePage() {
                 <CountUp target={0} suffix="%" />
               </div>
               <div className="text-xs font-bold text-white/70 mt-1 uppercase tracking-wider">
-                <span className="inline-block border-b-2 border-gold/40 pb-0.5">Brokerage Fee</span>
+                <span className="inline-block border-b-2 border-gold/40 pb-0.5">
+                  {lang === 'en' ? 'Brokerage Fee' : 'दलाली शुल्क'}
+                </span>
               </div>
             </div>
 
             <div className="text-center">
               <div className="text-3xl sm:text-4xl font-black text-gold">
-                <CountUp target={15} suffix=" Free" />
+                <CountUp target={15} suffix={lang === 'en' ? ' Free' : ' निःशुल्क'} />
               </div>
               <div className="text-xs font-bold text-white/70 mt-1 uppercase tracking-wider">
-                <span className="inline-block border-b-2 border-gold/40 pb-0.5">Contact Unlocks</span>
+                <span className="inline-block border-b-2 border-gold/40 pb-0.5">
+                  {lang === 'en' ? 'Contact Unlocks' : 'सम्पर्क अनलक'}
+                </span>
               </div>
             </div>
 
             <div className="text-center">
               <div className="text-3xl sm:text-4xl font-black text-gold">
-                <CountUp target={77} suffix=" Districts" />
+                <CountUp target={77} suffix={lang === 'en' ? ' Districts' : ' जिल्ला'} />
               </div>
               <div className="text-xs font-bold text-white/70 mt-1 uppercase tracking-wider">
-                <span className="inline-block border-b-2 border-gold/40 pb-0.5">Nationwide Nepal</span>
+                <span className="inline-block border-b-2 border-gold/40 pb-0.5">
+                  {lang === 'en' ? 'Nationwide Nepal' : 'देशव्यापी नेपाल'}
+                </span>
               </div>
             </div>
 
@@ -339,7 +345,9 @@ export default function HomePage() {
                 <CountUp target={100} suffix="%" />
               </div>
               <div className="text-xs font-bold text-white/70 mt-1 uppercase tracking-wider">
-                <span className="inline-block border-b-2 border-gold/40 pb-0.5">Direct Landlords</span>
+                <span className="inline-block border-b-2 border-gold/40 pb-0.5">
+                  {lang === 'en' ? 'Direct Landlords' : 'प्रत्यक्ष घरधनी'}
+                </span>
               </div>
             </div>
           </div>
@@ -550,38 +558,56 @@ export default function HomePage() {
 
             <div className="divide-y divide-white/10 text-xs sm:text-sm">
               <div className="grid grid-cols-3 p-5 items-center">
-                <span className="font-bold text-white">Brokerage Fee</span>
-                <span className="text-white/60 font-semibold line-through">1 Month Rent (NPR 15k–1L)</span>
+                <span className="font-bold text-white">
+                  {lang === 'en' ? 'Brokerage Fee' : 'दलाली शुल्क'}
+                </span>
+                <span className="text-white/60 font-semibold line-through">
+                  {lang === 'en' ? '1 Month Rent (NPR 15k–1L)' : '१ महिनाको भाडा (१५ हजार – १ लाख)'}
+                </span>
                 <span className="text-gold font-black flex items-center gap-1.5">
                   <Check className="w-4 h-4 text-gold stroke-[3]" />
-                  <span className="bg-gold/20 text-gold border border-gold/30 px-2 py-0.5 rounded font-black">NPR 0 (100% Free)</span>
+                  <span className="bg-gold/20 text-gold border border-gold/30 px-2 py-0.5 rounded font-black">
+                    {lang === 'en' ? 'NPR 0 (100% Free)' : 'रु. ० (१००% निःशुल्क)'}
+                  </span>
                 </span>
               </div>
 
               <div className="grid grid-cols-3 p-5 items-center bg-white/[0.02]">
-                <span className="font-bold text-white">Owner Contact</span>
-                <span className="text-white/60">Hidden behind middleman</span>
+                <span className="font-bold text-white">
+                  {lang === 'en' ? 'Owner Contact' : 'घरधनी सम्पर्क'}
+                </span>
+                <span className="text-white/60">
+                  {lang === 'en' ? 'Hidden behind middleman' : 'बिचौलियाले लुकाउने'}
+                </span>
                 <span className="text-white font-bold flex items-center gap-1.5">
                   <Check className="w-4 h-4 text-gold stroke-[3]" />
-                  <span>Direct phone access</span>
+                  <span>{lang === 'en' ? 'Direct phone access' : 'प्रत्यक्ष फोन नम्बर'}</span>
                 </span>
               </div>
 
               <div className="grid grid-cols-3 p-5 items-center">
-                <span className="font-bold text-white">Property Visits</span>
-                <span className="text-white/60">Subject to broker convenience</span>
+                <span className="font-bold text-white">
+                  {lang === 'en' ? 'Property Visits' : 'सम्पत्ति भ्रमण'}
+                </span>
+                <span className="text-white/60">
+                  {lang === 'en' ? 'Subject to broker convenience' : 'दलालको अनुकूलतामा निर्भर'}
+                </span>
                 <span className="text-white font-bold flex items-center gap-1.5">
                   <Check className="w-4 h-4 text-gold stroke-[3]" />
-                  <span>Schedule visit directly</span>
+                  <span>{lang === 'en' ? 'Schedule visit directly' : 'सिधै भ्रमण तालिका मिलाउनुहोस्'}</span>
                 </span>
               </div>
 
               <div className="grid grid-cols-3 p-5 items-center bg-white/[0.02]">
-                <span className="font-bold text-white">Rental Price Markup</span>
-                <span className="text-white/60">Often inflated by middlemen</span>
+                <span className="font-bold text-white">
+                  {lang === 'en' ? 'Rental Price Markup' : 'भाडा दर मूल्यवृद्धि'}
+                </span>
+                <span className="text-white/60">
+                  {lang === 'en' ? 'Often inflated by middlemen' : 'बिचौलियाद्वारा बढाइएको भाडा'}
+                </span>
                 <span className="text-white font-bold flex items-center gap-1.5">
                   <Check className="w-4 h-4 text-gold stroke-[3]" />
-                  <span>Genuine owner quoted rent</span>
+                  <span>{lang === 'en' ? 'Genuine owner quoted rent' : 'घरधनीको वास्तविक दर'}</span>
                 </span>
               </div>
             </div>
@@ -607,30 +633,48 @@ export default function HomePage() {
             <div className="p-6 rounded-2xl border border-white/10 bg-white/[0.04]">
               <h4 className="font-black text-sm text-white mb-2 flex items-center gap-2">
                 <HelpCircle className="w-4 h-4 text-gold shrink-0 stroke-[2.5]" />
-                <span>How does Sarvabhoomi operate with zero brokerage?</span>
+                <span>
+                  {lang === 'en'
+                    ? 'How does Sarvabhoomi operate with zero brokerage?'
+                    : 'सर्वभूमिले कसरी ०% दलालीमा सेवा प्रदान गर्दछ?'}
+                </span>
               </h4>
               <p className="text-xs sm:text-sm text-white/70 leading-relaxed pl-6 font-normal">
-                Sarvabhoomi connects renters and property owners directly without intermediaries. House owners list their flats, rooms, and houses 100% free, and renters use complimentary launch credits to contact landlords directly.
+                {lang === 'en'
+                  ? 'Sarvabhoomi connects renters and property owners directly without intermediaries. House owners list their flats, rooms, and houses 100% free, and renters use complimentary launch credits to contact landlords directly.'
+                  : 'सर्वभूमिले कुनै पनि बिचौलिया बिना भाडामा बस्ने र घरधनीलाई सिधै जोड्छ। घरधनीले आफ्नो कोठा, फ्ल्याट वा घर निःशुल्क सूचीकृत गर्न सक्नुहुन्छ र भाडामा लिनेले निःशुल्क क्रेडिट प्रयोग गरी घरधनीसँग प्रत्यक्ष सम्पर्क गर्न सक्नुहुन्छ।'}
               </p>
             </div>
 
             <div className="p-6 rounded-2xl border border-white/10 bg-white/[0.04]">
               <h4 className="font-black text-sm text-white mb-2 flex items-center gap-2">
                 <HelpCircle className="w-4 h-4 text-gold shrink-0 stroke-[2.5]" />
-                <span>What are the 15 Free Contact-Unlock Credits?</span>
+                <span>
+                  {lang === 'en'
+                    ? 'What are the 15 Free Contact-Unlock Credits?'
+                    : '१५ निःशुल्क सम्पर्क अनलक क्रेडिट के हुन्?'}
+                </span>
               </h4>
               <p className="text-xs sm:text-sm text-white/70 leading-relaxed pl-6 font-normal">
-                Every newly registered Renter account receives 15 complimentary contact unlock credits valid for 90 days. Each credit lets you view the verified phone number of an owner directly.
+                {lang === 'en'
+                  ? 'Every newly registered Renter account receives 15 complimentary contact unlock credits valid for 90 days. Each credit lets you view the verified phone number of an owner directly.'
+                  : 'प्रत्येक नयाँ दर्ता भएको खाताले ९० दिनको लागि मान्य हुने १५ निःशुल्क सम्पर्क अनलक क्रेडिट प्राप्त गर्दछ। प्रत्येक क्रेडिटबाट तपाईंले घरधनीको प्रमाणित फोन नम्बर सिधै हेर्न सक्नुहुन्छ।'}
               </p>
             </div>
 
             <div className="p-6 rounded-2xl border border-white/10 bg-white/[0.04]">
               <h4 className="font-black text-sm text-white mb-2 flex items-center gap-2">
                 <HelpCircle className="w-4 h-4 text-gold shrink-0 stroke-[2.5]" />
-                <span>Can I switch between Renter and Owner roles?</span>
+                <span>
+                  {lang === 'en'
+                    ? 'Can I switch between Renter and Owner roles?'
+                    : 'के म भाडामा लिने (Renter) र घरधनी (Owner) भूमिका परिवर्तन गर्न सक्छु?'}
+                </span>
               </h4>
               <p className="text-xs sm:text-sm text-white/70 leading-relaxed pl-6 font-normal">
-                To guarantee zero middleman interference, each phone number is bound to one role (either Renter or Owner). If you need both, you can register a separate phone number.
+                {lang === 'en'
+                  ? 'To guarantee zero middleman interference, each phone number is bound to one role (either Renter or Owner). If you need both, you can register a separate phone number.'
+                  : 'बिचौलियाको हस्तक्षेप शून्य राख्न, प्रत्येक मोबाइल नम्बर एक भूमिकामा मात्र बाँधिएको हुन्छ। यदि दुवै भूमिका आवश्यक भएमा छुट्टै फोन नम्बर प्रयोग गर्न सकिन्छ।'}
               </p>
             </div>
           </div>

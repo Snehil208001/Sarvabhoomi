@@ -495,9 +495,9 @@ function DashboardContent() {
       )}
 
       {/* Tab Navigation Bar */}
-      <div className="border-b border-gold/30 bg-black/95 backdrop-blur-md sticky top-18 sm:top-20 z-30 shadow-card">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto py-2.5 scrollbar-none text-xs sm:text-sm font-semibold flex-nowrap">
+      <div className="border-b border-gold/30 bg-black/95 backdrop-blur-md sticky top-18 sm:top-20 z-30 shadow-card w-full min-w-0">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto py-2.5 scrollbar-none text-xs sm:text-sm font-semibold flex-nowrap w-full min-w-0">
             {/* OWNER TABS */}
             {userRole === 'OWNER' && (
               <>

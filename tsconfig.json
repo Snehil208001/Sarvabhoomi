@@ -1,5 +1,18 @@
 {
   "compilerOptions": {
+    "target": "es5",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
     "baseUrl": ".",
     "paths": {
       "@sarvabhoomi/shared": ["packages/shared/src"],
@@ -7,9 +20,10 @@
       "@/*": ["apps/web/src/*"]
     }
   },
-  "references": [
-    { "path": "./packages/shared" },
-    { "path": "./apps/web" }
-  ]
+  "include": [
+    "apps/web/src/**/*",
+    "apps/web/next-env.d.ts",
+    "packages/shared/src/**/*"
+  ],
+  "exclude": ["node_modules", "**/node_modules/*", ".next", "dist"]
 }
-

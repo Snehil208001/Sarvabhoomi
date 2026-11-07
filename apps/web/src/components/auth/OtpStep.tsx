@@ -75,6 +75,7 @@ export function OtpStep({
                 }}
                 type="text"
                 inputMode="numeric"
+                autoComplete={idx === 0 ? 'one-time-code' : undefined}
                 pattern="[0-9]*"
                 maxLength={1}
                 value={digit}

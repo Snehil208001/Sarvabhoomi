@@ -21,6 +21,7 @@ import {
   Property,
   formatMonthlyRentNPR,
   formatDeposit,
+  formatFurnishing,
 } from '@sarvabhoomi/shared';
 import { PropertyImage } from '@/components/PropertyImage';
 
@@ -52,9 +53,7 @@ export function PropertyCard({
 
   const monthlyRent = property.monthly_rent_npr || property.price_npr;
   const subtypeLabel = property.property_subtype || (property.bedrooms ? `${property.bedrooms} BHK Flat` : 'Rental');
-  const furnishingLabel = property.furnishing
-    ? `${property.furnishing.charAt(0) + property.furnishing.slice(1).toLowerCase()} Furnished`
-    : (lang === 'en' ? 'Furnishing N/A' : 'फर्निसिङ उल्लेख छैन');
+  const furnishingLabel = formatFurnishing(property.furnishing, lang);
   const tenantLabel = property.preferred_tenant
     ? property.preferred_tenant === 'FAMILY'
       ? (lang === 'en' ? 'Family Preferred' : 'परिवारलाई प्राथमिकता')
@@ -118,12 +117,13 @@ export function PropertyCard({
             <button
               type="button"
               onClick={handleHeartClick}
-              className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-subtle z-10 ${
+              className={`absolute top-3 right-3 w-10 h-10 min-h-[44px] min-w-[44px] rounded-full flex items-center justify-center transition-all shadow-subtle z-10 ${
                 isFavourite
                   ? 'bg-gold text-black'
                   : 'bg-black/80 text-white border border-white/20 hover:bg-gold hover:text-black'
               } ${poppingHeart ? 'animate-pop' : ''}`}
               title={isFavourite ? 'Remove from shortlist' : 'Save to shortlist'}
+              aria-label={isFavourite ? 'Remove from shortlist' : 'Save to shortlist'}
             >
               <Heart className={`w-4 h-4 ${isFavourite ? 'fill-current' : ''}`} />
             </button>
@@ -134,8 +134,9 @@ export function PropertyCard({
             <button
               type="button"
               onClick={() => onDelete(property.id)}
-              className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/80 text-white hover:bg-gold hover:text-black flex items-center justify-center transition-colors shadow-subtle z-10 border border-white/20"
+              className="absolute top-3 right-3 w-10 h-10 min-h-[44px] min-w-[44px] rounded-full bg-black/80 text-white hover:bg-gold hover:text-black flex items-center justify-center transition-colors shadow-subtle z-10 border border-white/20"
               title="Delete Listing"
+              aria-label="Delete Listing"
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -168,14 +169,14 @@ export function PropertyCard({
           {/* Prominent Monthly Rent Header in Gold */}
           <div>
             <div className="flex items-baseline justify-between gap-2">
-              <h3 className="text-xl sm:text-2xl font-black text-gold tracking-tight">
+              <h3 className="text-xl sm:text-2xl font-black text-gold tracking-tight whitespace-nowrap">
                 {formatMonthlyRentNPR(monthlyRent, lang)}
               </h3>
-              <div className="text-right">
-                <span className="text-[11px] font-bold text-white/70 block">
+              <div className="text-right shrink-0">
+                <span className="text-[11px] font-bold text-white/70 block whitespace-nowrap">
                   Deposit: {formatDeposit(property.deposit_npr, lang)}
                 </span>
-                <span className="text-[10px] text-white/60 block">
+                <span className="text-[10px] text-white/60 block whitespace-nowrap">
                   {property.maintenance_npr
                     ? `+ Rs. ${property.maintenance_npr.toLocaleString('en-IN')} Maint.`
                     : property.maintenance_included
@@ -194,11 +195,13 @@ export function PropertyCard({
           </div>
 
           {/* Locality Landmark */}
-          <div className="flex items-center gap-1.5 text-xs text-white/70 font-medium">
+          <div className="flex items-center gap-1.5 text-xs text-white/70 font-medium min-w-0">
             <MapPin className="w-3.5 h-3.5 text-gold shrink-0" />
-            <span className="truncate">
-              {property.locality}
-              {property.ward ? `, Ward ${property.ward}` : ''}, {property.district}
+            <span
+              className="truncate min-w-0 flex-1"
+              title={`${property.locality || ''}${property.ward ? `, Ward ${property.ward}` : ''}, ${property.district || ''}`}
+            >
+              {property.locality ? `${property.locality}${property.ward ? `, Ward ${property.ward}` : ''}, ` : ''}{property.district}
             </span>
           </div>
 
@@ -253,7 +256,7 @@ export function PropertyCard({
           <button
             type="button"
             onClick={(e) => onUnlock(property, e)}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-subtle flex items-center gap-1.5 active:scale-97 ${
+            className={`min-h-[44px] px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-subtle flex items-center gap-1.5 active:scale-97 ${
               isUnlocked
                 ? 'bg-white/10 border border-gold/30 text-gold hover:bg-white/20'
                 : 'bg-gold hover:bg-gold/90 text-black font-black hover:-translate-y-0.5'

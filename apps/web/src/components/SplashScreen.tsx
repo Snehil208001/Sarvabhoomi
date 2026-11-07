@@ -116,16 +116,13 @@ export function SplashScreen() {
           dismiss(true);
         }}
         aria-label="Skip splash screen"
-        className="splash-skip-btn absolute top-6 right-6 sm:top-8 sm:right-8 z-10 px-3.5 py-1.5 rounded-full border border-white/20 text-[11px] sm:text-xs font-medium uppercase tracking-widest text-white/60 hover:text-gold hover:border-gold/40 hover:bg-gold/5 transition-colors focus:outline-none focus:ring-1 focus:ring-gold"
+        className="splash-skip-btn absolute top-6 right-6 sm:top-8 sm:right-8 z-10 px-4 py-2 rounded-full border border-white/20 text-[11px] sm:text-xs font-bold uppercase tracking-widest text-white/60 hover:text-gold hover:border-gold/40 hover:bg-gold/5 transition-colors focus:outline-none focus:ring-1 focus:ring-gold min-h-[44px] min-w-[44px] inline-flex items-center justify-center"
       >
         Skip
       </button>
 
       {/* Center Branding Content */}
-      <div
-        className="relative flex flex-col items-center px-4 max-w-sm text-center"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="relative flex flex-col items-center px-4 max-w-sm text-center">
         {/* Animated Ring + Logo */}
         <div className="relative flex items-center justify-center mb-6">
           {/* Thin Gold SVG Ring (0.0s - 1.0s) */}

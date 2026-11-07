@@ -5,6 +5,8 @@ import {
   formatArea,
   formatPriceNPR,
   formatPricePerUnit,
+  formatFurnishing,
+  formatViewsCount,
   SQFT_PER_UNIT,
 } from '../units/conversion';
 
@@ -84,3 +86,32 @@ describe('Nepal Price Formatting (Lakh / Crore / NPR)', () => {
     expect(empty).toBe('');
   });
 });
+
+describe('Rental Furnishing & Views Formatting', () => {
+  it('formats furnishing status cleanly without duplication', () => {
+    expect(formatFurnishing('SEMI')).toBe('Semi-Furnished');
+    expect(formatFurnishing('SEMI_FURNISHED')).toBe('Semi-Furnished');
+    expect(formatFurnishing('FULLY')).toBe('Fully-Furnished');
+    expect(formatFurnishing('FULLY_FURNISHED')).toBe('Fully-Furnished');
+    expect(formatFurnishing('UNFURNISHED')).toBe('Unfurnished');
+    expect(formatFurnishing(null)).toBe('Unspecified');
+
+    // Nepali translations
+    expect(formatFurnishing('SEMI', 'ne')).toBe('आंशिक फर्निसिङ');
+    expect(formatFurnishing('FULLY', 'ne')).toBe('पूर्ण फर्निसिङ');
+    expect(formatFurnishing('UNFURNISHED', 'ne')).toBe('फर्निसिङ नभएको');
+  });
+
+  it('formats views count with correct singular/plural and spacing', () => {
+    expect(formatViewsCount(1, 'en')).toBe('1 view');
+    expect(formatViewsCount(2, 'en')).toBe('2 views');
+    expect(formatViewsCount(42, 'en')).toBe('42 views');
+    expect(formatViewsCount(0, 'en')).toBe('0 views');
+    expect(formatViewsCount(undefined, 'en')).toBe('1 view');
+
+    // Nepali translations
+    expect(formatViewsCount(1, 'ne')).toBe('1 पटक हेरिएको');
+    expect(formatViewsCount(5, 'ne')).toBe('5 पटक हेरिएको');
+  });
+});
+

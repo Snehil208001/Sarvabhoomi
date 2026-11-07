@@ -1,6 +1,13 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { SplashScreen } from '@/components/SplashScreen';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#101010',
+};
 
 export const metadata: Metadata = {
   title: 'Sarvabhoomi Capital & Investment | Nepal P2P Property Marketplace',

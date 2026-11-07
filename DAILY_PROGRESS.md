@@ -14,6 +14,41 @@ This log tracks all architectural decisions, feature implementations, verificati
 
 ## 🗓️ Engineering Log
 
+### 📅 Session: November 7, 2026 (Official 3D Gold Coin Seal, Monorepo Editor Diagnostics, & Mobile UX Refactor)
+
+#### 🎯 Focus: Editor Diagnostics Resolution, Official 3D Gold Coin Logo Assets, Mobile Overflow Elimination, Swipeable Detail Gallery, Single-Column Mobile Search & Bottom Sheet Filters
+
+---
+
+### 🔍 Root Cause & Diagnostic Audit:
+1. **VS Code `page.tsx 9+` Errors & Monorepo Diagnostics**:
+   - **Root Cause**: The workspace root `tsconfig.json` had configured `"references": [ { "path": "./packages/shared" }, { "path": "./apps/web" } ]`. In TypeScript project references mode, all referenced subprojects must have `"composite": true` and cannot have `"noEmit": true`. Since Next.js requires `"noEmit": true` in `apps/web/tsconfig.json`, TypeScript's compiler continuously threw `TS6306: Referenced project must have setting 'composite': true`, `TS6310: Referenced project may not disable emit`, and `TS6305: Output file '.../page.d.ts' has not been built from source file` on every app file, causing VS Code's language service to display `9+` errors on `page.tsx` and red/orange indicator badges across the explorer tree.
+   - **Fix**: Replaced broken composite references in the root `tsconfig.json` with a standard monorepo path-mapped configuration pointing `@sarvabhoomi/shared` and `@/*` directly to source trees, matching Turborepo best practices.
+   - **Result**: `npx tsc -p tsconfig.json --noEmit` and `npm run type-check` both exit with **code 0 (zero errors)**.
+
+2. **Official 3D Gold Coin Logo Asset**:
+   - **Root Cause**: The legacy square Devanagari badge was previously displayed due to non-square dimensions and image caching.
+   - **Fix**: Cropped the official circular 3D gold coin seal ("SARVABHOOMI INVESTMENT & CAPITAL", Nepal flag, Kathmandu pagoda architecture, key, rising arrow) to an exact 1:1 square bounding box, rendered transparent background, and generated high-resolution 512x512 assets: `apps/web/public/logo/logo-mark.png`, `logo-full-on-black.png`, `apps/web/src/app/icon.png`, base64 SVG `apps/web/src/app/icon.svg`, and 48x48 `apps/web/public/favicon.ico`.
+   - **Result**: The seal fills all circular frames with zero clipping, zero letterboxing, and sharp high-DPI clarity across navbar, footer, splash screen, and browser tabs.
+
+3. **Mobile Rental Experience & Search Overhaul**:
+   - **Touch-Swipe Detail Gallery**: Implemented touch gesture listeners (`onTouchStart`, `onTouchEnd`) with swipe threshold (~45px) to toggle photos smoothly on mobile, paired with mobile dot indicators and a sticky bottom action bar (price + deposit + Direct Call/Contact Landlord + Schedule Visit).
+   - **Single-Column Search Grid (≤768px)**: Changed cards grid from `md:grid-cols-2` to `grid-cols-1 lg:grid-cols-2 xl:grid-cols-3`, ensuring mobile screens display one clean, unclipped card per row with no horizontal scrolling or price wrapping.
+   - **No Flashing "0 of 0"**: Replaced unconditional counter rendering with animated shimmer skeleton during `loading` and error state with retry on fetch failure.
+   - **Mobile Filters Bottom Sheet**: Replaced minimal drawer with full-height bottom sheet (`max-h-[85vh]`, backdrop tap-to-dismiss, handle bar, district dropdown, rent range preset buttons, BHK selector, subtype buttons, furnishing & tenant dropdowns, Lalpurja verified toggle, and pinned Gold "Apply Filters" button).
+   - **Safe Areas & Auto-Zoom Prevention**: Configured `viewport: Viewport` with `viewportFit: 'cover'` and `themeColor: '#101010'`. Set form and search input font sizes to `text-base` (≥16px) on mobile to eliminate iOS Safari automatic canvas zooming on focus. Added `autoComplete="one-time-code"` on OTP step for automatic SMS autofill.
+   - **Nepali Translations**: Added translations for stats counters ("दलाली शुल्क", "सम्पर्क अनलक", "देशव्यापी नेपाल", "प्रत्यक्ष घरधनी"), comparison table rows, and FAQ items.
+
+---
+
+### 🧪 Verification Summary:
+- **Unit Tests**: `npm test` passed **30/30 tests** across 4 test suites (`valuation.test.ts`, `conversion.test.ts`, `auth_and_profile.test.ts`, `rent.test.ts`).
+- **Linter**: `npm run lint` passed with **0 warnings and 0 errors**.
+- **Type Check**: `npm run type-check` passed with **0 errors** across both packages (`@sarvabhoomi/shared` and `web`).
+- **Production Build**: `npm run build` completed successfully, generating **14/14 static pages** with optimized First Load JS (87.3 kB shared, 86.4 kB Edge middleware).
+
+---
+
 ### 📅 Session: November 7, 2026 (Production Deployment Readiness & Vercel Runbook)
 
 #### 🎯 Focus: Vercel + Supabase Deployment Preparation, Lazy Supabase Proxy (Env-Safe Build), Storage Policy Security Hardening, DEPLOY.md Runbook
