@@ -1403,8 +1403,10 @@ export default function PropertyDetailPage() {
         </div>
       </div>
 
-      {/* Institutional Footer */}
-      <Footer lang={lang} />
+      {/* Institutional Footer (padded on mobile/tablet to ensure sticky bar never occludes footer content) */}
+      <div className="pb-24 lg:pb-0">
+        <Footer lang={lang} />
+      </div>
     </div>
   );
 }

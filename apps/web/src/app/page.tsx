@@ -180,7 +180,7 @@ export default function HomePage() {
               </>
             ) : (
               <>
-                नेपालमा बिना दलाल कोठा, फ्ल्याट र घर{' '}
+                {'नेपालमा बिना दलाल कोठा, फ्ल्याट र घर\u00A0'}
                 <span className="inline-block text-gold underline decoration-gold/40 decoration-4 underline-offset-8">
                   शून्य शुल्कमा
                 </span>{' '}
@@ -374,7 +374,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
             {/* Card 1: Renters */}
             <ScrollReveal delayMs={0}>
               <div className="bg-white/[0.06] border border-white/10 rounded-3xl p-8 flex flex-col justify-between h-full hover:border-gold/60 transition-colors group">
@@ -549,66 +549,73 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="bg-white/[0.06] border border-gold/30 rounded-3xl shadow-card overflow-hidden">
-            <div className="grid grid-cols-3 bg-white/10 p-5 font-black text-xs uppercase tracking-wider text-white border-b border-gold/30">
-              <div>{lang === 'en' ? 'Feature' : 'विशेषता'}</div>
-              <div className="text-white/60">{lang === 'en' ? 'Traditional Brokers' : 'परम्परागत दलाल प्रणाली'}</div>
-              <div className="text-gold">{lang === 'en' ? 'Sarvabhoomi Rent P2P' : 'सर्वभूमि प्रत्यक्ष बजार'}</div>
-            </div>
+          {/* Subtle mobile scroll hint */}
+          <div className="text-right text-[11px] font-bold text-white/50 pb-2 md:hidden">
+            {lang === 'en' ? '← Swipe horizontally to compare →' : '← तुलना हेर्न दायाँ-बायाँ सार्नुहोस् →'}
+          </div>
 
-            <div className="divide-y divide-white/10 text-xs sm:text-sm">
-              <div className="grid grid-cols-3 p-5 items-center">
-                <span className="font-bold text-white">
-                  {lang === 'en' ? 'Brokerage Fee' : 'दलाली शुल्क'}
-                </span>
-                <span className="text-white/60 font-semibold line-through">
-                  {lang === 'en' ? '1 Month Rent (NPR 15k–1L)' : '१ महिनाको भाडा (१५ हजार – १ लाख)'}
-                </span>
-                <span className="text-gold font-black flex items-center gap-1.5">
-                  <Check className="w-4 h-4 text-gold stroke-[3]" />
-                  <span className="bg-gold/20 text-gold border border-gold/30 px-2 py-0.5 rounded font-black">
-                    {lang === 'en' ? 'NPR 0 (100% Free)' : 'रु. ० (१००% निःशुल्क)'}
+          <div className="bg-white/[0.06] border border-gold/30 rounded-3xl shadow-card overflow-x-auto scrollbar-thin">
+            <div className="min-w-[580px]">
+              <div className="grid grid-cols-3 bg-white/10 p-5 font-black text-xs uppercase tracking-wider text-white border-b border-gold/30">
+                <div>{lang === 'en' ? 'Feature' : 'विशेषता'}</div>
+                <div className="text-white/60">{lang === 'en' ? 'Traditional Brokers' : 'परम्परागत दलाल प्रणाली'}</div>
+                <div className="text-gold">{lang === 'en' ? 'Sarvabhoomi Rent P2P' : 'सर्वभूमि प्रत्यक्ष बजार'}</div>
+              </div>
+
+              <div className="divide-y divide-white/10 text-xs sm:text-sm">
+                <div className="grid grid-cols-3 p-5 items-center">
+                  <span className="font-bold text-white">
+                    {lang === 'en' ? 'Brokerage Fee' : 'दलाली शुल्क'}
                   </span>
-                </span>
-              </div>
+                  <span className="text-white/60 font-semibold line-through">
+                    {lang === 'en' ? '1 Month Rent (NPR 15k–1L)' : '१ महिनाको भाडा (१५ हजार – १ लाख)'}
+                  </span>
+                  <span className="text-gold font-black flex items-center gap-1.5">
+                    <Check className="w-4 h-4 text-gold stroke-[3]" />
+                    <span className="bg-gold/20 text-gold border border-gold/30 px-2 py-0.5 rounded font-black">
+                      {lang === 'en' ? 'NPR 0 (100% Free)' : 'रु. ० (१००% निःशुल्क)'}
+                    </span>
+                  </span>
+                </div>
 
-              <div className="grid grid-cols-3 p-5 items-center bg-white/[0.02]">
-                <span className="font-bold text-white">
-                  {lang === 'en' ? 'Owner Contact' : 'घरधनी सम्पर्क'}
-                </span>
-                <span className="text-white/60">
-                  {lang === 'en' ? 'Hidden behind middleman' : 'बिचौलियाले लुकाउने'}
-                </span>
-                <span className="text-white font-bold flex items-center gap-1.5">
-                  <Check className="w-4 h-4 text-gold stroke-[3]" />
-                  <span>{lang === 'en' ? 'Direct phone access' : 'प्रत्यक्ष फोन नम्बर'}</span>
-                </span>
-              </div>
+                <div className="grid grid-cols-3 p-5 items-center bg-white/[0.02]">
+                  <span className="font-bold text-white">
+                    {lang === 'en' ? 'Owner Contact' : 'घरधनी सम्पर्क'}
+                  </span>
+                  <span className="text-white/60">
+                    {lang === 'en' ? 'Hidden behind middleman' : 'बिचौलियाले लुकाउने'}
+                  </span>
+                  <span className="text-white font-bold flex items-center gap-1.5">
+                    <Check className="w-4 h-4 text-gold stroke-[3]" />
+                    <span>{lang === 'en' ? 'Direct phone access' : 'प्रत्यक्ष फोन नम्बर'}</span>
+                  </span>
+                </div>
 
-              <div className="grid grid-cols-3 p-5 items-center">
-                <span className="font-bold text-white">
-                  {lang === 'en' ? 'Property Visits' : 'सम्पत्ति भ्रमण'}
-                </span>
-                <span className="text-white/60">
-                  {lang === 'en' ? 'Subject to broker convenience' : 'दलालको अनुकूलतामा निर्भर'}
-                </span>
-                <span className="text-white font-bold flex items-center gap-1.5">
-                  <Check className="w-4 h-4 text-gold stroke-[3]" />
-                  <span>{lang === 'en' ? 'Schedule visit directly' : 'सिधै भ्रमण तालिका मिलाउनुहोस्'}</span>
-                </span>
-              </div>
+                <div className="grid grid-cols-3 p-5 items-center">
+                  <span className="font-bold text-white">
+                    {lang === 'en' ? 'Property Visits' : 'सम्पत्ति भ्रमण'}
+                  </span>
+                  <span className="text-white/60">
+                    {lang === 'en' ? 'Subject to broker convenience' : 'दलालको अनुकूलतामा निर्भर'}
+                  </span>
+                  <span className="text-white font-bold flex items-center gap-1.5">
+                    <Check className="w-4 h-4 text-gold stroke-[3]" />
+                    <span>{lang === 'en' ? 'Schedule visit directly' : 'सिधै भ्रमण तालिका मिलाउनुहोस्'}</span>
+                  </span>
+                </div>
 
-              <div className="grid grid-cols-3 p-5 items-center bg-white/[0.02]">
-                <span className="font-bold text-white">
-                  {lang === 'en' ? 'Rental Price Markup' : 'भाडा दर मूल्यवृद्धि'}
-                </span>
-                <span className="text-white/60">
-                  {lang === 'en' ? 'Often inflated by middlemen' : 'बिचौलियाद्वारा बढाइएको भाडा'}
-                </span>
-                <span className="text-white font-bold flex items-center gap-1.5">
-                  <Check className="w-4 h-4 text-gold stroke-[3]" />
-                  <span>{lang === 'en' ? 'Genuine owner quoted rent' : 'घरधनीको वास्तविक दर'}</span>
-                </span>
+                <div className="grid grid-cols-3 p-5 items-center bg-white/[0.02]">
+                  <span className="font-bold text-white">
+                    {lang === 'en' ? 'Rental Price Markup' : 'भाडा दर मूल्यवृद्धि'}
+                  </span>
+                  <span className="text-white/60">
+                    {lang === 'en' ? 'Often inflated by middlemen' : 'बिचौलियाद्वारा बढाइएको भाडा'}
+                  </span>
+                  <span className="text-white font-bold flex items-center gap-1.5">
+                    <Check className="w-4 h-4 text-gold stroke-[3]" />
+                    <span>{lang === 'en' ? 'Genuine owner quoted rent' : 'घरधनीको वास्तविक दर'}</span>
+                  </span>
+                </div>
               </div>
             </div>
           </div>

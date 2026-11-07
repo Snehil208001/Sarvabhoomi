@@ -40,6 +40,24 @@ export function Navbar({ lang = 'en', onToggleLang, currentUser }: NavbarProps) 
     userRole: currentUser.userRole || null,
   } : null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [hideFab, setHideFab] = useState(false);
+
+  // Hide FAB when scrolling near footer to prevent occluding badge/copyright text
+  useEffect(() => {
+    const footer = document.querySelector('footer');
+    if (!footer) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        setHideFab(entry.isIntersecting);
+      },
+      { rootMargin: '0px 0px 80px 0px', threshold: 0 }
+    );
+
+    observer.observe(footer);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (currentUser !== undefined) {
@@ -333,7 +351,9 @@ export function Navbar({ lang = 'en', onToggleLang, currentUser }: NavbarProps) 
       {user?.userRole !== 'RENTER' ? (
         <Link
           href={user ? '/post-property' : '/auth?mode=signup'}
-          className="lg:hidden fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-gold text-black shadow-card flex items-center justify-center hover:scale-105 active:scale-95 transition-all focus:outline-none ring-2 ring-black/60 group"
+          className={`lg:hidden fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-gold text-black shadow-card flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-300 focus:outline-none ring-2 ring-black/60 group ${
+            hideFab ? 'opacity-0 pointer-events-none translate-y-6 scale-90' : 'opacity-100 pointer-events-auto translate-y-0 scale-100'
+          }`}
           aria-label={lang === 'en' ? 'Post Free Property' : 'घर/कोठा भाडामा राख्नुहोस्'}
           title={lang === 'en' ? 'Post Free Property' : 'घर/कोठा भाडामा राख्नुहोस्'}
         >
@@ -342,7 +362,9 @@ export function Navbar({ lang = 'en', onToggleLang, currentUser }: NavbarProps) 
       ) : (
         <Link
           href="/search"
-          className="lg:hidden fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-gold text-black shadow-card flex items-center justify-center hover:scale-105 active:scale-95 transition-all focus:outline-none ring-2 ring-black/60 group"
+          className={`lg:hidden fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-gold text-black shadow-card flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-300 focus:outline-none ring-2 ring-black/60 group ${
+            hideFab ? 'opacity-0 pointer-events-none translate-y-6 scale-90' : 'opacity-100 pointer-events-auto translate-y-0 scale-100'
+          }`}
           aria-label={lang === 'en' ? 'Find Rentals' : 'भाडामा खोज्नुहोस्'}
           title={lang === 'en' ? 'Find Rentals' : 'भाडामा खोज्नुहोस्'}
         >

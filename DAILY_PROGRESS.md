@@ -14,6 +14,52 @@ This log tracks all architectural decisions, feature implementations, verificati
 
 ## 🗓️ Engineering Log
 
+### 📅 Session: November 8, 2026 (Follow-up UI/UX Polish: Search Placeholder, Footer Badge Wrapping, Sticky Bar Clearance, Smart FAB Dismissal, & Nepali Whitespace)
+
+#### 🎯 Focus: Truncated Mobile Search Input, Detail Page Sticky Bar & Footer Badges, Floating Action Button (FAB) Smart Auto-Dismiss, Comparison Table Horizontal Scroll, and Nepali Hero Spacing
+
+---
+
+### 🔍 Step 0 Verification & Code Trace Report:
+1. **Splash Screen Skip Button (`SplashScreen.tsx`)**:
+   - **Trace**: Clicking the "Skip" button triggers `e.stopPropagation()` and `dismiss(true)`.
+   - **Execution**: `dismiss(true)` immediately sets `sessionStorage.setItem('sarvabhoomi-splash-seen', 'true')`, applies `isFastFade` (200ms transition) and `opacity-0 pointer-events-none`. A 200ms timer then unmounts the component (`setIsMounted(false)`) and calls `cleanupClasses()`, stripping `splash-active` and removing `overflow: hidden` from `document.body`.
+   - **Verdict**: Verified fully functional and deterministic; no reliance on automatic timers when clicked.
+2. **Search Loading Counter State (`apps/web/src/app/search/page.tsx:598-619`)**:
+   - **Trace**: Verified lines 598-619. When `loading === true`, the component renders `<div className="h-4 w-48 sm:w-64 bg-white/10 rounded animate-pulse mt-2" />`. It only renders `Showing ${properties.length} of ${totalCount}...` once `loading === false` and no error occurred.
+   - **Verdict**: Verified correct. The UI never flashes `"Showing 0 of 0 verified rentals"` while loading.
+
+---
+
+### 🛠️ Follow-up Fix Implementation Report:
+1. **FIX 1 — Responsive Search Placeholder & Safe Typing Padding (`apps/web/src/app/search/page.tsx`)**:
+   - **Root Cause**: The 79-character placeholder `"Search by locality, ward, or landmark (e.g., Baluwatar, Pulchowk, Lakeside)..."` paired with right button padding (`pr-28`) left only ~170px of visible input space on 360–390px screens, truncating mid-phrase.
+   - **Fix**: Added dynamic viewport detection (`isMobile = window.innerWidth <= 768`). On mobile screens (≤768px), the placeholder shortens to `"Search locality or landmark..."` (Nepali: `"टोल वा चोक खोज्नुहोस्..."`) while retaining the full example string on desktop screens (>768px). Updated input right padding to `pr-24 sm:pr-28`, guaranteeing typed queries never slide behind or under the absolute "Search" button.
+2. **FIX 2 — Detail-Page Footer Badges Wrapping & Sticky Action Bar Safe Offset (`Footer.tsx` & `properties/[id]/page.tsx`)**:
+   - **Root Cause**: In `Footer.tsx`, the footer badges row lacked `flex-wrap`, causing `"100% Zero Brokerage P2P"` to overflow and clip on narrow viewports. On `/properties/[id]`, the sticky bottom action bar (`fixed bottom-0 z-40`) occluded the bottom of the footer when scrolled to the very bottom.
+   - **Fix**:
+     - Added `flex-wrap justify-center sm:justify-end gap-x-3 gap-y-1 text-center sm:text-right` to `Footer.tsx` line 62, enabling badges to wrap cleanly on small viewports without horizontal clipping.
+     - Wrapped `<Footer lang={lang} />` on `/properties/[id]` with `pb-24 lg:pb-0`, ensuring the sticky action bar rests safely below all footer text and certification badges when scrolled to the bottom.
+3. **FIX 3 — Floating Gold "+" FAB Smart Auto-Dismiss & Search Clearance (`Navbar.tsx` & `search/page.tsx`)**:
+   - **Root Cause**: The mobile floating Gold "+" action button was fixed at `bottom-6 right-6 z-40`, directly overlapping footer badges at page end and overlapping card information when scrolling through search results.
+   - **Fix**:
+     - Implemented an `IntersectionObserver` in `Navbar.tsx` attached to `footer` with `rootMargin: '0px 0px 80px 0px'`. When the user approaches or enters the footer, the FAB smoothly fades out and slides down (`opacity-0 pointer-events-none translate-y-6 scale-90`). When scrolling back up, it returns (`opacity-100 translate-y-0 scale-100`).
+     - Added `pb-24 sm:pb-28 lg:pb-12` to the `<main>` container in `apps/web/src/app/search/page.tsx`, ensuring bottom listing cards and pagination controls have complete clearance.
+4. **FIX 4 — Minor Polish: Section Grid, Comparison Table Scroll & Nepali Whitespace (`apps/web/src/app/page.tsx`)**:
+   - **Nepali Whitespace**: Inserted non-breaking space `\u00A0` between `"घर"` and `"शून्य शुल्कमा"` (`{'नेपालमा बिना दलाल कोठा, फ्ल्याट र घर\u00A0'}`) to guarantee browsers never collapse the space into `"घरशून्य शुल्कमा"`.
+   - **Middlemen Cards Grid (≤768px)**: Changed grid from `md:grid-cols-3` to `grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8`. At 768px and mobile, cards render in 1 spacious column with proportional typography instead of 3 cramped 215px columns.
+   - **Comparison Table**: Wrapped the 3-column transparency table in an `overflow-x-auto scrollbar-thin` container with `min-w-[580px]` inner width and added a subtle mobile scroll hint (`← Swipe horizontally to compare →`), preventing column squeezing on mobile screens.
+
+---
+
+### 🧪 Verification Summary:
+- **Unit Tests**: `npm test` passed **30/30 tests** across 4 suites.
+- **Type Check**: `npm run type-check` passed with **0 errors**.
+- **Lint**: `npm run lint` passed with **0 warnings and 0 errors**.
+- **Production Build**: `npm run build` compiled cleanly, generating all **14/14 static pages**.
+
+---
+
 ### 📅 Session: November 7, 2026 (Official 3D Gold Coin Seal, Monorepo Editor Diagnostics, & Mobile UX Refactor)
 
 #### 🎯 Focus: Editor Diagnostics Resolution, Official 3D Gold Coin Logo Assets, Mobile Overflow Elimination, Swipeable Detail Gallery, Single-Column Mobile Search & Bottom Sheet Filters

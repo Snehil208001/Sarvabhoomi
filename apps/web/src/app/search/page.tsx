@@ -68,6 +68,15 @@ function SearchContent() {
   const [totalCount, setTotalCount] = useState(0);
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
+  // Responsive state for mobile search placeholder and layout
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Mobile filters panel open state
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
@@ -368,15 +377,19 @@ function SearchContent() {
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={
                 lang === 'en'
-                  ? 'Search by locality, ward, or landmark (e.g., Baluwatar, Pulchowk, Lakeside)...'
+                  ? isMobile
+                    ? 'Search locality or landmark...'
+                    : 'Search by locality, ward, or landmark (e.g., Baluwatar, Pulchowk, Lakeside)...'
+                  : isMobile
+                  ? 'टोल वा चोक खोज्नुहोस्...'
                   : 'टोल, वडा वा चोकको नाम खोज्नुहोस्...'
               }
-              className="w-full bg-black/60 border border-white/20 rounded-2xl pl-11 pr-28 py-3 text-base sm:text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/30 min-h-touch"
+              className="w-full bg-black/60 border border-white/20 rounded-2xl pl-11 pr-24 sm:pr-28 py-3 text-base sm:text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/30 min-h-touch"
             />
             <Search className="w-4 h-4 text-gold absolute left-4 top-1/2 -translate-y-1/2" />
             <button
               type="submit"
-              className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 rounded-xl bg-gold hover:bg-gold/90 text-black text-xs font-black transition-all active:scale-97"
+              className="absolute right-2 top-1/2 -translate-y-1/2 px-3.5 sm:px-4 py-1.5 rounded-xl bg-gold hover:bg-gold/90 text-black text-xs font-black transition-all active:scale-97"
             >
               {lang === 'en' ? 'Search' : 'खोज्नुहोस्'}
             </button>
@@ -413,7 +426,7 @@ function SearchContent() {
       {/* ============================================================ */}
       {/* 3. TWO-COLUMN LAYOUT: FILTERS + RESULTS GRID                 */}
       {/* ============================================================ */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 pb-24 sm:pb-28 lg:pb-12">
         <div className="flex items-start gap-8">
           {/* ========================================================== */}
           {/* LEFT SIDEBAR: FILTERS (DESKTOP)                            */}

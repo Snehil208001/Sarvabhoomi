@@ -56,10 +56,10 @@ export function Footer({ lang = 'en' }: FooterProps) {
         </div>
 
         <div className="border-t border-white/10 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-white/60">
-          <div>
+          <div className="text-center sm:text-left">
             © 2026 Sarvabhoomi Capital &amp; Investment Pvt. Ltd. Kathmandu, Nepal. All rights reserved.
           </div>
-          <div className="flex items-center gap-3 text-white/70 text-[11px] font-medium">
+          <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-3 gap-y-1 text-white/70 text-[11px] font-medium text-center sm:text-right">
             <span className="text-gold font-bold">●</span>
             <span>Kathmandu Cadastral GIS Certified</span>
             <span>•</span>
