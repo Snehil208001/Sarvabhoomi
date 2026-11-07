@@ -157,6 +157,126 @@ select:disabled {
   display: none;
 }
 
+/* Splash Screen State & Animations */
+html.splash-active body {
+  overflow: hidden;
+}
+
+@keyframes splashRingDraw {
+  0% {
+    stroke-dashoffset: 402;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+@keyframes splashLogoPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes splashSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes splashLineGrow {
+  0% {
+    width: 0;
+    opacity: 0;
+  }
+  100% {
+    width: 120px;
+    opacity: 1;
+  }
+}
+
+@keyframes splashFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes splashProgress {
+  0% {
+    transform: scaleX(0);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes splashSkipFade {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.splash-ring {
+  stroke-dasharray: 402;
+  stroke-dashoffset: 402;
+  animation: splashRingDraw 1.0s var(--ease-out) forwards;
+}
+
+.splash-logo {
+  animation: splashLogoPop 0.6s var(--ease-out) 0.5s both;
+}
+
+.splash-title {
+  animation: splashSlideUp 0.5s var(--ease-out) 0.9s both;
+}
+
+.splash-subtitle {
+  animation: splashSlideUp 0.5s var(--ease-out) 1.05s both;
+}
+
+.splash-line {
+  animation: splashLineGrow 0.4s var(--ease-out) 1.2s both;
+}
+
+.splash-tagline {
+  animation: splashFadeIn 0.4s var(--ease-out) 1.6s both;
+}
+
+.splash-progress-bar {
+  transform-origin: left;
+  animation: splashProgress 0.6s var(--ease-out) 1.8s both;
+}
+
+.splash-skip-btn {
+  animation: splashSkipFade 0.3s ease-out 0.5s both;
+}
+
 /* Respect user's reduced motion preferences */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -170,5 +290,8 @@ select:disabled {
   .animate-marquee {
     animation: none !important;
     transform: none !important;
+  }
+  .splash-overlay {
+    display: none !important;
   }
 }

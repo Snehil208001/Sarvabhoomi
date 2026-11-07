@@ -14,6 +14,45 @@ This log tracks all architectural decisions, feature implementations, verificati
 
 ## 🗓️ Engineering Log
 
+### 📅 Session: November 7, 2026 (Luxury Splash Screen & Monorepo Editor Diagnostics Resolution)
+
+#### 🎯 Focus: Official Gold Coin Splash Screen (2.4s Timeline), Single-Session Rule, VS Code Monorepo Diagnostic Fixes
+
+---
+
+### 🌟 Executive Overview
+1. **Official 3D Gold Embossed Coin Integration**:
+   - Deployed the official Sarvabhoomi embossed gold coin emblem to `apps/web/public/logo/logo-mark.png` and `apps/web/public/logo/logo-full-on-black.png`.
+2. **2.4s Luxury Splash Screen Architecture**:
+   - Implemented `apps/web/src/components/SplashScreen.tsx` and custom keyframes in `apps/web/src/app/globals.css`.
+   - **Timeline (Total 2.4s, 400ms fade-out)**:
+     - `0.0–1.0s`: Thin Gold (`#C2A964`) SVG circle ring draws clockwise (`stroke-dashoffset` 402 -> 0, `cubic-bezier(0.22, 1, 0.36, 1)`).
+     - `0.5–1.1s`: Logo mark (110px desktop, 88px mobile, `rounded-full`, Gold-30% ring, soft Gold glow `drop-shadow-[0_0_20px_rgba(194,169,100,0.35)]`) pops in (`scale 0.6 -> 1.06 -> 1.0`).
+     - `0.9–1.4s`: "SARVABHOOMI" slides up + fades in, followed by "INVESTMENT & CAPITAL" (Gold, small caps, tracking `0.3em`), and a 120px Gold divider line expands.
+     - `1.6–2.0s`: Tagline "Rent a home in Nepal • 0% Brokerage" (White 70%) fades in.
+     - `1.8–2.4s`: Gold progress bar (180px, 3px) fills left-to-right (`scaleX 0 -> 1`).
+     - `2.4–2.8s`: Entire overlay fades out (`opacity 1 -> 0`, 400ms) and unmounts from DOM.
+   - **Single-Session Rule**: Stores `'sarvabhoomi-splash-seen'` in `sessionStorage` (never `localStorage`). On refresh or subsequent navigations within the session, the splash returns `null` immediately with zero flicker.
+   - **Pre-Render Flash Prevention**: Added synchronous pre-hydration `<script>` in `apps/web/src/app/layout.tsx` `<head>` toggling `html.splash-active body { overflow: hidden; }` only on the initial unvisited load.
+   - **Dismissal & Accessibility**: Tap/click anywhere or press `Escape` for instant 200ms dismissal. Subtle "Skip" button appears after 0.5s. Full `@media (prefers-reduced-motion: reduce)` support instantly hides the splash.
+3. **VS Code Monorepo Diagnostic & Problem Resolution**:
+   - Resolved the `9+` warnings/diagnostics in `properties/[id]/page.tsx` and `3` in `globals.css`:
+     - **Root `.eslintrc.json`**: Created with `root: true` and `settings.next.rootDir: ["apps/web/"]` to resolve Next.js page directory resolution across monorepo packages.
+     - **Child `apps/web/.eslintrc.json`**: Explicitly set `"settings": { "next": { "rootDir": "./" } }`.
+     - **`.vscode/settings.json`**: Added `eslint.workingDirectories: [{ "mode": "auto" }, "./apps/web", "./packages/shared"]`, `typescript.tsdk`, and CSS unknownAtRules bypass for Tailwind.
+     - **Root `tsconfig.json`**: Configured monorepo path mapping and project references (`@sarvabhoomi/shared` and `@/*`), eliminating module resolution warnings in VS Code.
+
+---
+
+### 🧪 Verification Matrix
+- **Unit Tests**: `npm test` -> **28 / 28 tests passing** (100% pass rate).
+- **ESLint**: `npx turbo run lint --force` -> **0 warnings, 0 errors**.
+- **TypeScript**: `npx turbo run type-check --force` -> **0 errors across all monorepo packages**.
+- **Production Build**: `npm run build` -> **13 / 13 routes successfully compiled**.
+- **Dev Server**: Running on `http://localhost:3000` with HTTP 200 response on all routes (`/`, `/search`, `/properties/[id]`).
+
+---
+
 ### 📅 Session: November 7, 2026 (Dark Luxury Redesign: Black #101010 / Gold #C2A964 / White #FFFFFF & Motion System)
 
 #### 🎯 Focus: Step 0 Skill Verification & Audit, 3-Color Dark Luxury Palette, Motion Tokens, Screen-by-Screen Implementation

@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@sarvabhoomi/shared": ["packages/shared/src"],
+      "@sarvabhoomi/shared/*": ["packages/shared/src/*"],
+      "@/*": ["apps/web/src/*"]
+    }
+  },
+  "references": [
+    { "path": "./packages/shared" },
+    { "path": "./apps/web" }
+  ]
+}
