@@ -14,6 +14,66 @@ This log tracks all architectural decisions, feature implementations, verificati
 
 ## 🗓️ Engineering Log
 
+### 📅 Session: November 7, 2026 (Production Deployment Readiness & Vercel Runbook)
+
+#### 🎯 Focus: Vercel + Supabase Deployment Preparation, Lazy Supabase Proxy (Env-Safe Build), Storage Policy Security Hardening, DEPLOY.md Runbook
+
+---
+
+### 🔍 Step 0 Audit Report: Deployment State
+1. **Repository Layout & Monorepo Configuration**:
+   - Monorepo: Powered by **Turborepo** + **npm workspaces**.
+   - App: `apps/web` (Next.js 14 App Router, TypeScript, Tailwind).
+   - Shared Workspace: `packages/shared` (`main: ./src/index.ts`, `types: ./src/index.ts`). Transpiled via `transpilePackages: ['@sarvabhoomi/shared']` in `apps/web/next.config.mjs`.
+   - `vercel.json`: Not present (native Turborepo support preferred).
+   - `DEPLOY.md`: Created and linked from root `README.md`.
+2. **API Routes & Environment Variable Audit**:
+   - Sole API route: `apps/web/src/app/api/auth/check-user/route.ts` (Edge-compatible, rate-limited via in-memory sliding window).
+   - All `process.env` reads in `apps/web/src`:
+     - `NEXT_PUBLIC_SUPABASE_URL`: `apps/web/src/lib/supabase.ts`, `apps/web/src/middleware.ts`
+     - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: `apps/web/src/lib/supabase.ts`, `apps/web/src/middleware.ts`
+     - `NEXT_PUBLIC_SITE_URL`: `apps/web/src/app/robots.ts`, `apps/web/src/app/sitemap.ts` (with fallback to `https://sarvabhoomi.com`)
+3. **Vercel-Specific Risks Audit**:
+   - **Localhost Dependency**: Zero instances of hardcoded `localhost:3000` or `127.0.0.1` in production routing. `robots.ts` and `sitemap.ts` default safely to `https://sarvabhoomi.com`.
+   - **Edge Runtime Safety**: `apps/web/src/middleware.ts` uses only Web standard and `@supabase/ssr` primitives (`NextRequest`, `NextResponse`, `createServerClient`). Zero Node.js-only built-in modules (`fs`, `net`, `child_process`).
+   - **Standalone Monorepo Build**: `cd apps/web && npm run build` successfully compiles when dependencies are linked. Documented Vercel Root Directory and build flags in `DEPLOY.md`.
+   - **Remote Image Patterns**: `next.config.mjs` `images.remotePatterns` properly allows `*.supabase.co`, `images.unsplash.com`, and `plus.unsplash.com`.
+
+---
+
+### 🌟 Executive Overview
+1. **Env-Safe Build via Lazy Supabase Proxy (`apps/web/src/lib/supabase.ts`)**:
+   - **Problem**: Next.js static analysis evaluated `export const supabase = createClient()` at module import time. If env vars were absent in CI/CD build environments, Next.js page data collection crashed on `/api/auth/check-user`.
+   - **Solution**: Wrapped the typed `supabase` client in an ES6 `Proxy`. Credentials are only validated and the client initialized on first runtime access.
+   - **Result**: `npm run build` now builds cleanly **BOTH** with env vars (14 routes) **AND** without env vars (14 routes).
+   - **Zero Compromise on Fail-Fast**: If an API or query executes at runtime without valid credentials, it immediately throws `[Sarvabhoomi] Missing or invalid NEXT_PUBLIC_SUPABASE_URL...`. No silent dummy fallbacks were introduced.
+2. **Storage Security Policy Hardening (Flagged in `DEPLOY.md`)**:
+   - Explicitly flagged that legacy scripts (`complete_setup.sql` / `fix_storage_bucket.sql`) contained insecure `TO public` policies.
+   - Documented the verified, authenticated, folder-scoped RLS policies (`(storage.foldername(name))[1] = auth.uid()::text`) in `DEPLOY.md`.
+3. **Production Deployment Runbook (`apps/web/DEPLOY.md`)**:
+   - Authored complete, sequential runbook for human deployment:
+     - Supabase migration sequence (01–09 in exact order).
+     - Storage bucket creation and fixed folder-scoped policies.
+     - Phone OTP setup & SMS provider configuration.
+     - Whitelisting Site URL & Redirect URLs (`https://your-app.vercel.app/**`).
+     - Vercel monorepo import configuration (Root Directory, Build Command, Output Directory).
+     - 3 Environment variables with exact locations in Supabase Dashboard.
+     - Post-deployment live verification checklist (7 tests).
+     - Troubleshooting matrix covering the 6 most common failure modes.
+     - Strict "Do NOT" security guidelines.
+
+---
+
+### 🧪 Verification Matrix
+- **Unit Tests**: `npm test` -> **28 / 28 tests passing** (100% pass rate).
+- **ESLint**: `npx turbo run lint --force` -> **0 warnings, 0 errors**.
+- **TypeScript**: `npx turbo run type-check --force` -> **0 errors across all monorepo packages**.
+- **Production Build (WITH env vars)**: `npm run build` -> **14 / 14 routes successfully compiled**.
+- **Production Build (WITHOUT env vars)**: `npm run build` -> **14 / 14 routes successfully compiled**.
+- **Local Dev Server**: Tested 12 critical endpoints (`/`, `/search`, `/properties/p-kathmandu-01`, `/auth`, `/post-property`, `/dashboard`, `/valuation`, `/robots.txt`, `/sitemap.xml`) -> **100% HTTP 200 OK**.
+
+---
+
 ### 📅 Session: November 7, 2026 (Official 3D Gold Coin Logo Migration Across Application)
 
 #### 🎯 Focus: Universal Replacement of Old Devanagari "स" Badge with Official 3D Gold Coin Seal

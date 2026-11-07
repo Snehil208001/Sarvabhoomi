@@ -472,10 +472,31 @@ export function createClient(): SupabaseClient<Database> {
   });
 }
 
+let _supabaseInstance: SupabaseClient<Database> | null = null;
+
+function getSupabase(): SupabaseClient<Database> {
+  if (!_supabaseInstance) {
+    _supabaseInstance = createClient();
+  }
+  return _supabaseInstance;
+}
+
 /**
  * Exported singleton typed Supabase client for client-side queries and mutations.
+ * Lazily initialized on first runtime access so module imports and static build-time
+ * analysis succeed cleanly without throwing at build time when env vars are absent.
+ * Still fails fast with a descriptive error immediately if accessed without valid credentials.
  */
-export const supabase = createClient();
+export const supabase: SupabaseClient<Database> = new Proxy({} as SupabaseClient<Database>, {
+  get(_target, prop, receiver) {
+    const client = getSupabase();
+    const value = Reflect.get(client, prop, receiver);
+    if (typeof value === 'function') {
+      return value.bind(client);
+    }
+    return value;
+  },
+});
 
 /**
  * Server/Client helper to verify user status in Supabase.

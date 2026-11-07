@@ -5,6 +5,11 @@
 
 ---
 
+## 🚀 Production Deployment Runbook
+For complete, step-by-step instructions on deploying Sarvabhoomi to **Vercel** with **Supabase**, see the [Production Deployment Runbook (DEPLOY.md)](apps/web/DEPLOY.md).
+
+---
+
 ## 🏗️ Architecture & Monorepo Layout
 
 Sarvabhoomi is architected as a high-performance monorepo powered by **Turborepo** and **npm workspaces**:
