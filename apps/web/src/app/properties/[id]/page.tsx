@@ -9,18 +9,14 @@ import {
   ShieldCheck,
   ShieldAlert,
   CheckCircle2,
-  Phone,
   PhoneCall,
   Heart,
   Share2,
   Calendar,
   Eye,
-  Compass,
   Coins,
   Unlock,
   AlertCircle,
-  Home,
-  Check,
   MessageCircle,
   Maximize2,
   Minimize2,
@@ -28,9 +24,6 @@ import {
   ChevronRight,
   X,
   ExternalLink,
-  Users,
-  Armchair,
-  Clock,
   Send,
 } from 'lucide-react';
 import {
@@ -38,7 +31,6 @@ import {
   formatMonthlyRentNPR,
   formatDeposit,
   formatArea,
-  getAuthDict,
 } from '@sarvabhoomi/shared';
 import { supabase } from '@/lib/supabase';
 import { ContactUnlockModal } from '@/components/ContactUnlockModal';
@@ -425,6 +417,15 @@ export default function PropertyDetailPage() {
           </Link>
 
           <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              type="button"
+              onClick={() => setLang((l) => (l === 'en' ? 'ne' : 'en'))}
+              className="px-2.5 py-1.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-gold text-xs font-bold transition-colors shadow-subtle"
+              title="Toggle language"
+            >
+              {lang === 'en' ? 'नेपाली' : 'English'}
+            </button>
+
             <button
               type="button"
               onClick={handleShare}

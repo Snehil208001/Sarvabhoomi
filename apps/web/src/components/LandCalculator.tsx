@@ -1,13 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Calculator, ArrowRightLeft, Sparkles } from 'lucide-react';
+import { Calculator, ArrowRightLeft } from 'lucide-react';
 import {
   AreaUnit,
-  SQFT_PER_UNIT,
   toSqFt,
   fromSqFt,
-  formatArea,
 } from '@sarvabhoomi/shared';
 
 interface LandCalculatorProps {

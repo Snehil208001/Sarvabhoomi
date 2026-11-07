@@ -7,7 +7,6 @@ import {
   ShieldCheck,
   Search,
   MapPin,
-  CheckCircle2,
   ArrowRight,
   Tag,
   Home,
@@ -15,7 +14,6 @@ import {
   HelpCircle,
   Coins,
   ChevronRight,
-  Sparkles,
 } from 'lucide-react';
 import {
   ALL_NEPAL_DISTRICTS,

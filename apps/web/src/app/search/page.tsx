@@ -1,11 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, Suspense, useCallback } from 'react';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Search,
-  MapPin,
   SlidersHorizontal,
   Home,
   ShieldCheck,

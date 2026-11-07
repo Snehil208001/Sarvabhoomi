@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Phone, ArrowRight, ShieldCheck, Sparkles, UserCheck, UserPlus, LogIn, AlertCircle } from 'lucide-react';
+import { Phone, ArrowRight, ShieldCheck, UserCheck, UserPlus, LogIn, AlertCircle } from 'lucide-react';
 import { AuthDictionary } from '@sarvabhoomi/shared';
 
 interface PhoneStepProps {

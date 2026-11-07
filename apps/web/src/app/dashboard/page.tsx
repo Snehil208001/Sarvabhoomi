@@ -5,18 +5,13 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   ShieldCheck,
-  ShieldAlert,
   MapPin,
-  Sparkles,
   Phone,
   PhoneCall,
   MessageCircle,
   Layers,
   CheckCircle2,
-  Coins,
-  Building,
   Home,
-  Tag,
   Compass,
   Calendar,
   ExternalLink,
@@ -24,25 +19,15 @@ import {
   PlusCircle,
   RefreshCw,
   Heart,
-  Eye,
-  KeyRound,
-  Trash2,
-  AlertCircle,
-  Clock,
   Check,
-  X,
   Users,
-  Edit3,
 } from 'lucide-react';
 import {
   UserRole,
   Property,
   formatMonthlyRentNPR,
-  formatDeposit,
-  formatArea,
   ALL_NEPAL_DISTRICTS,
   getRegionForDistrict,
-  getAuthDict,
 } from '@sarvabhoomi/shared';
 import { supabase, Profile, UserSubscription } from '@/lib/supabase';
 import { ContactUnlockModal } from '@/components/ContactUnlockModal';

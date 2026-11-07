@@ -29,7 +29,6 @@ export function OtpStep({
   isSubmitting,
   resendTimer,
   canResend,
-  lang,
   dict,
   otpInputRefs,
   onOtpDigitChange,

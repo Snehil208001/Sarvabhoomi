@@ -4,21 +4,15 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import {
   TrendingUp,
-  Calculator,
-  ShieldCheck,
-  Building2,
-  MapPin,
   CheckCircle2,
   ArrowRight,
   PlusCircle,
-  Coins,
 } from 'lucide-react';
 import {
   AreaUnit,
   ALL_NEPAL_DISTRICTS,
   calculatePropertyValuation,
   formatPriceNPR,
-  formatArea,
 } from '@sarvabhoomi/shared';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';

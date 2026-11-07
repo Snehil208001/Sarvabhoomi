@@ -7,23 +7,15 @@ import {
   ArrowLeft,
   ArrowRight,
   ShieldCheck,
-  CheckCircle2,
   Upload,
-  MapPin,
   Home,
   Tag,
   AlertCircle,
   X,
   RefreshCw,
-  Image as ImageIcon,
   Check,
-  Sparkles,
   Bed,
-  Users,
-  Armchair,
-  Car,
   Layers,
-  Calendar,
 } from 'lucide-react';
 import {
   AreaUnit,
@@ -36,7 +28,6 @@ import {
   toSqFt,
   formatMonthlyRentNPR,
   formatDeposit,
-  formatArea,
 } from '@sarvabhoomi/shared';
 import { supabase } from '@/lib/supabase';
 import { PropertyImage } from '@/components/PropertyImage';
@@ -83,9 +74,9 @@ export default function PostPropertyPage() {
   const [totalFloors, setTotalFloors] = useState<string>('4');
   const [hasParking, setHasParking] = useState(true);
   const [areaValue, setAreaValue] = useState<string>('750');
-  const [areaUnit, setAreaUnit] = useState<AreaUnit>('SQFT');
-  const [roadAccess, setRoadAccess] = useState('16 ft Pitched');
-  const [facing, setFacing] = useState<PropertyFacing>('EAST');
+  const [areaUnit] = useState<AreaUnit>('SQFT');
+  const [roadAccess] = useState('16 ft Pitched');
+  const [facing] = useState<PropertyFacing>('EAST');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
 
@@ -97,12 +88,11 @@ export default function PostPropertyPage() {
 
   // Step 4: Ownership, Identity (Lazy Profile Gate) & Non-Brokerage Declaration
   const [kittaNo, setKittaNo] = useState('');
-  const [hasLalpurja, setHasLalpurja] = useState(true);
+  const [hasLalpurja] = useState(true);
   const [ownershipConfirmed, setOwnershipConfirmed] = useState(false);
   const [nonBrokerConfirmed, setNonBrokerConfirmed] = useState(false);
   const [ownerFullName, setOwnerFullName] = useState('');
   const [ownerDistrict, setOwnerDistrict] = useState('Kathmandu');
-  const [ownerProfileCompleted, setOwnerProfileCompleted] = useState(false);
 
   // Form submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -137,7 +127,6 @@ export default function PostPropertyPage() {
           setUserId(user.id);
           if (profile?.full_name) setOwnerFullName(profile.full_name);
           if (profile?.preferred_district) setOwnerDistrict(profile.preferred_district);
-          if (profile?.profile_completed) setOwnerProfileCompleted(true);
           setLoadingUser(false);
         }
       } catch (err) {
@@ -390,7 +379,7 @@ export default function PostPropertyPage() {
         console.warn('Error saving owner profile details:', profileErr.message);
       }
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('properties')
         .insert(propertyPayload)
         .select('id')
