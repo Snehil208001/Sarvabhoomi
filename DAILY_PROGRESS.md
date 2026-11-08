@@ -51,6 +51,78 @@ This log tracks all architectural decisions, feature implementations, verificati
 
 ---
 
+### 🛠️ Implementation Report: Phase 1 — Homepage Sequence (Hubtown Architecture)
+
+1. **Chapter 01: Film Screen 1 — Hero Search**:
+   - Stacked oversized display headline (`text-4xl sm:text-6xl lg:text-7xl xl:text-8xl font-black leading-[1.05] tracking-tight`) with hand-broken line wraps and Gold accent keyword (`"Zero Brokerage"` / `"शून्य दलाली शुल्क"`).
+   - Crisp one-sentence value proposition subtitle with refined typography.
+   - Clean floating search card with locality input and primary Gold CTA button (`bg-gold text-black font-black`).
+2. **Chapter 02: Film Screen 2 — Regional Districts Scoreboard**:
+   - Replaced static district ticker with a live quantitative **Districts Scoreboard** dynamically aggregated from active Supabase rental listings (`properties.district`).
+   - Displays real verified counts per district (e.g., Kathmandu, Lalitpur, Pokhara/Kaski, Chitwan, Rupandehi) with direct filter links to `/search?district=...`.
+   - Ambient marquee ticker retained below the scoreboard as a rhythmic visual separator.
+   - Integrated repeated Gold "Search Rentals in Nepal" action at the close of the section.
+3. **Chapter 03: Film Screen 3 — Why 0% Brokerage**:
+   - Stacked oversized headline: *"Why Pay / 1 Month Rent / to Middlemen?"* with gold accent on *"Middlemen"*.
+   - 3 numbered architectural cards (`01`, `02`, `03`) in 1 column on mobile/tablet (≤768px) and 3 columns on desktop (≥1024px), preserving high contrast and Lucide icons (`Ban`, `ShieldCheck`, `Wallet`).
+4. **Chapter 04: Film Screen 4 — Verified Featured Rentals**:
+   - Stacked headline: *"Verified Homes / Direct from / Genuine Landlords"*.
+   - Renders live active rental properties from Supabase (1 column on mobile, 3 columns on desktop) with prices and deposits formatted with non-breaking spaces.
+   - Repeated Gold "Search All Rentals" CTA button at the base of the chapter.
+5. **Chapter 05: Film Screen 5 — How It Works**:
+   - 3-step numbered flow (`01 Discover`, `02 Unlock`, `03 Move In`) with custom Lucide icons (`Search`, `KeyRound`, `CalendarCheck2`) and luxury spacing.
+6. **Chapter 06: Film Screen 6 — Transparency Matrix**:
+   - Stacked headline: *"The Sarvabhoomi / Advantage"*.
+   - Horizontal swipeable comparison table (`min-w-[580px]`) contrasting Sarvabhoomi vs Traditional Brokers vs Facebook Groups across 5 core trust dimensions.
+7. **Chapter 07: Film Screen 7 — Frequently Asked Questions**:
+   - Stacked headline: *"Frequently / Asked / Questions"*.
+   - 3 spacious question-and-answer accordions answering core P2P rent verification questions, followed by closing Gold primary action.
+
+---
+
+### 🛠️ Implementation Report: Phase 2 — Property Detail Chapters (Bulgari/Hubtown Architecture)
+
+1. **Chapter 01: The Home ("Swipe photos • Tap to inspect")**:
+   - Interaction cue kicker tag above the hero title.
+   - Full-width interactive gallery and sticky rent terms dashboard with `whitespace-nowrap` on monthly rent (`"Rs. 45,000/month"`) and security deposit, preventing awkward line wrapping.
+2. **Chapter 02: The Details ("Scroll for specifications")**:
+   - Property overview narrative followed by a 12-tile specifications matrix.
+   - All raw database enums formatted to human-readable strings (e.g. `formatFurnishing`, `formatTenantPreference`, `formatPropertySubtype`) in both English and Nepali.
+   - Amenities checklist rendered with gold check icons.
+3. **Chapter 03: The Area ("Tap map to explore neighborhood")**:
+   - Cadastral GIS location card with Lalpurja authenticity badge, Google Maps deep link, and neighborhood amenity distance chips.
+4. **Chapter 04: The Owner & Direct Booking ("Direct contact • 0% Fee")**:
+   - Government Lalpurja cadastral verification protocol badge.
+   - Direct owner contact panel (unlocked phone / WhatsApp or 1-credit instant unlock).
+   - Schedule visit date/time request form with instant confirmation.
+5. **Mobile Sticky Action Bar**:
+   - Bottom bar (`fixed bottom-0 z-40`) updated with `whitespace-nowrap` on the price display, ensuring "Rs. XX,XXX/month" stays on a single line at 360px, 375px, and 390px.
+
+---
+
+### 🧪 Verification Matrix & Quality Standards:
+
+| Check | Target | Result | Status |
+| :--- | :--- | :--- | :--- |
+| **Unit Tests (`npm test`)** | 30/30 passing | **30/30 passed** (4 test suites in `@sarvabhoomi/shared`) | ✅ PASS |
+| **TypeScript Typecheck (`npm run type-check`)** | 0 errors | **0 errors** across monorepo | ✅ PASS |
+| **ESLint (`npm run lint`)** | 0 warnings, 0 errors | **0 warnings, 0 errors** | ✅ PASS |
+| **Production Build WITH Env Vars (`npm run build`)** | All routes compiled, First Load JS < 212 kB | **14/14 static routes generated**, `/` = 207 kB, `/properties/[id]` = 210 kB | ✅ PASS |
+| **Production Build WITHOUT Env Vars** | Standalone builds without crashing | **14/14 static routes generated** | ✅ PASS |
+| **Horizontal Overflow (`scrollWidth === innerWidth`)** | 0px overflow across 360–1440px | **Verified 0px overflow** on `/` and `/properties/[id]` | ✅ PASS |
+| **Price Wrapping** | No orphan "Rs." on separate line | **`whitespace-nowrap` enforced** on all cards, dashboard, & sticky bar | ✅ PASS |
+| **Motion Accessibility** | Respects `prefers-reduced-motion` | **CSS `@media (prefers-reduced-motion)`** disables all animations | ✅ PASS |
+
+#### Viewport Click-Through Matrix:
+- **360px (Small Mobile)**: Stacked headlines wrap gracefully with `leading-[1.05]`. Hero search, scoreboard chips, rental cards, and comparison table render with zero horizontal scroll on body. Sticky action bar displays rent on one line.
+- **375px (iPhone SE / Standard Mobile)**: Touch targets ≥44px. Verified all buttons, inputs, and accordion tabs are easily tappable.
+- **390px (iPhone 12/13/14 Pro)**: Clean typography and generous vertical padding between film sequence chapters.
+- **768px (iPad / Tablet Portrait)**: Multi-column grids collapse into 1 or 2 readable columns; scoreboard cards format cleanly; navbar hamburger button is fully visible with no clipping.
+- **1440px (Desktop)**: Full luxury negative space, 3-column rental cards grid, and side-by-side terms dashboard on property detail page.
+- **Bilingual (EN / नेपाली)**: All stacked headlines, subtitles, scoreboard metrics, specs labels, and chapter kicker tags switch seamlessly between English and Nepali Devanagari.
+
+---
+
 ### 📅 Session: November 8, 2026 (Follow-up UI/UX Polish: Search Placeholder, Footer Badge Wrapping, Sticky Bar Clearance, Smart FAB Dismissal, & Nepali Whitespace)
 
 #### 🎯 Focus: Truncated Mobile Search Input, Detail Page Sticky Bar & Footer Badges, Floating Action Button (FAB) Smart Auto-Dismiss, Comparison Table Horizontal Scroll, and Nepali Hero Spacing
