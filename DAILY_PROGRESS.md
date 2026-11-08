@@ -14,6 +14,43 @@ This log tracks all architectural decisions, feature implementations, verificati
 
 ## 🗓️ Engineering Log
 
+### 📅 Session: November 8, 2026 (Hubtown-Inspired Re-Architecture: Homepage Sequence & Property Detail Chapters)
+
+#### 🎯 Focus: Hubtown (Awwwards SOTD 2026) Structural & Rhythm Adoption, One Idea Per Screen, Stacked Oversized Headlines, Districts Scoreboard, 4-Chapter Detail Page, and Interaction Labeling
+
+---
+
+### 🔍 Step 0 Study & Rhythm Audit Report:
+
+1. **Hubtown Design Study & Environmental Notes**:
+   - Live website `hubtown.co.in` was analyzed via Awwwards Site of the Day (June 10, 2026), design case studies (Unseen Studio, chipsa.design, mesh3d.gallery), and architecture breakdowns.
+   - Core rhythm identified:
+     - **One idea per screen**: Radical luxury whitespace, expansive negative space, viewport-paced sequence like an architectural film.
+     - **Stacked oversized display headlines**: 2–4 lines broken by hand with tight leading, small kicker/eyebrow tag above, key highlight word in accent color.
+     - **Project counts per region**: Real quantitative proof points (MMR, Pune, Gujarat project scoreboard) rather than vague claims.
+     - **One repeated clear action**: Prominent primary button returned at natural narrative chapter breaks.
+     - **Restrained motion**: Smooth scroll reveals, visible-by-default SSR-safe numbers, zero gimmicky WebGL/video weight.
+   - **Sarvabhoomi Adaptation (Rent-Only P2P Marketplace)**:
+     - Retaining exact 3 base colors: Black `#101010`, Gold `#C2A964`, White `#FFFFFF`.
+     - Bilingual EN / नेपाली throughout.
+     - 100% real Supabase data — live count of active rentals (currently seed data in Kathmandu, Lalitpur, Kaski/Pokhara, Chitwan, Rupandehi), zero invented numbers.
+     - Mobile-first 360px without horizontal overflow.
+
+2. **Sarvabhoomi Current vs. Hubtown Rhythm Mapping**:
+
+| Section | Current Sarvabhoomi Implementation | Hubtown Rhythm Mapping & Redesign Plan |
+| :--- | :--- | :--- |
+| **Hero** | Long single-line headline + bulky 4-select filter box + 4 cramped count-up stat tiles. | **Film Screen 1**: Hand-broken 3-line stacked display headline ("Rent a home / in Nepal / with Zero Brokerage" with Gold accent) + clean floating search card + single Gold "Search Rentals" primary button. |
+| **Districts** | Endless marquee ticker with hardcoded district names; no count metadata. | **Film Screen 2 (Districts Scoreboard)**: Region scoreboard showing real Supabase listing counts per district (e.g., Kathmandu, Lalitpur, Kaski) + quick-search filters, followed by a Gold "Search Rentals" action. Retain marquee ticker as a subtle ambient divider. |
+| **Why 0% Brokerage** | Standard 3-column card grid with medium typography. | **Film Screen 3**: Stacked headline ("Why Pay / 1 Month Rent / to Middlemen?") + 3 numbered architectural cards with high-contrast typography, generous spacing, and Lucide icons. |
+| **Featured Rentals** | Standard 3-column card grid. | **Film Screen 4**: Stacked headline ("Verified Homes / Direct from / Genuine Landlords") + featured rental cards (single column on mobile, gold price, deposit + maintenance on one line) + Gold "Search All Rentals" action. |
+| **How It Works** | Combined into cards without a dedicated step-by-step flow. | **Film Screen 5**: Dedicated 3-step numbered sequence (1. Discover Verified Rentals, 2. Unlock Direct Landlord Contact, 3. Inspect & Move with 0% Brokerage) with custom Lucide icons. |
+| **Advantage Table** | Standard table layout. | **Film Screen 6**: Stacked headline ("The Sarvabhoomi / Advantage") + horizontal swipeable transparency matrix with gold checkmarks and zero broker markup. |
+| **FAQs** | Flat list of 3 questions. | **Film Screen 7**: Stacked headline ("Frequently / Asked / Questions") with luxury spacing and clear readability. |
+| **Detail Page** | Mixed 2-column page with all details visible at once. | **4 Bulgari/Hubtown Chapters**: Chapter 01: The Home (gallery + sticky summary), Chapter 02: The Details (clean formatted specs + amenities), Chapter 03: The Area (location, ward, map link), Chapter 04: The Owner (verified badges, direct contact/unlock). Interaction cues ("Swipe photos", "Scroll for details"). Price wrapping fix ("Rs. 45,000/month"). |
+
+---
+
 ### 📅 Session: November 8, 2026 (Follow-up UI/UX Polish: Search Placeholder, Footer Badge Wrapping, Sticky Bar Clearance, Smart FAB Dismissal, & Nepali Whitespace)
 
 #### 🎯 Focus: Truncated Mobile Search Input, Detail Page Sticky Bar & Footer Badges, Floating Action Button (FAB) Smart Auto-Dismiss, Comparison Table Horizontal Scroll, and Nepali Hero Spacing
