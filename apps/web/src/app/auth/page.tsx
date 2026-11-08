@@ -621,11 +621,11 @@ function AuthContent() {
           <button
             type="button"
             onClick={handleToggleLang}
-            className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-xs font-bold text-white transition-all shadow-subtle active:scale-97"
+            className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-xs font-bold text-white transition-all shadow-subtle active:scale-97 whitespace-nowrap"
             aria-label="Toggle Interface Language"
           >
-            <Globe2 className="w-4 h-4 text-gold" />
-            <span className="tracking-wide">
+            <Globe2 className="w-4 h-4 text-gold shrink-0 pointer-events-none" />
+            <span className="tracking-wide select-none">
               {lang === 'en' ? 'नेपाली (NE)' : 'English (EN)'}
             </span>
           </button>

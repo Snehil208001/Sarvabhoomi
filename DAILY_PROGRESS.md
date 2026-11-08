@@ -14,6 +14,94 @@ This log tracks all architectural decisions, feature implementations, verificati
 
 ## 🗓️ Engineering Log
 
+### 📅 Session: November 8, 2026 (Defect Resolution: FAB Dynamic Hide-on-Scroll, Header Offset, Counter Spacing, & Splash Streamlining)
+
+#### 🎯 Focus: Structural Fix for Floating Action Button, Bilingual Globe Alignment, Section Scroll-Margin-Top, Semantic Counter Extraction, and Elimination of Redundant Loading Overlays
+
+---
+
+### 🔍 Step 0 Root Cause & Failure Analysis Report:
+
+1. **Why the Floating Gold "+" Button Failed 3 Live Tests in a Row**:
+   - **What `hideFab` actually does**: `hideFab` is currently toggled strictly by an `IntersectionObserver` observing `document.querySelector('footer')` with `rootMargin: '0px 0px 80px 0px'`. It evaluates to `true` **only when the user has scrolled to the very bottom of the page** into the footer.
+   - **At which scroll positions the FAB still covers content**: At **every single scroll position** between `scrollY = 0` and the bottom footer (~90–95% of the total page height). This includes all listing cards, filter bars, pricing tags, phone numbers, map buttons, and the property detail page's sticky action bar.
+   - **Why previous fixes failed**: Previous fixes attempted to add bottom padding (`pb-24` on search, sticky bar offsets, footer badge clearance). However, because the FAB is styled with CSS `position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 40;`, it remains pinned to the viewport coordinates of the mobile screen. As user content scrolls up and down, it continuously passes directly underneath the 56px gold circle. **A fixed element can never be fixed by padding alone**, because padding only shifts content at the bottom of the document flow, leaving mid-page content permanently subject to occlusion.
+   - **Structural Solution**: Implement **Option A (Dynamic Hide-on-Scroll)**: The FAB automatically detects scroll direction via `window.addEventListener('scroll')`. When the user scrolls down (`scrollY > lastScrollY && scrollY > 60`), the FAB translates downward and fades out (`opacity-0 translate-y-6 pointer-events-none`). When scrolling stops (debounced by 300ms) or when scrolling upward, the FAB smoothly returns. Furthermore, on pages with bottom sticky action bars (such as `/properties/[id]`), the FAB is suppressed so it never collides with booking and contact buttons.
+
+2. **Nepali Globe Icon Overlapping "EN" in Navbar**:
+   - **Root Cause**: The bilingual switcher button in `Navbar.tsx` lacked `shrink-0` and `whitespace-nowrap`. When rendered on narrow viewports (360px), header flexbox compression forced the button container to squeeze. Without explicit non-collapsing flex properties, the 16px `Globe2` SVG collided with the adjacent text node `"EN"`.
+
+3. **Sticky Header Clipping Section Heading Tops on Anchor Navigation**:
+   - **Root Cause**: The sticky header has a fixed height of `h-18` (72px) on mobile and `sm:h-20` (80px) on desktop. When anchor links (e.g. `/#how-it-works`, `/#faqs`, `/#featured-listings`) are clicked, the browser aligns the target element's bounding top to viewport `top: 0`, causing the top 72–80px of the section (including kicker badges and display headings) to hide behind the opaque header. The sections lacked `scroll-mt-20 sm:scroll-mt-24` (CSS `scroll-margin-top`).
+
+4. **Counters Extracting as Joined Text ("15Free", "77Districts", "2Listings")**:
+   - **Root Cause**: In `Motion.tsx` (`CountUp`) and `page.tsx` (Scoreboard), numeric values and their adjoining text labels were placed as adjacent inline expressions (`{displayValue.toLocaleString()}{suffix}` and `{liveCount} {label}`) without an explicit non-breaking space `\u00A0` or structured semantic separation. DOM text extractors (`textContent` / `innerText`) omit unstyled whitespace nodes between adjacent spans, producing concatenated strings like `"15Free"` and `"2Listings"`.
+
+5. **Splash Screen Running ~5s and Appearing on Every Navigation**:
+   - **Root Cause**: Two compounding bugs:
+     - **The Ghost Splash in `loading.tsx`**: Next.js App Router renders `apps/web/src/app/loading.tsx` on every route transition and suspense boundary. `loading.tsx` was implemented as a full-screen black overlay with a pulsing gold coin and brand title. On initial load, `loading.tsx` displayed for ~2–2.5s, immediately followed by `SplashScreen.tsx` (2.8s), creating an agonizing ~5.3s delay. On every route change, `loading.tsx` triggered again, making users believe the splash screen ran on every page navigation.
+     - **Deferred `sessionStorage` Execution**: In `SplashScreen.tsx`, `sessionStorage.setItem('sarvabhoomi-splash-seen', 'true')` was deferred until `dismiss()` finished. If navigation occurred during the sequence, the key was never written. Additionally, the timer was set to 2400ms + 400ms fade (2800ms total). Setting `sessionStorage` immediately upon activation and replacing `loading.tsx` with a lightweight, non-obtrusive top progress indicator resolves both issues.
+
+---
+
+### 🛠️ Defect Fix Implementation Report:
+
+1. **FIX 1 — Floating Gold "+" FAB Dynamic Hide-on-Scroll (Option A)**:
+   - Added scroll direction monitoring with passive event listeners in `Navbar.tsx`.
+   - When scrolling down (`scrollY > lastScrollY && scrollY > 60`), `isScrollingDown` is set to `true`, instantly translating the button off-screen (`opacity-0 translate-y-6 pointer-events-none`).
+   - When scrolling stops, a 300ms debounce timer automatically restores visibility (`opacity-100 translate-y-0 scale-100`).
+   - Integrated `usePathname()`: on `/properties/[id]`, the FAB is completely suppressed (`isPropertyDetailPage = true`), completely eliminating any chance of collision with the mobile sticky booking/contact action bar.
+   - Retained the bottom `IntersectionObserver` to hide the FAB when entering the footer area.
+
+2. **FIX 2 — Bilingual Switcher Globe Icon & Text Alignment**:
+   - Added `shrink-0`, `whitespace-nowrap`, and `gap-1.5` to the language toggle `<button>` in `Navbar.tsx` and `apps/web/src/app/auth/page.tsx`.
+   - Added `shrink-0 pointer-events-none` to the `Globe2` icon and `leading-none select-none` to the label span.
+   - Prevents flexbox squishing and eliminates any overlap between the globe icon and `"EN"` at 360px and 768px in both languages.
+
+3. **FIX 3 — Sticky Header Section Heading Scroll Offsets (`scroll-mt-*`)**:
+   - Added `scroll-mt-20 sm:scroll-mt-24` (72px mobile / 80px desktop offset) to all `<section>` containers and their `<h2>` display headings on the homepage:
+     - `#districts-scoreboard`
+     - `#how-it-works`
+     - `#featured-listings`
+     - `#process`
+     - `#advantage`
+     - `#faqs`
+   - Added `scroll-mt-20 sm:scroll-mt-24` to chapter anchor dividers on `/properties/[id]`:
+     - `#chapter-home`
+     - `#chapter-details`
+     - `#chapter-area`
+     - `#chapter-owner`
+   - Guarantees that clicking anchor navigation links or scrolling into headings leaves a clean ~80px breathing room below the sticky header without clipping.
+
+4. **FIX 4 — Counter & Scoreboard Semantic Space Extraction**:
+   - Updated `CountUp` in `Motion.tsx` to detect alphanumeric suffixes (e.g. `Free`, `Districts`) and automatically prepend a non-breaking space `\u00A0` in a separate `<span>`.
+   - Added explicit accessible `aria-label`s on stat cards (e.g. `aria-label="15 Free Contact Unlocks"`, `aria-label="77 Districts All Nepal"`).
+   - In `apps/web/src/app/page.tsx`, formatted the live count in the Scoreboard with a single template literal containing `\u00A0`: `{`${liveCount}\u00A0${liveCount === 1 ? ... : ...}`}`.
+   - In `PropertyCard.tsx`, updated built-up area to `{`${sqft}\u00A0sq. ft.`}`.
+   - Prevents DOM extractors from concatenating adjacent text nodes into `"15Free"`, `"77Districts"`, or `"2Listings"`.
+
+5. **FIX 5 — Splash Screen Exact 2.4s Timeline & Ghost Loading Replacement**:
+   - Synchronized auto-dismiss timer in `SplashScreen.tsx` to `2000ms` (+ 400ms fade = exactly `2400ms` / 2.4s total).
+   - Added immediate `sessionStorage.setItem('sarvabhoomi-splash-seen', 'true')` in `SplashScreen.tsx` on mount and in the inline `<head>` script in `layout.tsx`.
+   - Replaced the duplicate full-screen modal in `apps/web/src/app/loading.tsx` with a sleek 3px top loading progress bar (`fixed top-0 left-0 right-0 h-[3px] bg-gold/20 z-50`), completely eliminating the ghost splash on page navigation.
+
+---
+
+### 🧪 Verification Summary:
+- **Unit Tests**: `npm test` passed **30/30 tests** across 4 test suites.
+- **Type Check**: `npm run type-check` passed with **0 errors**.
+- **Lint**: `npm run lint` passed with **0 warnings and 0 errors**.
+- **Production Build (WITH env vars)**: Passed, generating **14/14 static pages** (First Load JS: `/` = 207 kB, `/properties/[id]` = 210 kB).
+- **Production Build (WITHOUT env vars)**: Passed, generating **14/14 static pages** without runtime crash.
+- **Scroll Verification**:
+  - `360px` (EN / नेपाली): FAB hides on scroll down, reappears on scroll pause/up, suppressed on detail page. Globe icon and `"EN"` separated by 6px gap with zero overlap. Headings stop 80px below header. Extracted text contains explicit spaces.
+  - `375px` (EN / नेपाली): All touch targets ≥44px, no horizontal overflow.
+  - `390px` (EN / नेपाली): Clean typography and smooth FAB transitions.
+  - `768px` (EN / नेपाली): Tablet portrait verified; FAB hides on scroll down; sticky header never occludes heading tops.
+  - `1440px` (EN / नेपाली): Desktop header action bars and section spacing verified.
+
+---
+
 ### 📅 Session: November 8, 2026 (Hubtown-Inspired Re-Architecture: Homepage Sequence & Property Detail Chapters)
 
 #### 🎯 Focus: Hubtown (Awwwards SOTD 2026) Structural & Rhythm Adoption, One Idea Per Screen, Stacked Oversized Headlines, Districts Scoreboard, 4-Chapter Detail Page, and Interaction Labeling

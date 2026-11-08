@@ -119,11 +119,16 @@ export function CountUp({
     };
   }, [target, durationMs, hasStarted]);
 
+  const hasAlphanumericSuffix = suffix && /^[A-Za-z\u0900-\u097F]/.test(suffix.trim());
+  const formattedSuffix = hasAlphanumericSuffix
+    ? `\u00A0${suffix.trim()}`
+    : suffix;
+
   return (
-    <span ref={ref} className="font-mono">
-      {prefix}
-      {displayValue.toLocaleString()}
-      {suffix}
+    <span ref={ref} className="font-mono inline-flex items-baseline">
+      {prefix ? `${prefix}\u00A0` : ''}
+      <span>{displayValue.toLocaleString()}</span>
+      {formattedSuffix && <span>{formattedSuffix}</span>}
     </span>
   );
 }

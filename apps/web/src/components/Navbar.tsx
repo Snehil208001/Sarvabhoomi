@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import {
   Globe2,
   User,
@@ -28,6 +28,9 @@ interface NavbarProps {
 
 export function Navbar({ lang = 'en', onToggleLang, currentUser }: NavbarProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const isPropertyDetailPage = pathname?.startsWith('/properties/');
+
   const [user, setUser] = useState<{
     id: string;
     fullName: string;
@@ -40,7 +43,40 @@ export function Navbar({ lang = 'en', onToggleLang, currentUser }: NavbarProps) 
     userRole: currentUser.userRole || null,
   } : null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [hideFab, setHideFab] = useState(false);
+  const [isNearFooter, setIsNearFooter] = useState(false);
+  const [isScrollingDown, setIsScrollingDown] = useState(false);
+
+  // Scroll direction detection + 300ms pause debounce for FAB (Option A)
+  useEffect(() => {
+    let lastScrollY = typeof window !== 'undefined' ? window.scrollY : 0;
+    let scrollStopTimer: NodeJS.Timeout | null = null;
+
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+
+      // When scrolling down past 60px threshold, hide FAB
+      if (currentScrollY > lastScrollY && currentScrollY > 60) {
+        setIsScrollingDown(true);
+      } else if (currentScrollY < lastScrollY) {
+        // When scrolling up, reveal FAB
+        setIsScrollingDown(false);
+      }
+
+      // Reset debounce timer on every scroll event; reveal when scrolling stops
+      if (scrollStopTimer) clearTimeout(scrollStopTimer);
+      scrollStopTimer = setTimeout(() => {
+        setIsScrollingDown(false);
+      }, 300);
+
+      lastScrollY = currentScrollY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (scrollStopTimer) clearTimeout(scrollStopTimer);
+    };
+  }, []);
 
   // Hide FAB when scrolling near footer to prevent occluding badge/copyright text
   useEffect(() => {
@@ -50,7 +86,7 @@ export function Navbar({ lang = 'en', onToggleLang, currentUser }: NavbarProps) 
     const observer = new IntersectionObserver(
       (entries) => {
         const [entry] = entries;
-        setHideFab(entry.isIntersecting);
+        setIsNearFooter(entry.isIntersecting);
       },
       { rootMargin: '0px 0px 80px 0px', threshold: 0 }
     );
@@ -58,6 +94,8 @@ export function Navbar({ lang = 'en', onToggleLang, currentUser }: NavbarProps) 
     observer.observe(footer);
     return () => observer.disconnect();
   }, []);
+
+  const hideFab = isNearFooter || isScrollingDown || isPropertyDetailPage;
 
   useEffect(() => {
     if (currentUser !== undefined) {
@@ -226,11 +264,13 @@ export function Navbar({ lang = 'en', onToggleLang, currentUser }: NavbarProps) 
               <button
                 type="button"
                 onClick={onToggleLang}
-                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-gold/30 bg-white/5 hover:bg-white/10 text-gold text-xs font-bold transition-all min-h-[44px] min-w-[44px]"
+                className="shrink-0 inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl border border-gold/30 bg-white/5 hover:bg-white/10 text-gold text-xs font-bold transition-all min-h-[44px] min-w-[44px] whitespace-nowrap"
                 title={lang === 'en' ? 'नेपालीमा स्विच गर्नुहोस्' : 'Switch to English'}
               >
-                <Globe2 className="w-4 h-4 text-gold shrink-0" />
-                <span>{lang === 'en' ? 'नेपाली' : 'EN'}</span>
+                <Globe2 className="w-4 h-4 text-gold shrink-0 pointer-events-none" />
+                <span className="tracking-wide select-none leading-none inline-block">
+                  {lang === 'en' ? 'नेपाली' : 'EN'}
+                </span>
               </button>
             )}
 

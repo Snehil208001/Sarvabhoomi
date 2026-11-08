@@ -211,7 +211,7 @@ export function PropertyCard({
             <div className="flex items-center gap-1.5 text-white/70 truncate">
               <Maximize2 className="w-3.5 h-3.5 text-gold/70 shrink-0" />
               <span className="font-bold text-white truncate">
-                {property.area_sqft || Math.round(property.area_value)} sq. ft.
+                {`${property.area_sqft || Math.round(property.area_value)}\u00A0sq. ft.`}
               </span>
             </div>
 

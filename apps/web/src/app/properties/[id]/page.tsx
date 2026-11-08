@@ -550,7 +550,7 @@ export default function PropertyDetailPage() {
         {/* ============================================================ */}
         {/* CHAPTER 01: THE HOME (GALLERY & TERMS DASHBOARD)            */}
         {/* ============================================================ */}
-        <div className="flex items-center justify-between border-b border-gold/30 pb-3">
+        <div id="chapter-home" className="flex items-center justify-between border-b border-gold/30 pb-3 scroll-mt-20 sm:scroll-mt-24">
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 rounded-full bg-gold/15 text-gold border border-gold/30 font-mono text-[10px] font-black uppercase tracking-widest">
               {lang === 'en' ? 'Chapter 01' : 'अध्याय ०१'}
@@ -836,7 +836,7 @@ export default function PropertyDetailPage() {
             {/* ======================================================== */}
             {/* CHAPTER 02: THE DETAILS (SPECS, DESCRIPTION & AMENITIES) */}
             {/* ======================================================== */}
-            <div className="flex items-center justify-between border-b border-gold/30 pb-3">
+            <div id="chapter-details" className="flex items-center justify-between border-b border-gold/30 pb-3 scroll-mt-20 sm:scroll-mt-24">
               <div className="flex items-center gap-2">
                 <span className="px-2.5 py-0.5 rounded-full bg-gold/15 text-gold border border-gold/30 font-mono text-[10px] font-black uppercase tracking-widest">
                   {lang === 'en' ? 'Chapter 02' : 'अध्याय ०२'}
@@ -972,7 +972,7 @@ export default function PropertyDetailPage() {
             {/* ======================================================== */}
             {/* CHAPTER 03: THE AREA (LOCATION & NEIGHBORHOOD MAP)       */}
             {/* ======================================================== */}
-            <div className="flex items-center justify-between border-b border-gold/30 pb-3 pt-4">
+            <div id="chapter-area" className="flex items-center justify-between border-b border-gold/30 pb-3 pt-4 scroll-mt-20 sm:scroll-mt-24">
               <div className="flex items-center gap-2">
                 <span className="px-2.5 py-0.5 rounded-full bg-gold/15 text-gold border border-gold/30 font-mono text-[10px] font-black uppercase tracking-widest">
                   {lang === 'en' ? 'Chapter 03' : 'अध्याय ०३'}
@@ -1088,7 +1088,7 @@ export default function PropertyDetailPage() {
             {/* ======================================================== */}
             {/* CHAPTER 04: THE OWNER & DIRECT BOOKING PANEL             */}
             {/* ======================================================== */}
-            <div className="flex items-center justify-between border-b border-gold/30 pb-3">
+            <div id="chapter-owner" className="flex items-center justify-between border-b border-gold/30 pb-3 scroll-mt-20 sm:scroll-mt-24">
               <div className="flex items-center gap-2">
                 <span className="px-2.5 py-0.5 rounded-full bg-gold/15 text-gold border border-gold/30 font-mono text-[10px] font-black uppercase tracking-widest">
                   {lang === 'en' ? 'Chapter 04' : 'अध्याय ०४'}

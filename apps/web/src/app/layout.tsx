@@ -29,7 +29,7 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{if(!sessionStorage.getItem('sarvabhoomi-splash-seen')&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches){document.documentElement.classList.add('splash-active');}}catch(e){}})();`,
+            __html: `(function(){try{if(!sessionStorage.getItem('sarvabhoomi-splash-seen')&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches){document.documentElement.classList.add('splash-active');sessionStorage.setItem('sarvabhoomi-splash-seen','true');}}catch(e){}})();`,
           }}
         />
       </head>

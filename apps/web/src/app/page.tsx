@@ -186,7 +186,7 @@ export default function HomePage() {
       {/* ============================================================ */}
       {/* CHAPTER 1: HERO SCREEN — ONE STATEMENT, ONE ACTION           */}
       {/* ============================================================ */}
-      <section className="relative overflow-hidden bg-black py-20 sm:py-28 lg:py-36 border-b border-white/10">
+      <section className="relative overflow-hidden bg-black py-20 sm:py-28 lg:py-36 border-b border-white/10 scroll-mt-20 sm:scroll-mt-24">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           {/* Eyebrow kicker tag */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-gold/30 text-gold text-xs font-bold uppercase tracking-widest mb-6">
@@ -337,7 +337,7 @@ export default function HomePage() {
 
           {/* Proof Points: Count-Up Stats Row in Gold */}
           <div className="pt-10 grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto border-t border-white/10 mt-12">
-            <div className="text-center">
+            <div className="text-center" aria-label={`0% ${lang === 'en' ? 'Brokerage Fee' : 'दलाली शुल्क'}`}>
               <div className="text-3xl sm:text-4xl font-black text-gold">
                 <CountUp target={0} suffix="%" />
               </div>
@@ -348,7 +348,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="text-center">
+            <div className="text-center" aria-label={`15 Free ${lang === 'en' ? 'Contact Unlocks' : 'सम्पर्क अनलक'}`}>
               <div className="text-3xl sm:text-4xl font-black text-gold">
                 <CountUp target={15} suffix=" Free" />
               </div>
@@ -359,7 +359,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="text-center">
+            <div className="text-center" aria-label={`77 Districts ${lang === 'en' ? 'All Nepal' : 'देशव्यापी नेपाल'}`}>
               <div className="text-3xl sm:text-4xl font-black text-gold">
                 <CountUp target={77} suffix=" Districts" />
               </div>
@@ -370,7 +370,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="text-center">
+            <div className="text-center" aria-label={`100% ${lang === 'en' ? 'Direct Landlords' : 'प्रत्यक्ष घरधनी'}`}>
               <div className="text-3xl sm:text-4xl font-black text-gold">
                 <CountUp target={100} suffix="%" />
               </div>
@@ -387,14 +387,14 @@ export default function HomePage() {
       {/* ============================================================ */}
       {/* CHAPTER 2: DISTRICTS SCOREBOARD (HUBTOWN REGIONAL PROOF)      */}
       {/* ============================================================ */}
-      <section className="py-24 sm:py-32 lg:py-40 bg-black border-b border-white/10">
+      <section id="districts-scoreboard" className="py-24 sm:py-32 lg:py-40 bg-black border-b border-white/10 scroll-mt-20 sm:scroll-mt-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mb-14">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-gold/30 text-gold text-xs font-bold uppercase tracking-widest mb-4">
               <Compass className="w-3.5 h-3.5" />
               <span>{lang === 'en' ? 'Regional Rental Scoreboard' : 'क्षेत्रीय भाडा स्कोरबोर्ड'}</span>
             </div>
-            <h2 className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-[1.08]">
+            <h2 className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-[1.08] scroll-mt-20 sm:scroll-mt-24">
               {lang === 'en' ? (
                 <>
                   <span className="block">Verified Rentals Across</span>
@@ -444,7 +444,7 @@ export default function HomePage() {
                     </span>
                     {liveCount > 0 ? (
                       <span className="px-3 py-1 rounded-full bg-gold/15 text-gold border border-gold/30 text-xs font-mono font-black">
-                        {liveCount} {liveCount === 1 ? (lang === 'en' ? 'Listing' : 'सूची') : (lang === 'en' ? 'Listings' : 'सूचीहरू')}
+                        {`${liveCount}\u00A0${liveCount === 1 ? (lang === 'en' ? 'Listing' : 'सूची') : (lang === 'en' ? 'Listings' : 'सूचीहरू')}`}
                       </span>
                     ) : (
                       <span className="text-xs text-white/40 font-medium">
@@ -477,14 +477,14 @@ export default function HomePage() {
       {/* ============================================================ */}
       {/* CHAPTER 3: WHY 0% BROKERAGE — THREE STACKED CARDS            */}
       {/* ============================================================ */}
-      <section id="how-it-works" className="bg-black text-white py-24 sm:py-32 lg:py-40 border-b border-white/10">
+      <section id="how-it-works" className="bg-black text-white py-24 sm:py-32 lg:py-40 border-b border-white/10 scroll-mt-20 sm:scroll-mt-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mb-16">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-gold/30 text-gold text-xs font-bold uppercase tracking-widest mb-4">
               <span>✦</span>
               <span>{lang === 'en' ? 'The Zero-Brokerage Model' : 'शून्य-दलाली प्रत्यक्ष मोडल'}</span>
             </div>
-            <h2 className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-[1.08]">
+            <h2 className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-[1.08] scroll-mt-20 sm:scroll-mt-24">
               {lang === 'en' ? (
                 <>
                   <span className="block">Why Pay</span>
@@ -606,14 +606,14 @@ export default function HomePage() {
       {/* ============================================================ */}
       {/* CHAPTER 4: FEATURED RENTALS — LIVE SUPABASE SELECTION        */}
       {/* ============================================================ */}
-      <section id="featured-listings" className="py-24 sm:py-32 lg:py-40 bg-black border-b border-white/10">
+      <section id="featured-listings" className="py-24 sm:py-32 lg:py-40 bg-black border-b border-white/10 scroll-mt-20 sm:scroll-mt-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mb-14">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-gold/30 text-gold text-xs font-bold uppercase tracking-widest mb-4">
               <span className="w-2 h-2 rounded-full bg-gold" />
               <span>{lang === 'en' ? 'Curated Live Selection' : 'प्रमाणित प्रत्यक्ष भाडा'}</span>
             </div>
-            <h2 className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-[1.08]">
+            <h2 className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-[1.08] scroll-mt-20 sm:scroll-mt-24">
               {lang === 'en' ? (
                 <>
                   <span className="block">Featured Rentals Direct from</span>
@@ -700,14 +700,14 @@ export default function HomePage() {
       {/* ============================================================ */}
       {/* CHAPTER 5: HOW IT WORKS — THREE NUMBERED STEPS (NO PHOTOS)   */}
       {/* ============================================================ */}
-      <section className="py-24 sm:py-32 lg:py-40 bg-black border-b border-white/10">
+      <section id="process" className="py-24 sm:py-32 lg:py-40 bg-black border-b border-white/10 scroll-mt-20 sm:scroll-mt-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mb-16">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-gold/30 text-gold text-xs font-bold uppercase tracking-widest mb-4">
               <span>✦</span>
               <span>{lang === 'en' ? 'Step-by-Step Process' : 'प्रक्रिया कसरी चल्छ'}</span>
             </div>
-            <h2 className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-[1.08]">
+            <h2 className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-[1.08] scroll-mt-20 sm:scroll-mt-24">
               {lang === 'en' ? (
                 <>
                   <span className="block">How Direct Rentals Work</span>
@@ -806,13 +806,13 @@ export default function HomePage() {
       {/* ============================================================ */}
       {/* CHAPTER 6: TRANSPARENCY COMPARISON TABLE                     */}
       {/* ============================================================ */}
-      <section className="py-24 sm:py-32 lg:py-40 bg-black border-b border-white/10">
+      <section id="advantage" className="py-24 sm:py-32 lg:py-40 bg-black border-b border-white/10 scroll-mt-20 sm:scroll-mt-24">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mb-14">
             <span className="text-xs font-black uppercase tracking-wider text-black bg-gold px-3.5 py-1 rounded-full shadow-subtle inline-block mb-4">
               {lang === 'en' ? 'Direct Transparency' : 'प्रत्यक्ष पारदर्शिता'}
             </span>
-            <h2 className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-[1.08]">
+            <h2 className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-[1.08] scroll-mt-20 sm:scroll-mt-24">
               {lang === 'en' ? (
                 <>
                   <span className="block">The Sarvabhoomi</span>
@@ -908,14 +908,14 @@ export default function HomePage() {
       {/* ============================================================ */}
       {/* CHAPTER 7: FREQUENTLY ASKED QUESTIONS (FAQ)                  */}
       {/* ============================================================ */}
-      <section id="faqs" className="py-24 sm:py-32 lg:py-40 bg-black border-b border-white/10">
+      <section id="faqs" className="py-24 sm:py-32 lg:py-40 bg-black border-b border-white/10 scroll-mt-20 sm:scroll-mt-24">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <div className="max-w-3xl mb-14">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-gold/30 text-gold text-xs font-bold uppercase tracking-widest mb-4">
               <HelpCircle className="w-3.5 h-3.5" />
               <span>{lang === 'en' ? 'Institutional Clarity' : 'प्रश्नोत्तर'}</span>
             </div>
-            <h2 className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-[1.08]">
+            <h2 className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-[1.08] scroll-mt-20 sm:scroll-mt-24">
               {lang === 'en' ? (
                 <>
                   <span className="block">Frequently</span>

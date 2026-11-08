@@ -65,15 +65,18 @@ export function SplashScreen() {
       return;
     }
 
-    // 3. Mark mounted and active
+    // 3. Mark mounted and active; immediately record in sessionStorage so it never re-triggers in this session
     setIsMounted(true);
+    try {
+      sessionStorage.setItem(SESSION_KEY, 'true');
+    } catch {}
     document.documentElement.classList.add('splash-active');
     document.body.style.overflow = 'hidden';
 
-    // Auto-dismiss timeline: 2.4s total, then 400ms fade-out
+    // Auto-dismiss timeline: 2.0s animation + 400ms fade-out = 2.4s total
     autoDismissTimeoutRef.current = setTimeout(() => {
       dismiss(false);
-    }, 2400);
+    }, 2000);
 
     // 4. Keyboard listener for Escape key
     const handleKeyDown = (e: KeyboardEvent) => {

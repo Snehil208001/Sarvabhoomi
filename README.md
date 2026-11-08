@@ -162,6 +162,7 @@ The visual identity follows an award-winning, dark luxury 3-color design system:
 > - **Opacity Variants Only:** Charcoal cards use White 5–8% on Black (`bg-white/[0.06]`), inputs use White 8–12% on Black (`bg-black/60` with `border-white/20`), borders use White 10% or Gold 30% (brightens to 60% on hover), secondary text uses White 60–70%.
 > - **High-Contrast CTA Standard:** Primary buttons always use Champagne Gold fill with Black text (`bg-gold text-black`), achieving a rock-solid 8.3:1 contrast ratio that exceeds WCAG AAA standards.
 > - **Hubtown Sequential Film Architecture:** Homepage structured as a sequence of full-width chapters with stacked oversized display headlines, dynamic Regional Districts Scoreboard, and repeated high-contrast Gold actions; Property detail page structured into 4 Bulgari/Hubtown chapters with interaction labels.
+> - **Dynamic Scroll UX & Non-Occlusion:** Fixed elements (Floating Action Button) automatically hide on scroll-down and reappear on scroll-up/pause (300ms debounce), preventing mid-page content occlusion; section anchors enforce `scroll-mt-20 sm:scroll-mt-24` ensuring titles are never clipped by the sticky header.
 > - **Devanagari Typography:** Scaled display headlines with `"Noto Sans Devanagari"` system fallback ensures crisp, authentic bilingual rendering for English and Nepali.
 
 ### 5. Start Development Server
