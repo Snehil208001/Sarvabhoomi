@@ -546,12 +546,37 @@ export default function PropertyDetailPage() {
       </header>
 
       {/* Main Container */}
-      <main className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8 flex-1 pb-28 lg:pb-8">
+      <main className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8 flex-1 pb-28 lg:pb-8">
+        {/* ============================================================ */}
+        {/* CHAPTER 01: THE HOME (GALLERY & TERMS DASHBOARD)            */}
+        {/* ============================================================ */}
+        <div className="flex items-center justify-between border-b border-gold/30 pb-3">
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-0.5 rounded-full bg-gold/15 text-gold border border-gold/30 font-mono text-[10px] font-black uppercase tracking-widest">
+              {lang === 'en' ? 'Chapter 01' : 'अध्याय ०१'}
+            </span>
+            <span className="text-xs uppercase tracking-widest font-black text-white">
+              {lang === 'en' ? 'The Home' : 'आवास'}
+            </span>
+          </div>
+          <span className="text-[11px] font-semibold text-gold/80 flex items-center gap-1">
+            {lang === 'en' ? 'Swipe photos • Tap to inspect' : 'तस्बिरहरू स्वाइप गर्नुहोस् • ट्याप गरी हेर्नुहोस्'}
+          </span>
+        </div>
+
         {/* Title & Badges Bar */}
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <span className="px-3 py-1 rounded-full bg-white/10 text-gold border border-gold/30 text-xs font-black uppercase tracking-wider">
-              {property.property_subtype || 'Rental'}
+              {property.property_subtype === 'FLAT'
+                ? (lang === 'en' ? 'Flat / Apartment' : 'फ्ल्याट')
+                : property.property_subtype === 'HOUSE'
+                ? (lang === 'en' ? 'Independent House' : 'घर')
+                : property.property_subtype === 'ROOM'
+                ? (lang === 'en' ? 'Single Room' : 'कोठा')
+                : property.property_subtype === 'SHOP'
+                ? (lang === 'en' ? 'Commercial Shop' : 'पसल')
+                : (property.property_subtype || 'Rental')}
             </span>
             {property.admin_verified ? (
               <span
@@ -765,7 +790,7 @@ export default function PropertyDetailPage() {
                 <span className="text-[11px] font-bold text-white/70 uppercase tracking-wider block">
                   Monthly Rent
                 </span>
-                <span className="text-xl sm:text-2xl lg:text-3xl font-black text-gold tracking-tight mt-0.5 block">
+                <span className="text-xl sm:text-2xl lg:text-3xl font-black text-gold tracking-tight mt-0.5 block whitespace-nowrap">
                   {formatMonthlyRentNPR(monthlyRent, lang)}
                 </span>
                 <span className="text-[11px] font-bold text-white/60">Fixed Monthly</span>
@@ -775,7 +800,7 @@ export default function PropertyDetailPage() {
                 <span className="text-[11px] font-bold text-white/70 uppercase tracking-wider block">
                   Security Deposit
                 </span>
-                <span className="text-base sm:text-lg font-black text-white mt-0.5 block">
+                <span className="text-base sm:text-lg font-black text-white mt-0.5 block whitespace-nowrap">
                   {formatDeposit(deposit, lang)}
                 </span>
                 <span className="text-[11px] text-white/60">Refundable at move-out</span>
@@ -785,7 +810,7 @@ export default function PropertyDetailPage() {
                 <span className="text-[11px] font-bold text-white/70 uppercase tracking-wider block">
                   Maintenance
                 </span>
-                <span className="text-base sm:text-lg font-black text-white mt-0.5 block">
+                <span className="text-base sm:text-lg font-black text-white mt-0.5 block whitespace-nowrap">
                   {maintenance
                     ? `Rs. ${maintenance.toLocaleString('en-IN')}/mo`
                     : property.maintenance_included
@@ -799,13 +824,30 @@ export default function PropertyDetailPage() {
                 <span className="text-[11px] font-bold text-white/70 uppercase tracking-wider block">
                   Built-up Area
                 </span>
-                <span className="text-base sm:text-lg font-black text-white mt-0.5 block">
+                <span className="text-base sm:text-lg font-black text-white mt-0.5 block whitespace-nowrap">
                   {sqft.toLocaleString()} sq. ft.
                 </span>
                 <span className="text-[11px] text-white/60">
                   {formatArea(property.area_value, property.area_unit, lang, { includeSqft: false })}
                 </span>
               </div>
+            </div>
+
+            {/* ======================================================== */}
+            {/* CHAPTER 02: THE DETAILS (SPECS, DESCRIPTION & AMENITIES) */}
+            {/* ======================================================== */}
+            <div className="flex items-center justify-between border-b border-gold/30 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full bg-gold/15 text-gold border border-gold/30 font-mono text-[10px] font-black uppercase tracking-widest">
+                  {lang === 'en' ? 'Chapter 02' : 'अध्याय ०२'}
+                </span>
+                <span className="text-xs uppercase tracking-widest font-black text-white">
+                  {lang === 'en' ? 'The Details' : 'विवरण तथा सुविधा'}
+                </span>
+              </div>
+              <span className="text-[11px] font-semibold text-gold/80 flex items-center gap-1">
+                {lang === 'en' ? 'Scroll for specifications' : 'विस्तृत विवरण हेर्नुहोस्'}
+              </span>
             </div>
 
             {/* Description Narrative */}
@@ -828,7 +870,17 @@ export default function PropertyDetailPage() {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
                 <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10">
                   <span className="text-white/60 block mb-1 font-medium">Property Subtype</span>
-                  <span className="font-bold text-white">{property.property_subtype || 'Rental'}</span>
+                  <span className="font-bold text-white">
+                    {property.property_subtype === 'FLAT'
+                      ? 'Flat / Apartment'
+                      : property.property_subtype === 'HOUSE'
+                      ? 'Independent House'
+                      : property.property_subtype === 'ROOM'
+                      ? 'Single Room'
+                      : property.property_subtype === 'SHOP'
+                      ? 'Commercial Shop'
+                      : (property.property_subtype || 'Rental')}
+                  </span>
                 </div>
 
                 <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10">
@@ -854,7 +906,15 @@ export default function PropertyDetailPage() {
 
                 <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10">
                   <span className="text-white/60 block mb-1 font-medium">Preferred Tenant</span>
-                  <span className="font-bold text-white">{property.preferred_tenant || 'Any Tenant'}</span>
+                  <span className="font-bold text-white">
+                    {property.preferred_tenant === 'FAMILY'
+                      ? (lang === 'en' ? 'Family' : 'परिवार')
+                      : property.preferred_tenant === 'BACHELOR'
+                      ? (lang === 'en' ? 'Bachelor / Students' : 'एकल / विद्यार्थी')
+                      : property.preferred_tenant === 'COMPANY'
+                      ? (lang === 'en' ? 'Corporate Office' : 'कम्पनी')
+                      : (lang === 'en' ? 'Any Tenant' : 'जोसुकै')}
+                  </span>
                 </div>
 
                 <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10">
@@ -882,7 +942,9 @@ export default function PropertyDetailPage() {
 
                 <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10">
                   <span className="text-white/60 block mb-1 font-medium">Facing / Orientation</span>
-                  <span className="font-bold text-white">{property.facing || 'East Facing'}</span>
+                  <span className="font-bold text-white">
+                    {property.facing ? `${property.facing.replace('_', ' ')} Facing` : 'East Facing'}
+                  </span>
                 </div>
 
                 <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10">
@@ -905,6 +967,23 @@ export default function PropertyDetailPage() {
                   </span>
                 </div>
               </div>
+            </div>
+
+            {/* ======================================================== */}
+            {/* CHAPTER 03: THE AREA (LOCATION & NEIGHBORHOOD MAP)       */}
+            {/* ======================================================== */}
+            <div className="flex items-center justify-between border-b border-gold/30 pb-3 pt-4">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full bg-gold/15 text-gold border border-gold/30 font-mono text-[10px] font-black uppercase tracking-widest">
+                  {lang === 'en' ? 'Chapter 03' : 'अध्याय ०३'}
+                </span>
+                <span className="text-xs uppercase tracking-widest font-black text-white">
+                  {lang === 'en' ? 'The Area' : 'लोकेसन तथा क्षेत्र'}
+                </span>
+              </div>
+              <span className="text-[11px] font-semibold text-gold/80 flex items-center gap-1">
+                {lang === 'en' ? 'Tap map to explore neighborhood' : 'नक्सामा वरपरका स्थान हेर्नुहोस्'}
+              </span>
             </div>
 
             {/* Cadastral Survey & Location Reference */}
@@ -1006,6 +1085,23 @@ export default function PropertyDetailPage() {
 
           {/* Right Column (1 Col): Direct Owner Contact, Schedule Visit & Savings */}
           <div className="lg:col-span-1 space-y-6 lg:sticky lg:top-24">
+            {/* ======================================================== */}
+            {/* CHAPTER 04: THE OWNER & DIRECT BOOKING PANEL             */}
+            {/* ======================================================== */}
+            <div className="flex items-center justify-between border-b border-gold/30 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full bg-gold/15 text-gold border border-gold/30 font-mono text-[10px] font-black uppercase tracking-widest">
+                  {lang === 'en' ? 'Chapter 04' : 'अध्याय ०४'}
+                </span>
+                <span className="text-xs uppercase tracking-widest font-black text-white">
+                  {lang === 'en' ? 'The Owner' : 'घरधनी तथा सम्पर्क'}
+                </span>
+              </div>
+              <span className="text-[11px] font-semibold text-gold/80 flex items-center gap-1">
+                {lang === 'en' ? 'Direct contact • 0% Fee' : 'सिधा सम्पर्क • ०% शुल्क'}
+              </span>
+            </div>
+
             {/* Primary Landlord Contact Card */}
             <div className="bg-white/[0.06] rounded-3xl border border-gold/30 p-6 shadow-card space-y-5">
               <div className="flex items-center justify-between pb-3 border-b border-white/10">
@@ -1112,7 +1208,7 @@ export default function PropertyDetailPage() {
                 </div>
                 <p className="text-[11px] text-white/70 leading-relaxed font-medium">
                   Traditional brokers in Nepal charge 1 month&apos;s full rent as commission. By connecting directly on Sarvabhoomi, you save{' '}
-                  <span className="font-black text-gold">
+                  <span className="font-black text-gold whitespace-nowrap">
                     Rs. {monthlyRent.toLocaleString('en-IN')}
                   </span>
                   .
@@ -1362,10 +1458,10 @@ export default function PropertyDetailPage() {
       {/* Mobile Sticky Bottom Action Bar (<= 1024px) */}
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-black/95 backdrop-blur-md border-t border-gold/30 p-3 sm:p-4 lg:hidden shadow-card flex items-center justify-between gap-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div className="min-w-0">
-          <div className="text-base sm:text-lg font-black text-gold truncate">
+          <div className="text-base sm:text-lg font-black text-gold truncate whitespace-nowrap">
             {formatMonthlyRentNPR(monthlyRent, lang)}
           </div>
-          <div className="text-[10px] text-white/60 truncate font-medium">
+          <div className="text-[10px] text-white/60 truncate whitespace-nowrap font-medium">
             Deposit: {formatDeposit(property.deposit_npr, lang)}
           </div>
         </div>
