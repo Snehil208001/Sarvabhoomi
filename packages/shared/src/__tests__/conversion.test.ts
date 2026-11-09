@@ -8,6 +8,12 @@ import {
   formatFurnishing,
   formatViewsCount,
   SQFT_PER_UNIT,
+  rapdToSqFt,
+  sqFtToRAPD,
+  bkdToSqFt,
+  sqFtToBKD,
+  sqFtToSqMeters,
+  sqMetersToSqFt,
 } from '../units/conversion';
 
 describe('Nepal Land Unit Conversions', () => {
@@ -112,6 +118,61 @@ describe('Rental Furnishing & Views Formatting', () => {
     // Nepali translations
     expect(formatViewsCount(1, 'ne')).toBe('1 पटक हेरिएको');
     expect(formatViewsCount(5, 'ne')).toBe('5 पटक हेरिएको');
+  });
+});
+
+describe('Valley (RAPD) and Terai (BKD) Composite Calculations', () => {
+  it('converts Ropani-Aana-Paisa-Daam to Sq. Ft. correctly', () => {
+    // 1-0-0-0 = 5476
+    expect(rapdToSqFt(1, 0, 0, 0)).toBe(5476);
+    // 0-4-0-0 = 1369
+    expect(rapdToSqFt(0, 4, 0, 0)).toBe(1369);
+    // 1-2-1-1 = 5476 + 684.5 + 85.5625 + 21.390625 = 6267.45
+    expect(rapdToSqFt(1, 2, 1, 1)).toBeCloseTo(6267.45, 1);
+  });
+
+  it('converts Sq. Ft. to Ropani-Aana-Paisa-Daam breakdown correctly', () => {
+    const res = sqFtToRAPD(5476);
+    expect(res.ropani).toBe(1);
+    expect(res.aana).toBe(0);
+    expect(res.paisa).toBe(0);
+    expect(res.daam).toBe(0);
+    expect(res.formatted).toBe('1-0-0-0');
+
+    const res2 = sqFtToRAPD(1369);
+    expect(res2.ropani).toBe(0);
+    expect(res2.aana).toBe(4);
+    expect(res2.formatted).toBe('0-4-0-0');
+  });
+
+  it('converts Bigha-Katha-Dhur to Sq. Ft. correctly', () => {
+    // 1-0-0 = 72900
+    expect(bkdToSqFt(1, 0, 0)).toBe(72900);
+    // 0-1-0 = 3645
+    expect(bkdToSqFt(0, 1, 0)).toBe(3645);
+    // 0-0-1 = 182.25
+    expect(bkdToSqFt(0, 0, 1)).toBe(182.25);
+    // 1-2-10 = 72900 + 7290 + 1822.5 = 82012.5
+    expect(bkdToSqFt(1, 2, 10)).toBe(82012.5);
+  });
+
+  it('converts Sq. Ft. to Bigha-Katha-Dhur breakdown correctly', () => {
+    const res = sqFtToBKD(72900);
+    expect(res.bigha).toBe(1);
+    expect(res.katha).toBe(0);
+    expect(res.dhur).toBe(0);
+    expect(res.formatted).toBe('1-0-0');
+
+    const res2 = sqFtToBKD(3645);
+    expect(res2.bigha).toBe(0);
+    expect(res2.katha).toBe(1);
+    expect(res2.dhur).toBe(0);
+    expect(res2.formatted).toBe('0-1-0');
+  });
+
+  it('converts between Sq. Ft. and Sq. Meters accurately', () => {
+    expect(sqFtToSqMeters(1000)).toBe(92.9);
+    expect(sqMetersToSqFt(92.9)).toBeCloseTo(1000, 0);
   });
 });
 

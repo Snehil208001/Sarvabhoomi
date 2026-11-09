@@ -188,5 +188,107 @@ export function formatViewsCount(count: number | null | undefined, lang: 'en' | 
   return views === 1 ? '1 view' : `${views.toLocaleString('en-IN')} views`;
 }
 
+/**
+ * Kathmandu Valley System: Ropani-Aana-Paisa-Daam (RAPD) Constants & Math
+ * 1 Ropani = 16 Aana = 5,476 sq ft
+ * 1 Aana = 4 Paisa = 342.25 sq ft
+ * 1 Paisa = 4 Daam = 85.5625 sq ft
+ * 1 Daam = 21.390625 sq ft
+ */
+export function rapdToSqFt(ropani: number, aana: number, paisa: number = 0, daam: number = 0): number {
+  const r = Math.max(0, Number(ropani) || 0);
+  const a = Math.max(0, Number(aana) || 0);
+  const p = Math.max(0, Number(paisa) || 0);
+  const d = Math.max(0, Number(daam) || 0);
+  const sqft = (r * 5476) + (a * 342.25) + (p * 85.5625) + (d * 21.390625);
+  return Math.round(sqft * 100) / 100;
+}
+
+export function sqFtToRAPD(sqft: number): {
+  ropani: number;
+  aana: number;
+  paisa: number;
+  daam: number;
+  formatted: string;
+} {
+  if (!sqft || sqft <= 0 || isNaN(sqft)) {
+    return { ropani: 0, aana: 0, paisa: 0, daam: 0, formatted: '0-0-0-0' };
+  }
+  let remaining = sqft;
+  const ropani = Math.floor(remaining / 5476);
+  remaining %= 5476;
+
+  const aana = Math.floor(remaining / 342.25);
+  remaining %= 342.25;
+
+  const paisa = Math.floor(remaining / 85.5625);
+  remaining %= 85.5625;
+
+  const daam = Math.round((remaining / 21.390625) * 10) / 10;
+
+  return {
+    ropani,
+    aana,
+    paisa,
+    daam,
+    formatted: `${ropani}-${aana}-${paisa}-${daam}`,
+  };
+}
+
+/**
+ * Terai Plains System: Bigha-Katha-Dhur (BKD) Constants & Math
+ * 1 Bigha = 20 Katha = 72,900 sq ft
+ * 1 Katha = 20 Dhur = 3,645 sq ft
+ * 1 Dhur = 182.25 sq ft
+ */
+export function bkdToSqFt(bigha: number, katha: number, dhur: number = 0): number {
+  const b = Math.max(0, Number(bigha) || 0);
+  const k = Math.max(0, Number(katha) || 0);
+  const d = Math.max(0, Number(dhur) || 0);
+  const sqft = (b * 72900) + (k * 3645) + (d * 182.25);
+  return Math.round(sqft * 100) / 100;
+}
+
+export function sqFtToBKD(sqft: number): {
+  bigha: number;
+  katha: number;
+  dhur: number;
+  formatted: string;
+} {
+  if (!sqft || sqft <= 0 || isNaN(sqft)) {
+    return { bigha: 0, katha: 0, dhur: 0, formatted: '0-0-0' };
+  }
+  let remaining = sqft;
+  const bigha = Math.floor(remaining / 72900);
+  remaining %= 72900;
+
+  const katha = Math.floor(remaining / 3645);
+  remaining %= 3645;
+
+  const dhur = Math.round((remaining / 182.25) * 10) / 10;
+
+  return {
+    bigha,
+    katha,
+    dhur,
+    formatted: `${bigha}-${katha}-${dhur}`,
+  };
+}
+
+/**
+ * Metric <-> Imperial Land Equivalents
+ * 1 sq ft = 0.092903 sq meter
+ */
+export function sqFtToSqMeters(sqft: number): number {
+  if (!sqft || sqft <= 0 || isNaN(sqft)) return 0;
+  return Math.round(sqft * 0.092903 * 100) / 100;
+}
+
+export function sqMetersToSqFt(sqm: number): number {
+  if (!sqm || sqm <= 0 || isNaN(sqm)) return 0;
+  return Math.round((sqm / 0.092903) * 100) / 100;
+}
+
+
 
 
