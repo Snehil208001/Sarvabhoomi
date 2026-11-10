@@ -38,6 +38,7 @@ const LOGIN_STEPS: StepItem[] = [
 function AuthContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const nextParam = searchParams.get('next');
 
   // Mode: 'login' or 'signup' (initialized from URL ?mode=login / ?mode=signup)
   const [authMode, setAuthMode] = useState<AuthMode>('signup');
@@ -76,7 +77,7 @@ function AuthContent() {
 
   // Step 3: Role Selection State
   const [userId, setUserId] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<UserRole>('RENTER');
+  const [userRole, setUserRole] = useState<UserRole>(nextParam === '/post-property' ? 'OWNER' : 'RENTER');
   const [isRoleMigration, setIsRoleMigration] = useState<boolean>(false);
 
   // Global loading and feedback
@@ -119,7 +120,9 @@ function AuthContent() {
               setStep('ROLE_SELECT');
               return;
             }
-            if (profile.user_role === 'RENTER') {
+            if (nextParam && profile.user_role !== 'RENTER') {
+              router.push(nextParam);
+            } else if (profile.user_role === 'RENTER') {
               router.push('/search');
             } else {
               router.push('/dashboard');
@@ -136,7 +139,7 @@ function AuthContent() {
     return () => {
       isMounted = false;
     };
-  }, [router]);
+  }, [router, nextParam]);
 
   // Resend Countdown Timer effect
   useEffect(() => {
@@ -453,7 +456,9 @@ function AuthContent() {
             setStep('ROLE_SELECT');
             return;
           }
-          if (profile.user_role === 'RENTER') {
+          if (nextParam && profile.user_role !== 'RENTER') {
+            router.push(nextParam);
+          } else if (profile.user_role === 'RENTER') {
             router.push('/search');
           } else {
             router.push('/dashboard');
@@ -553,7 +558,9 @@ function AuthContent() {
       }
 
       // Instant destination redirect based on role
-      if (userRole === 'RENTER') {
+      if (nextParam && userRole === 'OWNER') {
+        router.push(nextParam);
+      } else if (userRole === 'RENTER') {
         router.push('/search');
       } else {
         router.push('/dashboard');
@@ -635,6 +642,18 @@ function AuthContent() {
       {/* Main Container */}
       <main className="flex-1 max-w-2xl w-full mx-auto px-4 py-6 sm:py-10 flex flex-col justify-center">
         <div className="bg-white/[0.06] border border-gold/30 rounded-3xl shadow-card overflow-hidden">
+          {/* Post Property Intent Trust Banner */}
+          {nextParam === '/post-property' && (
+            <div className="bg-gold/15 border-b border-gold/30 px-5 py-3 flex items-center gap-2.5 text-xs text-gold font-bold">
+              <Sparkles className="w-4 h-4 text-gold shrink-0" />
+              <span>
+                {lang === 'en'
+                  ? 'Sign in to list your property for free in 2 minutes • 0% Brokerage'
+                  : '२ मिनेटमै आफ्नो घर/कोठा निःशुल्क सूचीकृत गर्न साइन इन गर्नुहोस् • ०% दलाली'}
+              </span>
+            </div>
+          )}
+
           {/* Top Progress Bar */}
           <div className="border-b border-white/10 bg-black/40 p-4 sm:px-6">
             <div className="flex items-center justify-between relative">

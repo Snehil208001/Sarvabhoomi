@@ -15,6 +15,7 @@ import {
   X,
   RefreshCw,
   MessageCircle,
+  Calendar,
 } from 'lucide-react';
 import { Property, formatPriceNPR } from '@sarvabhoomi/shared';
 import { supabase } from '@/lib/supabase';
@@ -52,6 +53,27 @@ export function ContactUnlockModal({
   const isOwner = currentUser?.id === property.owner_id;
   const isAlreadyUnlocked = property.is_unlocked || unlockedData !== null;
   const needsName = Boolean(currentUser && (!currentUser.fullName || currentUser.fullName.trim() === ''));
+
+  const ownerPhone = unlockedData?.phone || property.owner?.phone_np || '+977 9841000000';
+  const ownerName = unlockedData?.name || property.owner?.full_name || (lang === 'en' ? 'Verified Landlord' : 'प्रमाणित घरधनी');
+  const cleanPhone = ownerPhone.replace(/[^0-9]/g, '');
+
+  const propertyUrl =
+    typeof window !== 'undefined'
+      ? `${window.location.origin}/properties/${property.id}`
+      : `https://sarvabhoomi.vercel.app/properties/${property.id}`;
+
+  const whatsappInquiryMessage = encodeURIComponent(
+    lang === 'en'
+      ? `Namaste! I found your property listing "${property.title}" on Sarvabhoomi (${propertyUrl}) and would like to inquire about renting it.`
+      : `नमस्ते! मैले तपाईंको सम्पत्ति "${property.title}" सर्वभूमि (${propertyUrl}) मा देखेको छु र यसलाई भाडामा लिन सम्पर्क गर्न चाहन्छु।`
+  );
+
+  const whatsappVisitMessage = encodeURIComponent(
+    lang === 'en'
+      ? `Namaste! I am interested in renting "${property.title}" (${propertyUrl}). I would like to schedule a physical visit to inspect the property. What date and time works best for you?`
+      : `नमस्ते! म तपाईंको सम्पत्ति "${property.title}" (${propertyUrl}) भाडामा लिन इच्छुक छु। म यसलाई स्थलगत अवलोकन गर्न चाहन्छु। तपाईंलाई कहिले अनुकूल पर्ला?`
+  );
 
   const handleUnlock = async () => {
     if (!currentUser) return;
@@ -97,38 +119,38 @@ export function ContactUnlockModal({
           .eq('id', property.owner_id)
           .maybeSingle();
 
-        const ownerPhone = ownerProfile?.phone_np || '+977 9841000000';
-        const ownerName = ownerProfile?.full_name || 'Verified Owner';
+        const fetchedPhone = ownerProfile?.phone_np || '+977 9841000000';
+        const fetchedName = ownerProfile?.full_name || 'Verified Owner';
         const nextCredits = Math.max(0, currentUser.credits - 1);
 
         setUnlockedData({
-          phone: ownerPhone,
-          name: ownerName,
+          phone: fetchedPhone,
+          name: fetchedName,
           creditsRemaining: nextCredits,
         });
 
         onUnlockSuccess(property.id, {
-          phone: ownerPhone,
-          name: ownerName,
+          phone: fetchedPhone,
+          name: fetchedName,
           creditsRemaining: nextCredits,
         });
         return;
       }
 
       if (data && data.success) {
-        const ownerPhone = data.owner_phone || '+977 9841000000';
-        const ownerName = data.owner_name || 'Verified Owner';
+        const fetchedPhone = data.owner_phone || '+977 9841000000';
+        const fetchedName = data.owner_name || 'Verified Owner';
         const remaining = data.credits_remaining ?? Math.max(0, currentUser.credits - 1);
 
         setUnlockedData({
-          phone: ownerPhone,
-          name: ownerName,
+          phone: fetchedPhone,
+          name: fetchedName,
           creditsRemaining: remaining,
         });
 
         onUnlockSuccess(property.id, {
-          phone: ownerPhone,
-          name: ownerName,
+          phone: fetchedPhone,
+          name: fetchedName,
           creditsRemaining: remaining,
         });
       } else {
@@ -194,7 +216,7 @@ export function ContactUnlockModal({
                 {property.title}
               </h4>
               <p className="text-[11px] text-white/70 font-semibold truncate">
-                {property.locality}, {property.district} • {formatPriceNPR(property.price_npr, lang)}/mo
+                {property.locality ? `${property.locality}, ` : ''}{property.district} • {formatPriceNPR(property.monthly_rent_npr || property.price_npr, lang)}/mo
               </p>
             </div>
           </div>
@@ -206,44 +228,56 @@ export function ContactUnlockModal({
                 <Lock className="w-7 h-7 stroke-[2.5]" />
               </div>
               <div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gold/15 border border-gold/30 text-gold text-xs font-black mb-2.5">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>
+                    {lang === 'en'
+                      ? '15 Complimentary Contact Unlocks'
+                      : '१५ निःशुल्क सम्पर्क अनलक'}
+                  </span>
+                </div>
                 <h4 className="text-base font-black text-white">
-                  {lang === 'en' ? 'Sign In to Unlock Owner Phone' : 'घरधनीको नम्बर हेर्न लगइन गर्नुहोस्'}
-                </h4>
-                <p className="text-xs text-white/70 mt-1 max-w-sm mx-auto leading-relaxed">
                   {lang === 'en'
-                    ? 'New users receive 15 Free Contact-Unlock Credits upon sign-in. Connect directly with owners with zero brokerage.'
-                    : 'नयाँ प्रयोगकर्ताले १५ निःशुल्क सम्पर्क क्रेडिट पाउँछन्। बिना दलाल सिधै घरधनीसँग कुरा गर्नुहोस्।'}
+                    ? 'Sign up free to claim 15 complimentary Owner Contact Unlocks'
+                    : '१५ निःशुल्क सम्पर्क अनलक दाबी गर्न साइन अप गर्नुहोस्'}
+                </h4>
+                <p className="text-xs text-white/70 mt-1.5 max-w-sm mx-auto leading-relaxed">
+                  {lang === 'en'
+                    ? 'Connect directly with verified landowners with zero brokerage. Unlocking reveals direct phone numbers and WhatsApp.'
+                    : 'कुनै पनि दलाल बिना सिधै घरधनीसँग जोडिनुहोस्। नम्बर र ह्वाट्सएप तुरुन्त खुल्छ।'}
                 </p>
               </div>
 
               <div className="pt-2">
                 <Link
-                  href="/auth"
+                  href="/auth?mode=signup"
                   className="w-full py-3.5 px-6 rounded-2xl bg-gold hover:bg-gold/90 active:scale-97 text-black font-black text-sm tracking-wide shadow-subtle flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5"
                 >
                   <Sparkles className="w-4 h-4 stroke-[2.5]" />
-                  <span>{lang === 'en' ? 'Sign In & Claim 15 Free Credits' : 'लगइन गर्नुहोस् र १५ क्रेडिट पाउनुहोस्'}</span>
+                  <span>{lang === 'en' ? 'Sign In & Claim 15 Free Credits' : 'साइन इन गर्नुहोस् र १५ क्रेडिट पाउनुहोस्'}</span>
                 </Link>
               </div>
             </div>
           ) : isAlreadyUnlocked || isOwner ? (
             /* Scenario 2: Already Unlocked (Reveal Contact Details) */
-            <div className="space-y-4 py-2">
+            <div className="space-y-4 py-1">
               <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 text-center space-y-2">
                 <div className="w-10 h-10 rounded-xl bg-gold text-black flex items-center justify-center mx-auto shadow-subtle">
                   <CheckCircle2 className="w-6 h-6 stroke-[2.5]" />
                 </div>
-                <h4 className="text-sm font-black text-white">
-                  {isOwner
-                    ? lang === 'en'
-                      ? 'You are the Owner of this Property'
-                      : 'तपाईं यस सम्पत्तिको घरधनी हुनुहुन्छ'
-                    : lang === 'en'
-                    ? 'Owner Contact Unlocked!'
-                    : 'घरधनीको सम्पर्क सफलतापूर्वक खुल्यो!'}
-                </h4>
+                <div className="flex items-center justify-center gap-2 flex-wrap">
+                  <h4 className="text-sm font-black text-white">
+                    {ownerName}
+                  </h4>
+                  <span className="px-2 py-0.5 rounded-md bg-gold/20 text-gold border border-gold/40 text-[10px] font-black uppercase flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3 text-gold" />
+                    <span>{lang === 'en' ? 'Verified Owner' : 'प्रमाणित घरधनी'}</span>
+                  </span>
+                </div>
                 <p className="text-xs text-white/70 font-semibold">
-                  {unlockedData?.name || property.owner?.full_name || 'Verified Landlord'}
+                  {lang === 'en'
+                    ? 'Direct Listing • 0% Middleman Brokerage'
+                    : 'प्रत्यक्ष सूचीकरण • ०% दलाली शुल्क'}
                 </p>
               </div>
 
@@ -254,7 +288,7 @@ export function ContactUnlockModal({
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-xl font-black text-gold tracking-wider">
-                    {unlockedData?.phone || property.owner?.phone_np || '+977 9841000000'}
+                    {ownerPhone}
                   </span>
                   <span className="text-[10px] font-black text-black bg-gold px-2 py-0.5 rounded">
                     0% Commission
@@ -264,21 +298,34 @@ export function ContactUnlockModal({
                 {/* Direct Action Buttons: Call & WhatsApp */}
                 <div className="grid grid-cols-2 gap-2 pt-2">
                   <a
-                    href={`tel:${unlockedData?.phone || property.owner?.phone_np || ''}`}
+                    href={`tel:${ownerPhone}`}
                     className="py-3 px-3 rounded-xl bg-gold hover:bg-gold/90 text-black text-xs font-black flex items-center justify-center gap-1.5 transition-all shadow-subtle active:scale-97"
                   >
                     <PhoneCall className="w-4 h-4 stroke-[2.5]" />
-                    <span>{lang === 'en' ? 'Call Now' : 'कल गर्नुहोस्'}</span>
+                    <span>{lang === 'en' ? 'Call Owner' : 'कल गर्नुहोस्'}</span>
                   </a>
 
                   <a
-                    href={`https://wa.me/${(unlockedData?.phone || property.owner?.phone_np || '').replace(/[^0-9]/g, '')}`}
+                    href={`https://wa.me/${cleanPhone}?text=${whatsappInquiryMessage}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="py-3 px-3 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white text-xs font-black flex items-center justify-center gap-1.5 transition-all active:scale-97"
                   >
                     <MessageCircle className="w-4 h-4 stroke-[2.5]" />
                     <span>WhatsApp</span>
+                  </a>
+                </div>
+
+                {/* Action 3: Schedule Physical Visit */}
+                <div className="pt-1">
+                  <a
+                    href={`https://wa.me/${cleanPhone}?text=${whatsappVisitMessage}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-2.5 px-3 rounded-xl border border-gold/40 bg-gold/10 hover:bg-gold/20 text-gold text-xs font-black flex items-center justify-center gap-2 transition-all shadow-subtle active:scale-97"
+                  >
+                    <Calendar className="w-4 h-4 stroke-[2.5]" />
+                    <span>{lang === 'en' ? 'Schedule Physical Visit' : 'स्थलगत अवलोकन समय मिलाउनुहोस्'}</span>
                   </a>
                 </div>
               </div>
@@ -290,16 +337,20 @@ export function ContactUnlockModal({
                 <div className="flex items-center justify-between text-xs font-bold text-white">
                   <span className="flex items-center gap-1.5">
                     <Coins className="w-4 h-4 text-gold stroke-[2.5]" />
-                    <span>{lang === 'en' ? 'Available Contact Balance' : 'बाँकी सम्पर्क क्रेडिट'}</span>
+                    <span>
+                      {lang === 'en'
+                        ? `You have ${currentUser.credits} of 15 Free Launch Unlocks remaining`
+                        : `तपाईंसँग १५ मध्ये ${currentUser.credits} निःशुल्क सम्पर्क अनलक बाँकी छन्`}
+                    </span>
                   </span>
-                  <span className="font-black text-black bg-gold px-2.5 py-0.5 rounded-full">
-                    {currentUser.credits} Credits
+                  <span className="font-black text-black bg-gold px-2.5 py-0.5 rounded-full shrink-0">
+                    {currentUser.credits} Left
                   </span>
                 </div>
                 <p className="text-xs text-white/70 leading-relaxed pt-1 font-medium">
                   {lang === 'en'
-                    ? "Unlocking reveals the owner's verified phone number, allows direct calling, and enables instant WhatsApp messaging."
-                    : 'क्रेडिट प्रयोग गरेपछि सिधै घरधनीको मोबाइल नम्बर खुल्नेछ र कुनै दलाल बिना सिधै कुरा गर्न सकिनेछ।'}
+                    ? "Unlocking reveals the owner's verified phone number, allows direct 1-tap calling, WhatsApp messaging, and visit scheduling."
+                    : 'क्रेडिट प्रयोग गरेपछि सिधै घरधनीको मोबाइल नम्बर खुल्नेछ र कुनै दलाल बिना सिधै कुरा गर्न वा अवलोकन समय तय गर्न सकिनेछ।'}
                 </p>
               </div>
 

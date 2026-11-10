@@ -27,6 +27,7 @@ import {
   X,
   ExternalLink,
   Send,
+  Sparkles,
 } from 'lucide-react';
 import {
   Property,
@@ -41,6 +42,7 @@ import { ContactUnlockModal } from '@/components/ContactUnlockModal';
 import { PropertyImage } from '@/components/PropertyImage';
 import { RenterNameModal } from '@/components/auth/RenterNameModal';
 import { PropertyCard } from '@/components/PropertyCard';
+import { LandCalculator } from '@/components/LandCalculator';
 import { Footer } from '@/components/Footer';
 
 export default function PropertyDetailPage() {
@@ -287,11 +289,32 @@ export default function PropertyDetailPage() {
     }
   };
 
-  const handleShare = () => {
+  const handleShare = async () => {
     if (typeof window !== 'undefined') {
-      navigator.clipboard.writeText(window.location.href);
-      setCopyFeedback(true);
-      setTimeout(() => setCopyFeedback(false), 2500);
+      const shareData = {
+        title: property ? `${property.title} - Sarvabhoomi` : 'Sarvabhoomi Rental',
+        text: property
+          ? `Verified 0% Brokerage rental in ${property.locality}, ${property.district} on Sarvabhoomi!`
+          : 'Rental on Sarvabhoomi',
+        url: window.location.href,
+      };
+
+      if (navigator.share) {
+        try {
+          await navigator.share(shareData);
+          return;
+        } catch {
+          // User dismissed or share unhandled, fall through to clipboard copy
+        }
+      }
+
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        setCopyFeedback(true);
+        setTimeout(() => setCopyFeedback(false), 2500);
+      } catch (clipErr) {
+        console.warn('Clipboard write error:', clipErr);
+      }
     }
   };
 
@@ -547,6 +570,26 @@ export default function PropertyDetailPage() {
 
       {/* Main Container */}
       <main className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8 flex-1 pb-28 lg:pb-8">
+        {/* Breadcrumb Navigation Trail */}
+        <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-white/60 flex-wrap">
+          <Link href="/" className="hover:text-gold transition-colors font-semibold">
+            {lang === 'en' ? 'Home' : 'गृहपृष्ठ'}
+          </Link>
+          <span className="text-white/40">/</span>
+          <Link href="/search" className="hover:text-gold transition-colors font-semibold">
+            {lang === 'en' ? 'Search Rentals' : 'भाडा खोज'}
+          </Link>
+          <span className="text-white/40">/</span>
+          <Link
+            href={`/search?district=${encodeURIComponent(property.district)}`}
+            className="hover:text-gold transition-colors font-semibold"
+          >
+            {property.district}
+          </Link>
+          <span className="text-white/40">/</span>
+          <span className="text-gold font-bold truncate max-w-[200px] sm:max-w-xs">{property.title}</span>
+        </nav>
+
         {/* ============================================================ */}
         {/* CHAPTER 01: THE HOME (GALLERY & TERMS DASHBOARD)            */}
         {/* ============================================================ */}
@@ -833,6 +876,148 @@ export default function PropertyDetailPage() {
               </div>
             </div>
 
+            {/* Zero-Brokerage Savings Breakdown Card */}
+            <div className="bg-white/[0.06] rounded-3xl border border-emerald-500/30 p-6 sm:p-7 shadow-card space-y-4 backdrop-blur-md">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shadow-subtle">
+                    <Sparkles className="w-4 h-4 stroke-[2.5]" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-white">
+                      {lang === 'en' ? 'Zero-Brokerage Savings Breakdown' : '०% दलाली बचत विवरण'}
+                    </h3>
+                    <p className="text-[11px] text-white/70 font-medium">
+                      {lang === 'en'
+                        ? 'Direct peer-to-peer rental • Zero middleman broker commission'
+                        : 'सिधै घरधनीसँग सम्झौता • कुनै बिचौलिया दलाली शुल्क छैन'}
+                    </p>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-black uppercase tracking-wider">
+                  100% P2P Free
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                {/* Traditional Agent Fee (Crossed Out) */}
+                <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10">
+                  <span className="text-white/60 block text-[10px] uppercase font-bold tracking-wider">
+                    {lang === 'en' ? 'Traditional Broker Fee' : 'परम्परागत दलाल शुल्क'}
+                  </span>
+                  <div className="flex items-baseline gap-2 mt-1">
+                    <span className="text-lg font-black text-rose-400 line-through">
+                      Rs. {monthlyRent.toLocaleString('en-IN')}
+                    </span>
+                    <span className="text-[10px] text-rose-300 font-bold bg-rose-500/10 px-1.5 py-0.5 rounded">
+                      -1 Month Rent
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-white/50 block mt-0.5">
+                    {lang === 'en' ? 'Charged by Nepal middlemen' : 'एजेन्टहरूले लिने कमिसन'}
+                  </span>
+                </div>
+
+                {/* Sarvabhoomi Fee */}
+                <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10">
+                  <span className="text-white/60 block text-[10px] uppercase font-bold tracking-wider">
+                    {lang === 'en' ? 'Sarvabhoomi P2P Fee' : 'सर्वभूमि सेवा शुल्क'}
+                  </span>
+                  <div className="flex items-baseline gap-2 mt-1">
+                    <span className="text-lg font-black text-gold">
+                      Rs. 0
+                    </span>
+                    <span className="text-[10px] text-black font-black bg-gold px-1.5 py-0.5 rounded">
+                      FREE
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-gold/80 font-bold block mt-0.5">
+                    {lang === 'en' ? 'Direct owner connection' : 'शून्य कमिसन प्रत्यक्ष सम्पर्क'}
+                  </span>
+                </div>
+
+                {/* Net Savings */}
+                <div className="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-400">
+                  <span className="text-emerald-300 block text-[10px] uppercase font-black tracking-wider">
+                    {lang === 'en' ? 'You Save Instantly' : 'तपाईंको कुल सिधा बचत'}
+                  </span>
+                  <span className="text-xl font-black text-emerald-400 mt-1 block">
+                    Rs. {monthlyRent.toLocaleString('en-IN')}
+                  </span>
+                  <span className="text-[11px] text-emerald-300 font-semibold block mt-0.5">
+                    {lang === 'en' ? '100% saved in your pocket' : 'तपाईंको आफ्नै खल्तीमा बचत'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Lalpurja & Cadastral Verification Trust Card */}
+            <div className="bg-white/[0.06] rounded-3xl border border-gold/30 p-6 sm:p-7 shadow-card space-y-4 backdrop-blur-md">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-2xl bg-gold text-black flex items-center justify-center shadow-subtle">
+                    <ShieldCheck className="w-5 h-5 stroke-[2.5]" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-gold">
+                      {lang === 'en' ? 'Lalpurja & Cadastral Ownership Verification' : 'लालपुर्जा तथा सरकारी नापी स्वामित्व'}
+                    </h3>
+                    <p className="text-xs text-white/70 font-medium">
+                      {lang === 'en'
+                        ? 'Verified against official Nepal cadastral records to prevent duplicate broker fraud'
+                        : 'नक्कली विज्ञापन तथा बिचौलिया रोक्न सरकारी कित्ता अनुसार प्रमाणित'}
+                    </p>
+                  </div>
+                </div>
+                <span className="px-3 py-1 rounded-full bg-gold text-black font-black text-xs uppercase tracking-wider shadow-subtle">
+                  {property.admin_verified
+                    ? 'Gold Verified'
+                    : property.owner_declared_lalpurja
+                    ? 'Claimed Lalpurja'
+                    : 'P2P Verified'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10">
+                  <span className="text-white/60 block text-[10px] uppercase font-bold tracking-wider">
+                    {lang === 'en' ? 'Cadastral Kitta / Parcel' : 'सरकारी कित्ता नम्बर'}
+                  </span>
+                  <span className="text-base font-mono font-bold text-gold mt-1 block">
+                    {property.kitta_no ? `Kitta #${property.kitta_no}` : 'Verified on Inquiry'}
+                  </span>
+                  <span className="text-[11px] text-white/60">
+                    {property.district} District • Ward {property.ward || 'Main'}
+                  </span>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10">
+                  <span className="text-white/60 block text-[10px] uppercase font-bold tracking-wider">
+                    {lang === 'en' ? 'Landlord Identity' : 'घरधनी प्रमाणीकरण'}
+                  </span>
+                  <span className="text-base font-bold text-white mt-1 block flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-gold shrink-0" />
+                    <span>{lang === 'en' ? 'Direct Landlord' : 'प्रत्यक्ष घरधनी'}</span>
+                  </span>
+                  <span className="text-[11px] text-white/60">
+                    {lang === 'en' ? 'Phone verified • No middleman broker' : 'फोन प्रमाणित • शून्य बिचौलिया'}
+                  </span>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10">
+                  <span className="text-white/60 block text-[10px] uppercase font-bold tracking-wider">
+                    {lang === 'en' ? 'Key Handover Security' : 'चाबी हस्तान्तरण सुरक्षा'}
+                  </span>
+                  <span className="text-base font-bold text-white mt-1 block">
+                    {lang === 'en' ? 'Direct P2P Handover' : 'सिधै घरधनीबाट चाबी'}
+                  </span>
+                  <span className="text-[11px] text-white/60">
+                    {lang === 'en' ? 'Inspect in person before paying deposit' : 'अग्रिम अवलोकन पछि मात्र बैना गर्नुहोस्'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
             {/* ======================================================== */}
             {/* CHAPTER 02: THE DETAILS (SPECS, DESCRIPTION & AMENITIES) */}
             {/* ======================================================== */}
@@ -1081,10 +1266,13 @@ export default function PropertyDetailPage() {
                 </div>
               </div>
             </div>
+
+            {/* Nepal Cadastral Land Measurement Converter */}
+            <LandCalculator lang={lang} />
           </div>
 
           {/* Right Column (1 Col): Direct Owner Contact, Schedule Visit & Savings */}
-          <div className="lg:col-span-1 space-y-6 lg:sticky lg:top-24">
+          <div className="lg:col-span-1 space-y-6 lg:sticky lg:top-24 self-start">
             {/* ======================================================== */}
             {/* CHAPTER 04: THE OWNER & DIRECT BOOKING PANEL             */}
             {/* ======================================================== */}
@@ -1455,47 +1643,52 @@ export default function PropertyDetailPage() {
         </div>
       )}
 
-      {/* Mobile Sticky Bottom Action Bar (<= 1024px) */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-black/95 backdrop-blur-md border-t border-gold/30 p-3 sm:p-4 lg:hidden shadow-card flex items-center justify-between gap-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      {/* Mobile Sticky Bottom Action Bar (< 1024px) */}
+      <div className="fixed bottom-0 inset-x-0 z-40 bg-black/95 backdrop-blur-md border-t border-gold/30 p-3 sm:px-6 lg:hidden shadow-card flex items-center justify-between gap-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div className="min-w-0">
-          <div className="text-base sm:text-lg font-black text-gold truncate whitespace-nowrap">
-            {formatMonthlyRentNPR(monthlyRent, lang)}
+          <div className="text-[10px] text-white/60 uppercase font-bold tracking-wider">
+            {lang === 'en' ? 'Monthly Rent' : 'मासिक भाडा'}
           </div>
-          <div className="text-[10px] text-white/60 truncate whitespace-nowrap font-medium">
-            Deposit: {formatDeposit(property.deposit_npr, lang)}
+          <div className="flex items-baseline gap-1">
+            <span className="text-base sm:text-lg font-black text-gold truncate whitespace-nowrap">
+              {formatMonthlyRentNPR(monthlyRent, lang)}
+            </span>
+            <span className="text-[10px] text-white/50 font-semibold">/mo</span>
           </div>
         </div>
+
         <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              const el = document.getElementById('chapter-owner');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+              else window.scrollTo({ top: document.body.scrollHeight / 2, behavior: 'smooth' });
+            }}
+            className="px-3 py-2.5 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white font-bold text-xs flex items-center gap-1.5 min-h-touch active:scale-95 transition-colors"
+          >
+            <Calendar className="w-3.5 h-3.5 text-gold" />
+            <span>{lang === 'en' ? 'Request Visit' : 'भिजिट'}</span>
+          </button>
+
           {isUnlocked && ownerContact ? (
             <a
               href={`tel:${ownerContact.phone}`}
-              className="px-4 py-2.5 rounded-xl bg-gold text-black font-black text-xs flex items-center gap-1.5 shadow-subtle min-h-touch active:scale-95"
+              className="px-4 py-2.5 rounded-xl bg-gold hover:bg-gold/90 text-black font-black text-xs flex items-center gap-1.5 shadow-subtle min-h-touch active:scale-95 transition-transform"
             >
               <PhoneCall className="w-3.5 h-3.5" />
-              <span>Call</span>
+              <span>{lang === 'en' ? 'Call Owner' : 'कल गर्नुहोस्'}</span>
             </a>
           ) : (
             <button
               type="button"
               onClick={() => setIsUnlockModalOpen(true)}
-              className="px-4 py-2.5 rounded-xl bg-gold text-black font-black text-xs flex items-center gap-1.5 shadow-subtle min-h-touch active:scale-95"
+              className="px-4 py-2.5 rounded-xl bg-gold hover:bg-gold/90 text-black font-black text-xs flex items-center gap-1.5 shadow-subtle min-h-touch active:scale-95 transition-transform"
             >
               <Unlock className="w-3.5 h-3.5" />
-              <span>Contact Landlord</span>
+              <span>{lang === 'en' ? 'Unlock Owner Contact' : 'घरधनी सम्पर्क'}</span>
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => {
-              const el = document.getElementById('visit-section');
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
-              else window.scrollTo({ top: document.body.scrollHeight / 2, behavior: 'smooth' });
-            }}
-            className="px-3 py-2.5 rounded-xl bg-white/10 border border-white/20 text-white font-bold text-xs flex items-center gap-1.5 min-h-touch active:scale-95"
-          >
-            <Calendar className="w-3.5 h-3.5 text-gold" />
-            <span className="hidden xs:inline">Visit</span>
-          </button>
         </div>
       </div>
 

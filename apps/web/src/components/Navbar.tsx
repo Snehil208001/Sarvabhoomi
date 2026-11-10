@@ -209,7 +209,7 @@ export function Navbar({ lang = 'en', onToggleLang, currentUser }: NavbarProps) 
             {/* Desktop Post Rental CTA: Gold Button (Hidden on mobile ≤768px / lg:inline-flex) */}
             {user?.userRole !== 'RENTER' ? (
               <Link
-                href={user ? '/post-property' : '/auth?mode=signup'}
+                href={user ? '/post-property' : '/auth?mode=signup&next=/post-property'}
                 className="hidden lg:inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gold hover:bg-gold/90 text-black text-xs sm:text-sm font-black transition-all shadow-subtle hover:-translate-y-0.5 active:scale-97 whitespace-nowrap min-h-touch"
               >
                 <PlusCircle className="w-4 h-4 text-black stroke-[2.5]" />
@@ -324,7 +324,7 @@ export function Navbar({ lang = 'en', onToggleLang, currentUser }: NavbarProps) 
               {/* Post Free Property / Find Rentals CTA in mobile menu */}
               {user?.userRole !== 'RENTER' ? (
                 <Link
-                  href={user ? '/post-property' : '/auth?mode=signup'}
+                  href={user ? '/post-property' : '/auth?mode=signup&next=/post-property'}
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex items-center justify-center gap-2 min-h-[44px] py-2.5 px-4 text-sm font-black text-black bg-gold hover:bg-gold/90 rounded-xl transition-all shadow-subtle mt-2"
                 >
@@ -390,7 +390,7 @@ export function Navbar({ lang = 'en', onToggleLang, currentUser }: NavbarProps) 
       {/* Mobile Floating Action Button (FAB) at bottom-right (≤768px / lg:hidden, 56px Gold circle) */}
       {user?.userRole !== 'RENTER' ? (
         <Link
-          href={user ? '/post-property' : '/auth?mode=signup'}
+          href={user ? '/post-property' : '/auth?mode=signup&next=/post-property'}
           className={`lg:hidden fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-gold text-black shadow-card flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-300 focus:outline-none ring-2 ring-black/60 group ${
             hideFab ? 'opacity-0 pointer-events-none translate-y-6 scale-90' : 'opacity-100 pointer-events-auto translate-y-0 scale-100'
           }`}

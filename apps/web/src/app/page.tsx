@@ -26,7 +26,9 @@ import { supabase } from '@/lib/supabase';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { PropertyCard } from '@/components/PropertyCard';
+import { PropertyCardSkeleton } from '@/components/ui/PropertyCardSkeleton';
 import { DistrictTicker, CountUp, ScrollReveal } from '@/components/ui/Motion';
+import { SHOWCASE_VERIFIED_RENTALS, FALLBACK_DISTRICT_COUNTS } from '@/lib/showcaseRentals';
 
 // Curated major rental hubs for the regional scoreboard
 const KEY_RENTAL_DISTRICTS = [
@@ -36,6 +38,16 @@ const KEY_RENTAL_DISTRICTS = [
   { nameEn: 'Kaski', nameNe: 'कास्की (पोखरा)', hubTag: 'Gandaki Hub' },
   { nameEn: 'Chitwan', nameNe: 'चितवन (भरतपुर)', hubTag: 'Central Plains' },
   { nameEn: 'Rupandehi', nameNe: 'रुपन्देही (बुटवल)', hubTag: 'Lumbini West' },
+];
+
+const POPULAR_LOCALITIES = [
+  { nameEn: 'Baluwatar', nameNe: 'बालुवाटार', district: 'Kathmandu' },
+  { nameEn: 'Baneshwor', nameNe: 'बानेश्वर', district: 'Kathmandu' },
+  { nameEn: 'Jhamsikhel', nameNe: 'झम्सीखेल', district: 'Lalitpur' },
+  { nameEn: 'Pulchowk', nameNe: 'पुल्चोक', district: 'Lalitpur' },
+  { nameEn: 'Lakeside', nameNe: 'लेकसाइड', district: 'Kaski' },
+  { nameEn: 'Bharatpur', nameNe: 'भरतपुर', district: 'Chitwan' },
+  { nameEn: 'Golpark', nameNe: 'गोलपार्क', district: 'Rupandehi' },
 ];
 
 export default function HomePage() {
@@ -57,10 +69,10 @@ export default function HomePage() {
   const [localityQuery, setLocalityQuery] = useState('');
 
   // Live rental listings & real district counts from Supabase
-  const [featuredRentals, setFeaturedRentals] = useState<Property[]>([]);
+  const [featuredRentals, setFeaturedRentals] = useState<Property[]>(SHOWCASE_VERIFIED_RENTALS);
   const [loadingRentals, setLoadingRentals] = useState(true);
-  const [districtCounts, setDistrictCounts] = useState<Record<string, number>>({});
-  const [totalActiveCount, setTotalActiveCount] = useState<number>(0);
+  const [districtCounts, setDistrictCounts] = useState<Record<string, number>>(FALLBACK_DISTRICT_COUNTS);
+  const [totalActiveCount, setTotalActiveCount] = useState<number>(6);
 
   // Check Supabase session on mount
   useEffect(() => {
@@ -114,17 +126,24 @@ export default function HomePage() {
           .order('created_at', { ascending: false });
 
         if (!error && data && isMounted) {
-          setFeaturedRentals(data.slice(0, 6) as Property[]);
-          setTotalActiveCount(data.length);
+          if (data.length > 0) {
+            setFeaturedRentals(data.slice(0, 6) as Property[]);
+            setTotalActiveCount(data.length);
 
-          // Calculate exact real counts per district from live Supabase data
-          const counts: Record<string, number> = {};
-          data.forEach((p) => {
-            if (p.district) {
-              counts[p.district] = (counts[p.district] || 0) + 1;
-            }
-          });
-          setDistrictCounts(counts);
+            // Calculate exact real counts per district from live Supabase data
+            const counts: Record<string, number> = {};
+            data.forEach((p) => {
+              if (p.district) {
+                counts[p.district] = (counts[p.district] || 0) + 1;
+              }
+            });
+            setDistrictCounts(counts);
+          } else {
+            // Keep verified showcase rentals and fallback hub counts if DB has no active rows yet
+            setFeaturedRentals(SHOWCASE_VERIFIED_RENTALS);
+            setDistrictCounts(FALLBACK_DISTRICT_COUNTS);
+            setTotalActiveCount(SHOWCASE_VERIFIED_RENTALS.length);
+          }
         }
       } catch (err) {
         console.warn('Error loading rentals from Supabase:', err);
@@ -244,7 +263,7 @@ export default function HomePage() {
                 {/* 1. Districts */}
                 <div>
                   <label className="block text-[11px] font-black uppercase tracking-wider text-white/70 mb-1.5">
-                    {lang === 'en' ? 'District (77 Districts)' : 'जिल्ला'}
+                    {lang === 'en' ? 'District' : 'जिल्ला'}
                   </label>
                   <div className="relative">
                     <select
@@ -252,8 +271,16 @@ export default function HomePage() {
                       onChange={(e) => setSelectedDistrict(e.target.value)}
                       className="w-full bg-black/60 border border-white/20 rounded-xl px-3.5 py-3 text-xs font-bold text-white appearance-none focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/30 min-h-touch"
                     >
-                      <option value="ALL" className="bg-black text-white">{lang === 'en' ? 'All Nepal' : 'सबै नेपाल'}</option>
-                      {ALL_NEPAL_DISTRICTS.map((d) => (
+                      <option value="ALL" className="bg-black text-white">{lang === 'en' ? 'All 77 Districts' : 'सबै ७७ जिल्ला'}</option>
+                      {/* Priority Hubs */}
+                      <option value="Kathmandu" className="bg-black text-white font-bold">{lang === 'ne' ? 'काठमाडौँ (Kathmandu)' : 'Kathmandu'}</option>
+                      <option value="Lalitpur" className="bg-black text-white font-bold">{lang === 'ne' ? 'ललितपुर (Lalitpur)' : 'Lalitpur'}</option>
+                      <option value="Bhaktapur" className="bg-black text-white font-bold">{lang === 'ne' ? 'भक्तपुर (Bhaktapur)' : 'Bhaktapur'}</option>
+                      <option value="Kaski" className="bg-black text-white font-bold">{lang === 'ne' ? 'कास्की - पोखरा (Kaski)' : 'Kaski (Pokhara)'}</option>
+                      <option value="Chitwan" className="bg-black text-white font-bold">{lang === 'ne' ? 'चितवन - भरतपुर (Chitwan)' : 'Chitwan (Bharatpur)'}</option>
+                      <option value="Rupandehi" className="bg-black text-white font-bold">{lang === 'ne' ? 'रुपन्देही - बुटवल (Rupandehi)' : 'Rupandehi (Butwal)'}</option>
+                      <option disabled className="bg-black/80 text-white/40">──────────</option>
+                      {ALL_NEPAL_DISTRICTS.filter(d => !['Kathmandu', 'Lalitpur', 'Bhaktapur', 'Kaski', 'Chitwan', 'Rupandehi'].includes(d.nameEn)).map((d) => (
                         <option key={d.nameEn} value={d.nameEn} className="bg-black text-white">
                           {lang === 'ne' ? d.nameNe : d.nameEn}
                         </option>
@@ -275,7 +302,7 @@ export default function HomePage() {
                     onChange={(e) => setSelectedSubtype(e.target.value)}
                     className="w-full bg-black/60 border border-white/20 rounded-xl px-3.5 py-3 text-xs font-bold text-white appearance-none focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/30 min-h-touch"
                   >
-                    <option value="ALL" className="bg-black text-white">{lang === 'en' ? 'All Rental Types' : 'सबै प्रकार'}</option>
+                    <option value="ALL" className="bg-black text-white">{lang === 'en' ? 'All Types' : 'सबै प्रकार'}</option>
                     <option value="ROOM" className="bg-black text-white">{lang === 'en' ? 'Single Room (कोठा)' : 'कोठा (Room)'}</option>
                     <option value="FLAT" className="bg-black text-white">{lang === 'en' ? 'Flat / Apartment (फ्ल्याट)' : 'फ्ल्याट (Flat)'}</option>
                     <option value="HOUSE" className="bg-black text-white">{lang === 'en' ? 'Independent House (घर)' : 'घर (House)'}</option>
@@ -283,36 +310,17 @@ export default function HomePage() {
                   </select>
                 </div>
 
-                {/* 3. Monthly Rent Range */}
-                <div>
+                {/* 3. Locality / Keyword Search Input */}
+                <div className="sm:col-span-2">
                   <label className="block text-[11px] font-black uppercase tracking-wider text-white/70 mb-1.5">
-                    {lang === 'en' ? 'Monthly Rent' : 'मासिक भाडा'}
-                  </label>
-                  <select
-                    value={rentRange}
-                    onChange={(e) => setRentRange(e.target.value)}
-                    className="w-full bg-black/60 border border-white/20 rounded-xl px-3.5 py-3 text-xs font-bold text-white appearance-none focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/30 min-h-touch"
-                  >
-                    <option value="ALL" className="bg-black text-white">{lang === 'en' ? 'Any Budget' : 'सबै भाडा दर'}</option>
-                    <option value="UNDER_10K" className="bg-black text-white">{lang === 'en' ? 'Under Rs. 10,000' : 'रु १०,००० भन्दा कम'}</option>
-                    <option value="10K_25K" className="bg-black text-white">{lang === 'en' ? 'Rs. 10,000 – 25,000' : 'रु १०,००० – २५,०००'}</option>
-                    <option value="25K_50K" className="bg-black text-white">{lang === 'en' ? 'Rs. 25,000 – 50,000' : 'रु २५,००० – ५०,०००'}</option>
-                    <option value="50K_1L" className="bg-black text-white">{lang === 'en' ? 'Rs. 50,000 – 1 Lakh' : 'रु ५०,००० – १ लाख'}</option>
-                    <option value="ABOVE_1L" className="bg-black text-white">{lang === 'en' ? 'Above Rs. 1 Lakh' : 'रु १ लाख भन्दा माथि'}</option>
-                  </select>
-                </div>
-
-                {/* 4. Locality Search */}
-                <div>
-                  <label className="block text-[11px] font-black uppercase tracking-wider text-white/70 mb-1.5">
-                    {lang === 'en' ? 'Locality / Landmark' : 'टोल वा चोक'}
+                    {lang === 'en' ? 'Locality / Area / Landmark' : 'टोल, वडा वा चोक'}
                   </label>
                   <div className="relative">
                     <input
                       type="text"
                       value={localityQuery}
                       onChange={(e) => setLocalityQuery(e.target.value)}
-                      placeholder={lang === 'en' ? 'e.g. Baneshwor, Pulchowk...' : 'उदा. बानेश्वर, पुल्चोक...'}
+                      placeholder={lang === 'en' ? 'e.g. Baneshwor, Jhamsikhel, Pokhara...' : 'उदा. बानेश्वर, झम्सीखेल, पोखरा...'}
                       className="w-full bg-black/60 border border-white/20 rounded-xl px-3.5 py-3 text-xs font-semibold text-white placeholder:text-white/40 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/30 min-h-touch"
                     />
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none text-gold">
@@ -322,15 +330,36 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* Big Gold Search CTA Button — Action 1 */}
-              <div className="pt-2">
+              {/* Primary Search CTA Button */}
+              <div className="pt-1">
                 <button
                   type="submit"
                   className="w-full py-4 rounded-2xl bg-gold hover:bg-gold/90 active:scale-97 text-black font-black text-sm tracking-wide shadow-subtle hover:-translate-y-0.5 flex items-center justify-center gap-2.5 transition-all min-h-touch"
                 >
                   <Search className="w-5 h-5 stroke-[2.5]" />
-                  <span>{lang === 'en' ? 'Search Rental Properties' : 'भाडाको सम्पत्ति खोज्नुहोस्'}</span>
+                  <span>{lang === 'en' ? 'Search Verified Rentals' : 'प्रमाणित भाडा खोज्नुहोस्'}</span>
                 </button>
+              </div>
+
+              {/* Quick-Filter Popular Locality Pills */}
+              <div className="pt-3 border-t border-white/10 flex flex-wrap items-center gap-2">
+                <span className="text-[11px] font-bold text-white/50 shrink-0">
+                  {lang === 'en' ? 'Popular Localities:' : 'लोकप्रिय क्षेत्र:'}
+                </span>
+                {POPULAR_LOCALITIES.map((loc) => (
+                  <button
+                    key={loc.nameEn}
+                    type="button"
+                    onClick={() => {
+                      setSelectedDistrict(loc.district);
+                      setLocalityQuery(loc.nameEn);
+                      router.push(`/search?type=RENT_HOUSE&district=${loc.district}&q=${encodeURIComponent(loc.nameEn)}`);
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-gold/20 text-white/80 hover:text-gold border border-white/10 hover:border-gold/40 text-[11px] font-semibold transition-all active:scale-95"
+                  >
+                    {lang === 'ne' ? loc.nameNe : loc.nameEn}
+                  </button>
+                ))}
               </div>
             </form>
           </div>
@@ -447,8 +476,8 @@ export default function HomePage() {
                         {`${liveCount}\u00A0${liveCount === 1 ? (lang === 'en' ? 'Listing' : 'सूची') : (lang === 'en' ? 'Listings' : 'सूचीहरू')}`}
                       </span>
                     ) : (
-                      <span className="text-xs text-white/40 font-medium">
-                        {lang === 'en' ? 'Explore Hub' : 'खोज्नुहोस्'}
+                      <span className="px-3 py-1 rounded-full bg-white/5 text-gold/80 border border-gold/20 text-xs font-bold tracking-wide">
+                        {lang === 'en' ? 'Verified Hub' : 'प्रमाणित हब'}
                       </span>
                     )}
                   </div>
@@ -466,8 +495,12 @@ export default function HomePage() {
               <Search className="w-4 h-4 stroke-[2.5]" />
               <span>
                 {lang === 'en'
-                  ? `Browse All ${totalActiveCount > 0 ? totalActiveCount : ''} Active Rentals`
-                  : `सबै ${totalActiveCount > 0 ? totalActiveCount : ''} सक्रिय भाडा हेर्नुहोस्`}
+                  ? totalActiveCount > 0
+                    ? `Browse All ${totalActiveCount} Active Rentals`
+                    : 'Browse All Active Rentals'
+                  : totalActiveCount > 0
+                    ? `सबै ${totalActiveCount} सक्रिय भाडा हेर्नुहोस्`
+                    : 'सबै सक्रिय भाडा हेर्नुहोस्'}
               </span>
             </Link>
           </div>
@@ -560,7 +593,7 @@ export default function HomePage() {
                   </p>
                 </div>
                 <Link
-                  href={user ? '/post-property' : '/auth?mode=signup'}
+                  href={user ? '/post-property' : '/auth?mode=signup&next=/post-property'}
                   className="inline-flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs uppercase tracking-wider border border-white/20 transition-all active:scale-97 min-h-touch"
                 >
                   <span>{lang === 'en' ? 'Post Property Free' : 'सम्पत्ति सूचीकृत गर्नुहोस्'}</span>
@@ -634,21 +667,10 @@ export default function HomePage() {
           </div>
 
           {/* Listings Grid: 1 column on mobile, 3 on desktop */}
-          {loadingRentals ? (
+          {loadingRentals && featuredRentals.length === 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3].map((n) => (
-                <div
-                  key={n}
-                  className="bg-white/[0.06] rounded-2xl border border-white/10 p-5 space-y-4 animate-pulse"
-                >
-                  <div className="aspect-[4/3] bg-white/10 rounded-xl" />
-                  <div className="h-6 w-1/2 bg-white/10 rounded" />
-                  <div className="h-4 w-3/4 bg-white/10 rounded" />
-                  <div className="grid grid-cols-2 gap-2 pt-2">
-                    <div className="h-10 bg-white/10 rounded" />
-                    <div className="h-10 bg-white/10 rounded" />
-                  </div>
-                </div>
+                <PropertyCardSkeleton key={n} />
               ))}
             </div>
           ) : featuredRentals.length > 0 ? (
@@ -675,7 +697,7 @@ export default function HomePage() {
                   : 'आफ्नो क्षेत्रको पहिलो घरधनी बनेर निःशुल्क विज्ञापन राख्नुहोस्।'}
               </p>
               <Link
-                href="/post-property"
+                href={user ? '/post-property' : '/auth?mode=signup&next=/post-property'}
                 className="px-6 py-3 rounded-xl bg-gold text-black font-black text-xs uppercase tracking-wider inline-flex items-center gap-2"
               >
                 <span>{lang === 'en' ? 'Post Property Free' : 'सम्पत्ति सूचीकृत गर्नुहोस्'}</span>
